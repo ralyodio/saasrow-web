@@ -5,6 +5,8 @@ import Link from 'next/link'
 
 export function Footer() {
   const [email, setEmail] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const navigationLinks = [
     { label: 'About us', href: '/about' },
@@ -18,9 +20,33 @@ export function Footer() {
     { label: 'Privacy Policy', href: '/privacy' },
   ]
 
-  const handleSubscribe = (e: FormEvent) => {
+  const handleSubscribe = async (e: FormEvent) => {
     e.preventDefault()
-    console.log('Subscribing email:', email)
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/newsletter', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Successfully subscribed!' })
+        setEmail('')
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to subscribe' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -46,15 +72,24 @@ export function Footer() {
                   onChange={(e: ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
                   placeholder="Enter your email"
                   required
-                  className="flex-1 bg-transparent text-white font-ubuntu text-lg outline-none"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-transparent text-white font-ubuntu text-lg outline-none disabled:opacity-50"
                 />
                 <button
                   type="submit"
-                  className="ml-4 px-8 py-2 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-medium hover:opacity-90 transition-opacity"
+                  disabled={isSubmitting}
+                  className="ml-4 px-8 py-2 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Subscribe Now
+                  {isSubmitting ? 'Subscribing...' : 'Subscribe Now'}
                 </button>
               </div>
+              {message && (
+                <p className={`mt-2 text-sm font-ubuntu ${
+                  message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                }`}>
+                  {message.text}
+                </p>
+              )}
             </form>
           </div>
         </section>

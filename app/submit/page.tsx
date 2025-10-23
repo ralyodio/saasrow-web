@@ -10,15 +10,41 @@ export default function SubmitPage() {
     url: '',
     description: '',
   })
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
-    console.log('Submitting:', formData)
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/submissions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Software submitted successfully! It will be reviewed soon.' })
+        setFormData({ title: '', url: '', description: '' })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to submit' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -143,11 +169,30 @@ export default function SubmitPage() {
               </div>
             </div>
 
+            {message && (
+              <div
+                className={`rounded-2xl p-4 ${
+                  message.type === 'success'
+                    ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
+                    : 'bg-red-400/10 border border-red-400'
+                }`}
+              >
+                <p
+                  className={`text-center font-ubuntu ${
+                    message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                  }`}
+                >
+                  {message.text}
+                </p>
+              </div>
+            )}
+
             <button
               type="submit"
-              className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity"
+              disabled={isSubmitting}
+              className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Submit
+              {isSubmitting ? 'Submitting...' : 'Submit'}
             </button>
           </form>
         </main>
