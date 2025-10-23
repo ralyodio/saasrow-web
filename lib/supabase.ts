@@ -1,9 +1,36 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+let supabaseInstance: SupabaseClient | undefined
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+function getSupabaseClient() {
+  if (!supabaseInstance) {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      // Return a mock client during build if env vars aren't available
+      if (process.env.NODE_ENV !== 'production' || typeof window === 'undefined') {
+        console.warn('Supabase env vars not available, using mock client')
+        // Create a proxy that throws on any method call
+        return new Proxy({} as SupabaseClient, {
+          get: () => {
+            throw new Error('Supabase client not properly initialized')
+          }
+        })
+      }
+      throw new Error('Supabase environment variables are required')
+    }
+
+    supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)
+  }
+  return supabaseInstance
+}
+
+export const supabase = new Proxy({} as SupabaseClient, {
+  get: (target, prop) => {
+    return getSupabaseClient()[prop as keyof SupabaseClient]
+  }
+})
 
 export type NewsletterSubscription = {
   id: string
