@@ -21,12 +21,20 @@ Deno.serve(async (req: Request) => {
     )
 
     if (req.method === 'GET') {
-      const { data, error } = await supabase
+      const url = new URL(req.url)
+      const includeAll = url.searchParams.get('all') === 'true'
+
+      let query = supabase
         .from('software_submissions')
         .select('*')
-        .eq('status', 'approved')
         .order('created_at', { ascending: false })
         .limit(50)
+
+      if (!includeAll) {
+        query = query.eq('status', 'approved')
+      }
+
+      const { data, error } = await query
 
       if (error) {
         return new Response(

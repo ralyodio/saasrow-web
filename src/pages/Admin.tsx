@@ -24,8 +24,9 @@ export default function AdminPage() {
 
   const fetchSubmissions = async () => {
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?all=true`
       const response = await fetch(apiUrl, {
+        method: 'GET',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
@@ -34,6 +35,8 @@ export default function AdminPage() {
       if (response.ok) {
         const result = await response.json()
         setSubmissions(result.data || [])
+      } else {
+        console.error('Failed to fetch submissions:', await response.text())
       }
     } catch (error) {
       console.error('Failed to fetch submissions:', error)
