@@ -325,19 +325,29 @@ Deno.serve(async (req: Request) => {
     }
 
     try {
+      console.log('Starting Puppeteer screenshot capture...')
       const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       })
+      console.log('Browser launched successfully')
+
       const page = await browser.newPage()
+      console.log('New page created')
+
       await page.setViewport({ width: 1280, height: 800 })
+      console.log('Viewport set, navigating to URL...')
+
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+      console.log('Page loaded successfully')
 
       const screenshotBuffer = await page.screenshot({
         type: 'png',
         fullPage: false,
       })
+      console.log('Screenshot captured, size:', screenshotBuffer.length)
 
       await browser.close()
+      console.log('Browser closed')
 
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`
       const { error: uploadError } = await supabase.storage
@@ -352,9 +362,14 @@ Deno.serve(async (req: Request) => {
         if (!imagePath) {
           imagePath = fileName
         }
+        console.log('Screenshot uploaded successfully:', fileName)
+      } else {
+        console.error('Screenshot upload error:', uploadError)
       }
     } catch (error) {
-      console.error('Failed to capture screenshot:', error)
+      console.error('Failed to capture screenshot - ERROR DETAILS:', error)
+      console.error('Error message:', error instanceof Error ? error.message : String(error))
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     }
 
     const result = {
