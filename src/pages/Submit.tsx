@@ -1,6 +1,7 @@
 import { useState, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { supabase } from '../lib/supabase'
 
 interface FetchedData {
   url: string
@@ -26,6 +27,8 @@ export default function SubmitPage() {
   })
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -56,8 +59,17 @@ export default function SubmitPage() {
           category: data.category,
           tags: data.tags || [],
         })
-        setPreviewImage(data.image)
-        setLogoUrl(data.logo)
+
+        if (data.image) {
+          const { data: imageData } = supabase.storage.from('software-images').getPublicUrl(data.image)
+          setPreviewImage(imageData.publicUrl)
+        }
+
+        if (data.logo) {
+          const { data: logoData } = supabase.storage.from('software-logos').getPublicUrl(data.logo)
+          setLogoUrl(logoData.publicUrl)
+        }
+
         setStep('edit')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to fetch metadata' })
@@ -74,12 +86,75 @@ export default function SubmitPage() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleLogoUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Logo file must be less than 5MB' })
+        return
+      }
+      setLogoFile(file)
+      setLogoUrl(URL.createObjectURL(file))
+    }
+  }
+
+  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        setMessage({ type: 'error', text: 'Image file must be less than 10MB' })
+        return
+      }
+      setImageFile(file)
+      setPreviewImage(URL.createObjectURL(file))
+    }
+  }
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setMessage(null)
 
     try {
+      let uploadedLogoPath: string | null = null
+      let uploadedImagePath: string | null = null
+
+      if (logoFile) {
+        const fileExt = logoFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const { error: logoError } = await supabase.storage
+          .from('software-logos')
+          .upload(fileName, logoFile, {
+            cacheControl: '3600',
+            upsert: false,
+          })
+
+        if (logoError) {
+          setMessage({ type: 'error', text: 'Failed to upload logo' })
+          setIsSubmitting(false)
+          return
+        }
+        uploadedLogoPath = fileName
+      }
+
+      if (imageFile) {
+        const fileExt = imageFile.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const { error: imageError } = await supabase.storage
+          .from('software-images')
+          .upload(fileName, imageFile, {
+            cacheControl: '3600',
+            upsert: false,
+          })
+
+        if (imageError) {
+          setMessage({ type: 'error', text: 'Failed to upload image' })
+          setIsSubmitting(false)
+          return
+        }
+        uploadedImagePath = fileName
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -89,8 +164,8 @@ export default function SubmitPage() {
         },
         body: JSON.stringify({
           ...formData,
-          logo: logoUrl,
-          image: previewImage,
+          logo: uploadedLogoPath,
+          image: uploadedImagePath,
         }),
       })
 
@@ -102,6 +177,8 @@ export default function SubmitPage() {
         setUrl('')
         setPreviewImage(null)
         setLogoUrl(null)
+        setLogoFile(null)
+        setImageFile(null)
         setStep('url')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
@@ -119,6 +196,8 @@ export default function SubmitPage() {
     setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
     setPreviewImage(null)
     setLogoUrl(null)
+    setLogoFile(null)
+    setImageFile(null)
     setMessage(null)
   }
 
@@ -211,29 +290,81 @@ export default function SubmitPage() {
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <div className="flex items-start gap-6">
-                  {logoUrl && (
-                    <div className="flex-shrink-0">
-                      <label className="block text-white font-ubuntu text-sm mb-2">Logo</label>
-                      <img
-                        src={logoUrl}
-                        alt="Logo"
-                        className="w-16 h-16 rounded-lg bg-white p-2"
-                        onError={() => setLogoUrl(null)}
-                      />
-                    </div>
-                  )}
-                  {previewImage && (
-                    <div className="flex-1">
-                      <label className="block text-white font-ubuntu text-sm mb-2">Preview Image</label>
-                      <img
-                        src={previewImage}
-                        alt="Preview"
-                        className="w-full h-32 object-cover rounded-lg"
-                        onError={() => setPreviewImage(null)}
-                      />
-                    </div>
-                  )}
+                <h3 className="text-white font-ubuntu text-lg mb-4">Images</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-white font-ubuntu text-sm mb-2">Logo</label>
+                    {logoUrl ? (
+                      <div className="relative">
+                        <img
+                          src={logoUrl}
+                          alt="Logo"
+                          className="w-full h-32 rounded-lg bg-white p-4 object-contain"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLogoUrl(null)
+                            setLogoFile(null)
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#4a4a4a] rounded-lg cursor-pointer hover:border-[#4FFFE3] transition-colors">
+                        <svg className="w-8 h-8 text-white/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="text-white/50 font-ubuntu text-sm">Upload Logo</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml,image/x-icon"
+                          onChange={handleLogoUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    <p className="text-white/50 text-xs font-ubuntu mt-2">Max 5MB. PNG, JPG, SVG, ICO</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-white font-ubuntu text-sm mb-2">Preview Image</label>
+                    {previewImage ? (
+                      <div className="relative">
+                        <img
+                          src={previewImage}
+                          alt="Preview"
+                          className="w-full h-32 object-cover rounded-lg"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setPreviewImage(null)
+                            setImageFile(null)
+                          }}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-[#4a4a4a] rounded-lg cursor-pointer hover:border-[#4FFFE3] transition-colors">
+                        <svg className="w-8 h-8 text-white/50 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span className="text-white/50 font-ubuntu text-sm">Upload Image</span>
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/jpg,image/webp"
+                          onChange={handleImageUpload}
+                          className="hidden"
+                        />
+                      </label>
+                    )}
+                    <p className="text-white/50 text-xs font-ubuntu mt-2">Max 10MB. PNG, JPG, WEBP</p>
+                  </div>
                 </div>
               </div>
 

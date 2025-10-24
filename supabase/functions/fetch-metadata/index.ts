@@ -59,7 +59,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 
     const pngIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i) ||
                          html.match(/<link[^>]*type=["']image\/png["'][^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i) ||
-                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["]'/i)
+                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["']/i)
 
     if (pngIconMatch) {
       let favicon = pngIconMatch[1].trim()
@@ -185,14 +185,68 @@ Deno.serve(async (req: Request) => {
     const metadata = await fetchUrlMetadata(url)
     const aiGenerated = await generateWithAI(url, metadata)
 
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    let logoPath: string | null = null
+    let imagePath: string | null = null
+
+    if (metadata.favicon) {
+      try {
+        const logoResponse = await fetch(metadata.favicon)
+        if (logoResponse.ok) {
+          const logoBlob = await logoResponse.blob()
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${logoBlob.type.split('/')[1] || 'png'}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('software-logos')
+            .upload(fileName, logoBlob, {
+              contentType: logoBlob.type,
+              cacheControl: '3600',
+            })
+
+          if (!uploadError) {
+            logoPath = fileName
+          }
+        }
+      } catch (error) {
+        console.error('Failed to download/upload logo:', error)
+      }
+    }
+
+    if (metadata.image) {
+      try {
+        const imageResponse = await fetch(metadata.image)
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob()
+          const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${imageBlob.type.split('/')[1] || 'png'}`
+
+          const { error: uploadError } = await supabase.storage
+            .from('software-images')
+            .upload(fileName, imageBlob, {
+              contentType: imageBlob.type,
+              cacheControl: '3600',
+            })
+
+          if (!uploadError) {
+            imagePath = fileName
+          }
+        }
+      } catch (error) {
+        console.error('Failed to download/upload image:', error)
+      }
+    }
+
     const result = {
       url,
       title: aiGenerated.title,
       description: aiGenerated.description,
       category: aiGenerated.category,
       tags: aiGenerated.tags,
-      image: metadata.image || null,
-      logo: metadata.favicon || null,
+      image: imagePath,
+      logo: logoPath,
     }
 
     return new Response(

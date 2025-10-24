@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 
 interface Software {
   id: string
@@ -150,7 +151,7 @@ export function SoftwareListings({
               {software.logo && (
                 <div className="flex-shrink-0">
                   <img
-                    src={software.logo}
+                    src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
                     alt={`${software.title} logo`}
                     className="w-16 h-16 rounded-lg bg-white p-2 object-contain"
                     onError={(e) => {
@@ -172,7 +173,7 @@ export function SoftwareListings({
             {software.image && (
               <div className="mb-4 rounded-lg overflow-hidden">
                 <img
-                  src={software.image}
+                  src={supabase.storage.from('software-images').getPublicUrl(software.image).data.publicUrl}
                   alt={`${software.title} preview`}
                   className="w-full h-32 object-cover"
                   onError={(e) => {

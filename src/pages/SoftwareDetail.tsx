@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { supabase } from '../lib/supabase'
 
 interface Submission {
   id: string
@@ -101,7 +102,7 @@ export default function SoftwareDetailPage() {
                   {submission.logo && (
                     <div className="flex-shrink-0">
                       <img
-                        src={submission.logo}
+                        src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
                         alt={`${submission.title} logo`}
                         className="w-24 h-24 rounded-xl bg-white p-3 object-contain"
                         onError={(e) => {
@@ -123,7 +124,7 @@ export default function SoftwareDetailPage() {
                 {submission.image && (
                   <div className="mb-6 rounded-xl overflow-hidden">
                     <img
-                      src={submission.image}
+                      src={supabase.storage.from('software-images').getPublicUrl(submission.image).data.publicUrl}
                       alt={`${submission.title} preview`}
                       className="w-full h-64 object-cover"
                       onError={(e) => {
