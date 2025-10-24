@@ -22,7 +22,7 @@ export default function FeaturedPage() {
       name: 'Basic',
       description: 'For growing companies',
       monthlyPrice: 2,
-      yearlyPrice: 20,
+      yearlyPrice: 19.2,
       features: [
         'Up to 5 software listings',
         'Featured badge on listings',
@@ -36,7 +36,7 @@ export default function FeaturedPage() {
       name: 'Premium',
       description: 'For established brands',
       monthlyPrice: 4,
-      yearlyPrice: 40,
+      yearlyPrice: 38.4,
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
@@ -114,7 +114,7 @@ export default function FeaturedPage() {
                     : 'text-white'
                 }`}
               >
-                Yearly <span className="text-sm opacity-70">(Save 17%)</span>
+                Yearly <span className="text-sm opacity-70">(Save 20%)</span>
               </button>
               <button
                 onClick={() => setBillingPeriod('monthly')}
