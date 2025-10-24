@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../../src/lib/supabase'
 
 describe('Newsletter API', () => {
   const testEmail = `test-${Date.now()}@example.com`

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { supabase } from '@/lib/supabase'
+import { supabase } from '../../src/lib/supabase'
 
 describe('Community Posts API', () => {
   const testPost = {

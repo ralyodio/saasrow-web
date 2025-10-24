@@ -4,21 +4,16 @@ let supabaseInstance: SupabaseClient | undefined
 
 function getSupabaseClient() {
   if (!supabaseInstance) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
     if (!supabaseUrl || !supabaseAnonKey) {
-      // Return a mock client during build if env vars aren't available
-      if (process.env.NODE_ENV !== 'production' || typeof window === 'undefined') {
-        console.warn('Supabase env vars not available, using mock client')
-        // Create a proxy that throws on any method call
-        return new Proxy({} as SupabaseClient, {
-          get: () => {
-            throw new Error('Supabase client not properly initialized')
-          }
-        })
-      }
-      throw new Error('Supabase environment variables are required')
+      console.warn('Supabase env vars not available, using mock client')
+      return new Proxy({} as SupabaseClient, {
+        get: () => {
+          throw new Error('Supabase client not properly initialized')
+        }
+      })
     }
 
     supabaseInstance = createClient(supabaseUrl, supabaseAnonKey)

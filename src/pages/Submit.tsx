@@ -1,5 +1,3 @@
-'use client'
-
 import { useState, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
@@ -24,9 +22,11 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
-      const response = await fetch('/api/submissions', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(formData),

@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, FormEvent, ChangeEvent } from 'react'
-import Link from 'next/link'
+import { Link } from 'react-router-dom'
 
 export function Footer() {
   const [email, setEmail] = useState('')
@@ -26,9 +24,11 @@ export function Footer() {
     setMessage(null)
 
     try {
-      const response = await fetch('/api/newsletter', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ email }),
@@ -98,7 +98,7 @@ export function Footer() {
           {navigationLinks.map((link) => (
             <Link
               key={link.label}
-              href={link.href}
+              to={link.href}
               className="font-ubuntu text-white text-lg hover:underline"
             >
               {link.label}
@@ -115,13 +115,13 @@ export function Footer() {
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white/75 font-ubuntu text-sm">
           <p>© 2019 SaaSRow. All rights reserved.</p>
 
-          <Link href="/">
+          <Link to="/">
             <img className="h-10 w-auto" alt="Wiresniff logo" src="/wiresniff-logo-1-1.png" />
           </Link>
 
           <nav className="flex gap-8">
             {footerLinks.map((link) => (
-              <Link key={link.label} href={link.href} className="hover:underline">
+              <Link key={link.label} to={link.href} className="hover:underline">
                 {link.label}
               </Link>
             ))}

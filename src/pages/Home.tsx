@@ -1,6 +1,6 @@
-import { Header } from './components/Header'
-import { SearchSection } from './components/SearchSection'
-import { Footer } from './components/Footer'
+import { Header } from '../components/Header'
+import { SearchSection } from '../components/SearchSection'
+import { Footer } from '../components/Footer'
 
 export default function HomePage() {
   return (

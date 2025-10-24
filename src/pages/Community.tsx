@@ -1,9 +1,7 @@
-'use client'
-
 import { useEffect, useState } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
-import type { CommunityPost } from '@/lib/supabase'
+import type { CommunityPost } from '../lib/supabase'
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([])
@@ -16,7 +14,12 @@ export default function CommunityPage() {
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch('/api/community')
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/community`
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
       const result = await response.json()
 
       if (response.ok) {
@@ -33,9 +36,11 @@ export default function CommunityPage() {
 
   const handleLike = async (postId: string, currentLikes: number) => {
     try {
-      const response = await fetch('/api/community', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/community`
+      const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
