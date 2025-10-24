@@ -87,7 +87,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
   }
 }
 
-async function generateWithAI(url: string, metadata: MetaData): Promise<{ title: string; description: string; category: string }> {
+async function generateWithAI(url: string, metadata: MetaData): Promise<{ title: string; description: string; category: string; tags: string[] }> {
   const openai = new OpenAI({
     apiKey: Deno.env.get('OPENAI_API_KEY'),
   })
@@ -106,8 +106,9 @@ Generate:
 1. A clear, concise title (max 60 characters) - use existing title if good, otherwise improve it
 2. A compelling description (100-150 characters) that explains what the software does - use existing description if good, otherwise write better
 3. A category from: Software, Security, Productivity, Development, Design, Marketing, Analytics, Communication
+4. 3-5 relevant tags (lowercase, single words or short phrases) that describe the software's features, use cases, or technologies (e.g., "automation", "cloud", "open-source", "saas", "api", "analytics")
 
-Return ONLY a JSON object with keys: title, description, category
+Return ONLY a JSON object with keys: title, description, category, tags (array of strings)
 No markdown, no code blocks, just the raw JSON.`
 
   try {
@@ -124,6 +125,7 @@ No markdown, no code blocks, just the raw JSON.`
       title: parsed.title || metadata.title || 'Unknown Software',
       description: parsed.description || metadata.description || 'No description available',
       category: parsed.category || 'Software',
+      tags: Array.isArray(parsed.tags) ? parsed.tags : [],
     }
   } catch (error) {
     console.error('AI generation error:', error)
@@ -131,6 +133,7 @@ No markdown, no code blocks, just the raw JSON.`
       title: metadata.title || 'Unknown Software',
       description: metadata.description || 'No description available',
       category: 'Software',
+      tags: [],
     }
   }
 }
@@ -187,6 +190,7 @@ Deno.serve(async (req: Request) => {
       title: aiGenerated.title,
       description: aiGenerated.description,
       category: aiGenerated.category,
+      tags: aiGenerated.tags,
       image: metadata.image || null,
       logo: metadata.favicon || null,
     }

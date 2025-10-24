@@ -7,6 +7,7 @@ interface FetchedData {
   title: string
   description: string
   category: string
+  tags: string[]
   image: string | null
   logo: string | null
 }
@@ -21,6 +22,7 @@ export default function SubmitPage() {
     description: '',
     email: '',
     category: '',
+    tags: [] as string[],
   })
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
@@ -52,6 +54,7 @@ export default function SubmitPage() {
           description: data.description,
           email: '',
           category: data.category,
+          tags: data.tags || [],
         })
         setPreviewImage(data.image)
         setLogoUrl(data.logo)
@@ -91,7 +94,7 @@ export default function SubmitPage() {
 
       if (response.ok) {
         setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
-        setFormData({ title: '', url: '', description: '', email: '', category: '' })
+        setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
         setUrl('')
         setPreviewImage(null)
         setLogoUrl(null)
@@ -109,10 +112,29 @@ export default function SubmitPage() {
   const handleStartOver = () => {
     setStep('url')
     setUrl('')
-    setFormData({ title: '', url: '', description: '', email: '', category: '' })
+    setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
     setPreviewImage(null)
     setLogoUrl(null)
     setMessage(null)
+  }
+
+  const handleRemoveTag = (indexToRemove: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((_, index) => index !== indexToRemove),
+    }))
+  }
+
+  const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      const input = e.currentTarget
+      const newTag = input.value.trim().toLowerCase()
+      if (newTag && !formData.tags.includes(newTag)) {
+        setFormData((prev) => ({ ...prev, tags: [...prev.tags, newTag] }))
+        input.value = ''
+      }
+    }
   }
 
   return (
@@ -298,6 +320,38 @@ export default function SubmitPage() {
                     required
                     className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-white font-ubuntu text-lg mb-2">
+                    Tags
+                  </label>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {formData.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center gap-2 px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-sm font-ubuntu"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(index)}
+                          className="hover:text-white transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    onKeyDown={handleAddTag}
+                    placeholder="Type a tag and press Enter"
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  />
+                  <p className="text-white/50 text-sm font-ubuntu mt-2">
+                    Press Enter to add tags. AI suggested: {formData.tags.join(', ')}
+                  </p>
                 </div>
               </div>
 

@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { title, url, description, email, category } = body
+      const { title, url, description, email, category, tags } = body
 
       if (!title || !url || !description || !email || !category) {
         return new Response(
@@ -131,9 +131,22 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      const submissionData: any = {
+        title,
+        url,
+        description,
+        email,
+        category,
+        status: 'pending'
+      }
+
+      if (tags && Array.isArray(tags)) {
+        submissionData.tags = tags
+      }
+
       const { data, error } = await supabase
         .from('software_submissions')
-        .insert({ title, url, description, email, category, status: 'pending' })
+        .insert(submissionData)
         .select()
         .maybeSingle()
 
