@@ -131,42 +131,9 @@ export function expressPlugin() {
         }
       }
 
-      function generateBasicTags(title, description, url) {
-        const tags = []
-        const text = `${title} ${description} ${url}`.toLowerCase()
-
-        const tagKeywords = {
-          'api': ['api', 'rest', 'graphql'],
-          'cloud': ['cloud', 'aws', 'azure', 'gcp'],
-          'opensource': ['open-source', 'github', 'open source'],
-          'saas': ['saas', 'software as a service'],
-          'security': ['security', 'encryption', 'auth'],
-          'analytics': ['analytics', 'tracking', 'metrics'],
-          'productivity': ['productivity', 'workflow', 'automation'],
-          'ai': ['ai', 'machine learning', 'ml', 'artificial intelligence'],
-          'database': ['database', 'sql', 'nosql', 'db'],
-          'monitoring': ['monitoring', 'observability', 'logging'],
-        }
-
-        for (const [tag, keywords] of Object.entries(tagKeywords)) {
-          if (keywords.some(keyword => text.includes(keyword))) {
-            tags.push(tag)
-          }
-        }
-
-        return tags.slice(0, 5)
-      }
-
       async function generateWithAI(url, metadata) {
         if (!openai) {
-          console.warn('OPENAI_API_KEY not configured, using fallback metadata')
-          const basicTags = generateBasicTags(metadata.title || '', metadata.description || '', url)
-          return {
-            title: metadata.title || 'Unknown Software',
-            description: metadata.description || 'No description available',
-            category: 'Software',
-            tags: basicTags,
-          }
+          throw new Error('OPENAI_API_KEY is required for metadata generation')
         }
 
         const existingInfo = `
@@ -206,13 +173,7 @@ No markdown, no code blocks, just the raw JSON.`
           }
         } catch (error) {
           console.error('AI generation error:', error)
-          const basicTags = generateBasicTags(metadata.title || '', metadata.description || '', url)
-          return {
-            title: metadata.title || 'Unknown Software',
-            description: metadata.description || 'No description available',
-            category: 'Software',
-            tags: basicTags,
-          }
+          throw error
         }
       }
 
