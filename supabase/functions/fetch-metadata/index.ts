@@ -301,9 +301,9 @@ Deno.serve(async (req: Request) => {
     let imagePath: string | null = null
     let screenshotPath: string | null = null
 
-    const screenshot = await captureScreenshot(url)
-    if (screenshot) {
-      try {
+    try {
+      const screenshot = await captureScreenshot(url)
+      if (screenshot) {
         const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).substring(7)}.png`
 
         const { error: uploadError } = await supabase.storage
@@ -316,9 +316,9 @@ Deno.serve(async (req: Request) => {
         if (!uploadError) {
           screenshotPath = fileName
         }
-      } catch (error) {
-        console.error('Failed to upload screenshot:', error)
       }
+    } catch (screenshotError) {
+      console.error('Screenshot capture failed (non-critical):', screenshotError)
     }
 
     if (metadata.favicon) {
@@ -387,8 +387,15 @@ Deno.serve(async (req: Request) => {
     )
   } catch (error) {
     console.error('Server error:', error)
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    const errorStack = error instanceof Error ? error.stack : ''
+    console.error('Error stack:', errorStack)
+
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({
+        error: errorMessage,
+        details: errorStack ? errorStack.split('\n').slice(0, 3).join('\n') : undefined
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
