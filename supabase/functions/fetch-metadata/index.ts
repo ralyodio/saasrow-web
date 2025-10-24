@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { OpenAI } from 'npm:openai@4.47.1'
+import puppeteer from 'npm:puppeteer@23.11.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -59,7 +60,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 
     const pngIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i) ||
                          html.match(/<link[^>]*type=["']image\/png["'][^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i) ||
-                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["']/i)
+                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["]'/i)
 
     if (pngIconMatch) {
       let favicon = pngIconMatch[1].trim()
@@ -138,6 +139,43 @@ No markdown, no code blocks, just the raw JSON.`
   }
 }
 
+async function captureScreenshot(url: string): Promise<Blob | null> {
+  let browser = null
+  try {
+    browser = await puppeteer.launch({
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-gpu',
+      ],
+    })
+
+    const page = await browser.newPage()
+    await page.setViewport({ width: 1280, height: 800 })
+
+    await page.goto(url, {
+      waitUntil: 'networkidle2',
+      timeout: 30000,
+    })
+
+    const screenshot = await page.screenshot({
+      type: 'png',
+      fullPage: false,
+    })
+
+    await browser.close()
+
+    return new Blob([screenshot], { type: 'image/png' })
+  } catch (error) {
+    console.error('Failed to capture screenshot:', error)
+    if (browser) {
+      await browser.close()
+    }
+    return null
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -192,6 +230,27 @@ Deno.serve(async (req: Request) => {
 
     let logoPath: string | null = null
     let imagePath: string | null = null
+    let screenshotPath: string | null = null
+
+    const screenshotBlob = await captureScreenshot(url)
+    if (screenshotBlob) {
+      try {
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+
+        const { error: uploadError } = await supabase.storage
+          .from('software-images')
+          .upload(fileName, screenshotBlob, {
+            contentType: 'image/png',
+            cacheControl: '3600',
+          })
+
+        if (!uploadError) {
+          screenshotPath = fileName
+        }
+      } catch (error) {
+        console.error('Failed to upload screenshot:', error)
+      }
+    }
 
     if (metadata.favicon) {
       try {
@@ -245,7 +304,7 @@ Deno.serve(async (req: Request) => {
       description: aiGenerated.description,
       category: aiGenerated.category,
       tags: aiGenerated.tags,
-      image: imagePath,
+      image: screenshotPath || imagePath,
       logo: logoPath,
     }
 
