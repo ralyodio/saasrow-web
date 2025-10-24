@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { OpenAI } from 'npm:openai@4.47.1'
-import puppeteer from 'npm:puppeteer@23.11.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -139,40 +138,12 @@ No markdown, no code blocks, just the raw JSON.`
   }
 }
 
-async function captureScreenshot(url: string): Promise<Blob | null> {
-  let browser = null
+function normalizeUrl(url: string): string {
   try {
-    browser = await puppeteer.launch({
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-      ],
-    })
-
-    const page = await browser.newPage()
-    await page.setViewport({ width: 1280, height: 800 })
-
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    })
-
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-    })
-
-    await browser.close()
-
-    return new Blob([screenshot], { type: 'image/png' })
-  } catch (error) {
-    console.error('Failed to capture screenshot:', error)
-    if (browser) {
-      await browser.close()
-    }
-    return null
+    const urlObj = new URL(url)
+    return `${urlObj.protocol}//${urlObj.host}`
+  } catch {
+    throw new Error('Invalid URL format')
   }
 }
 
@@ -196,9 +167,9 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json()
-    const { url } = body
+    const { url: inputUrl } = body
 
-    if (!url) {
+    if (!inputUrl) {
       return new Response(
         JSON.stringify({ error: 'URL is required' }),
         {
@@ -208,13 +179,38 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    let url: string
     try {
-      new URL(url)
+      url = normalizeUrl(inputUrl)
     } catch {
       return new Response(
-        JSON.stringify({ error: 'Invalid URL format' }),
+        JSON.stringify({ error: 'Invalid URL format. Please provide a valid domain (e.g., https://example.com)' }),
         {
           status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+
+    const { data: existing } = await supabase
+      .from('software_submissions')
+      .select('id, title, status')
+      .eq('url', url)
+      .maybeSingle()
+
+    if (existing) {
+      return new Response(
+        JSON.stringify({
+          error: `This domain has already been submitted as "${existing.title}"${existing.status === 'approved' ? ' and is live' : ' and is pending review'}.`,
+          duplicate: true
+        }),
+        {
+          status: 409,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
@@ -223,34 +219,8 @@ Deno.serve(async (req: Request) => {
     const metadata = await fetchUrlMetadata(url)
     const aiGenerated = await generateWithAI(url, metadata)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
     let logoPath: string | null = null
     let imagePath: string | null = null
-    let screenshotPath: string | null = null
-
-    const screenshotBlob = await captureScreenshot(url)
-    if (screenshotBlob) {
-      try {
-        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`
-
-        const { error: uploadError } = await supabase.storage
-          .from('software-images')
-          .upload(fileName, screenshotBlob, {
-            contentType: 'image/png',
-            cacheControl: '3600',
-          })
-
-        if (!uploadError) {
-          screenshotPath = fileName
-        }
-      } catch (error) {
-        console.error('Failed to upload screenshot:', error)
-      }
-    }
 
     if (metadata.favicon) {
       try {
@@ -304,7 +274,7 @@ Deno.serve(async (req: Request) => {
       description: aiGenerated.description,
       category: aiGenerated.category,
       tags: aiGenerated.tags,
-      image: screenshotPath || imagePath,
+      image: imagePath,
       logo: logoPath,
     }
 
