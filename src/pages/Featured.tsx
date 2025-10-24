@@ -155,7 +155,7 @@ export default function FeaturedPage() {
                 )}
                 {billingPeriod === 'yearly' && plan.yearlyPrice > 0 && (
                   <p className="text-white/50 text-sm font-ubuntu mb-4">
-                    Billed ${plan.yearlyPrice} annually
+                    Billed ${plan.yearlyPrice.toFixed(2)} annually
                   </p>
                 )}
                 <button
