@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 
 export function SearchSection() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -11,10 +11,37 @@ export function SearchSection() {
     { id: 'premium' as const, label: 'Premium' },
   ]
 
-  const categoryButtons = [
-    { id: 'software', label: 'Software' },
-    { id: 'security', label: 'Security' },
+  const categoryOptions = [
+    'Software',
+    'Security',
+    'Productivity',
+    'Development',
+    'Design',
+    'Marketing',
+    'Analytics',
+    'Communication',
   ]
+
+  const sortOptions = ['Most Popular', 'Newest', 'Top Rated', 'A-Z', 'Z-A']
+
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [selectedSort, setSelectedSort] = useState('Most Popular')
+  const categoryDropdownRef = useRef<HTMLDivElement>(null)
+  const sortDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+        setShowCategoryDropdown(false)
+      }
+      if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
+        setShowSortDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   const handleCategoryToggle = (category: string) => {
     setActiveCategories((prev) =>
@@ -56,26 +83,102 @@ export function SearchSection() {
         </div>
 
         <div className="flex items-center gap-4 mt-6">
-          {categoryButtons.map((category) => {
-            const isActive = activeCategories.includes(category.label)
-            return (
-              <button
-                key={category.id}
-                onClick={() => handleCategoryToggle(category.label)}
-                className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl"
-              >
-                {category.label}
-                <img className="w-4 h-4" alt="" src="/vector-2.svg" />
-              </button>
-            )
-          })}
+          <div ref={categoryDropdownRef} className="relative">
+            <button
+              onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+            >
+              Category
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {showCategoryDropdown && (
+              <div className="absolute top-full mt-2 bg-[#3a3a3a] rounded-xl shadow-xl overflow-hidden z-50 min-w-[200px]">
+                {categoryOptions.map((category) => {
+                  const isActive = activeCategories.includes(category)
+                  return (
+                    <button
+                      key={category}
+                      onClick={() => {
+                        handleCategoryToggle(category)
+                        setShowCategoryDropdown(false)
+                      }}
+                      className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors flex items-center gap-2 ${
+                        isActive ? 'bg-[#4a4a4a]' : ''
+                      }`}
+                    >
+                      {isActive && (
+                        <svg className="w-4 h-4 text-[#4FFFE3]" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {category}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
 
-          <button
-            onClick={() => setActiveCategories([])}
-            className="px-6 py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-2xl"
-          >
-            Clear All
-          </button>
+          <div ref={sortDropdownRef} className="relative">
+            <button
+              onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+            >
+              {selectedSort}
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {showSortDropdown && (
+              <div className="absolute top-full mt-2 bg-[#3a3a3a] rounded-xl shadow-xl overflow-hidden z-50 min-w-[200px]">
+                {sortOptions.map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => {
+                      setSelectedSort(option)
+                      setShowSortDropdown(false)
+                    }}
+                    className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors ${
+                      selectedSort === option ? 'bg-[#4a4a4a]' : ''
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {activeCategories.length > 0 && (
+            <>
+              <div className="flex flex-wrap gap-2">
+                {activeCategories.map((category) => (
+                  <span
+                    key={category}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E0FF04]/20 to-[#4FFFE3]/20 rounded-full text-white font-roboto border border-[#4FFFE3]/30"
+                  >
+                    {category}
+                    <button
+                      onClick={() => handleCategoryToggle(category)}
+                      className="hover:text-[#E0FF04] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <button
+                onClick={() => setActiveCategories([])}
+                className="px-6 py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-xl hover:opacity-80 transition-opacity"
+              >
+                Clear All
+              </button>
+            </>
+          )}
         </div>
       </div>
     </section>

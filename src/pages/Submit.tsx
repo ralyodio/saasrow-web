@@ -7,6 +7,8 @@ export default function SubmitPage() {
     title: '',
     url: '',
     description: '',
+    email: '',
+    category: '',
   })
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -35,8 +37,8 @@ export default function SubmitPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Software submitted successfully! It will be reviewed soon.' })
-        setFormData({ title: '', url: '', description: '' })
+        setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
+        setFormData({ title: '', url: '', description: '', email: '', category: '' })
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
       }
@@ -94,6 +96,46 @@ export default function SubmitPage() {
                   required
                   className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
                 />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-white font-ubuntu text-lg mb-2">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  placeholder="your.email@example.com"
+                  required
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="category" className="block text-white font-ubuntu text-lg mb-2">
+                  Category
+                </label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
+                  required
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                >
+                  <option value="">Select a category</option>
+                  <option value="Software">Software</option>
+                  <option value="Security">Security</option>
+                  <option value="Productivity">Productivity</option>
+                  <option value="Development">Development</option>
+                  <option value="Design">Design</option>
+                  <option value="Marketing">Marketing</option>
+                  <option value="Analytics">Analytics</option>
+                  <option value="Communication">Communication</option>
+                </select>
               </div>
 
               <div>

@@ -125,8 +125,17 @@ export default function FeaturedPage() {
                   <span className="text-white text-5xl font-bold font-ubuntu">{plan.price}</span>
                   <span className="text-white/70 font-ubuntu">{plan.period}</span>
                 </div>
-                <button className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6">
-                  Get started
+                <button
+                  onClick={() => {
+                    if (plan.name === 'Free') {
+                      window.location.href = '/submit'
+                    } else {
+                      alert(`Checkout for ${plan.name} plan - Payment processing will be integrated here`)
+                    }
+                  }}
+                  className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6"
+                >
+                  {plan.name === 'Free' ? 'Submit Now' : 'Checkout'}
                 </button>
                 <ul className="space-y-3 text-left">
                   {plan.features.map((feature, idx) => (
