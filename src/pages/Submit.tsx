@@ -72,10 +72,16 @@ export default function SubmitPage() {
 
         setStep('edit')
       } else {
-        setMessage({ type: 'error', text: data.error || 'Failed to fetch metadata' })
+        const errorMsg = data.error || 'Failed to fetch metadata'
+        const details = data.details ? `\n\nDetails: ${data.details}` : ''
+        setMessage({ type: 'error', text: errorMsg + details })
       }
     } catch (error) {
-      setMessage({ type: 'error', text: 'Something went wrong. Please check the URL and try again.' })
+      console.error('Fetch error:', error)
+      setMessage({
+        type: 'error',
+        text: `Something went wrong: ${error instanceof Error ? error.message : 'Please check the URL and try again.'}`
+      })
     } finally {
       setIsFetching(false)
     }

@@ -55,7 +55,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
     if (ogImageMatch) {
       metadata.image = ogImageMatch[1].trim()
     }
-
+    
     const urlObj = new URL(url)
     const baseUrl = `${urlObj.protocol}//${urlObj.host}`
 
@@ -123,8 +123,20 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 }
 
 async function generateWithAI(url: string, metadata: MetaData): Promise<{ title: string; description: string; category: string; tags: string[] }> {
+  const apiKey = Deno.env.get('OPENAI_API_KEY')
+
+  if (!apiKey) {
+    console.warn('OPENAI_API_KEY not configured, falling back to metadata only')
+    return {
+      title: metadata.title || 'Unknown Software',
+      description: metadata.description || 'No description available',
+      category: 'Software',
+      tags: [],
+    }
+  }
+
   const openai = new OpenAI({
-    apiKey: Deno.env.get('OPENAI_API_KEY'),
+    apiKey,
   })
 
   const existingInfo = `
