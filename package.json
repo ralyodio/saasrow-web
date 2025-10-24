@@ -21,8 +21,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^0.453.0",
     "next": "^16.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "react-router-dom": "^6.28.0",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7"
