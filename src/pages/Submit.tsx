@@ -38,10 +38,12 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
-      const response = await fetch('/api/fetch-metadata', {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-metadata`
+      const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({ url }),
       })
