@@ -1,6 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { OpenAI } from 'npm:openai@4.47.1'
-import puppeteer from 'npm:puppeteer@23.11.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -194,49 +193,6 @@ function normalizeUrl(url: string): string {
   }
 }
 
-async function captureScreenshot(url: string): Promise<Uint8Array | null> {
-  let browser = null
-  try {
-    browser = await puppeteer.launch({
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-gpu',
-        '--disable-software-rasterizer',
-      ],
-    })
-
-    const page = await browser.newPage()
-    await page.setViewport({ width: 1280, height: 800 })
-
-    await page.goto(url, {
-      waitUntil: 'networkidle2',
-      timeout: 30000,
-    })
-
-    const screenshot = await page.screenshot({
-      type: 'png',
-      fullPage: false,
-    })
-
-    await browser.close()
-
-    return screenshot as Uint8Array
-  } catch (error) {
-    console.error('Failed to capture screenshot:', error)
-    if (browser) {
-      try {
-        await browser.close()
-      } catch (closeError) {
-        console.error('Failed to close browser:', closeError)
-      }
-    }
-    return null
-  }
-}
-
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, {
@@ -311,27 +267,6 @@ Deno.serve(async (req: Request) => {
 
     let logoPath: string | null = null
     let imagePath: string | null = null
-    let screenshotPath: string | null = null
-
-    try {
-      const screenshot = await captureScreenshot(url)
-      if (screenshot) {
-        const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).substring(7)}.png`
-
-        const { error: uploadError } = await supabase.storage
-          .from('software-images')
-          .upload(fileName, screenshot, {
-            contentType: 'image/png',
-            cacheControl: '3600',
-          })
-
-        if (!uploadError) {
-          screenshotPath = fileName
-        }
-      }
-    } catch (screenshotError) {
-      console.error('Screenshot capture failed (non-critical):', screenshotError)
-    }
 
     if (metadata.favicon) {
       try {
@@ -385,7 +320,7 @@ Deno.serve(async (req: Request) => {
       description: aiGenerated.description,
       category: aiGenerated.category,
       tags: aiGenerated.tags,
-      image: screenshotPath || imagePath,
+      image: imagePath,
       logo: logoPath,
       socialLinks: metadata.socialLinks || [],
     }
