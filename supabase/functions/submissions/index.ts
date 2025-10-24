@@ -84,6 +84,38 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      const { data: existing } = await supabase
+        .from('software_submissions')
+        .select('id')
+        .eq('url', url)
+        .maybeSingle()
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ error: 'This URL has already been submitted' }),
+          {
+            status: 409,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      const { count } = await supabase
+        .from('software_submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('email', email)
+        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+
+      if (count && count >= 3) {
+        return new Response(
+          JSON.stringify({ error: 'Too many submissions. Please try again in 24 hours' }),
+          {
+            status: 429,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
       const { data, error } = await supabase
         .from('software_submissions')
         .insert({ title, url, description, email, category, status: 'pending' })
