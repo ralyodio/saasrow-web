@@ -302,11 +302,13 @@ export default function SubmitPage() {
                     <label className="block text-white font-ubuntu text-sm mb-2">Logo</label>
                     {logoUrl ? (
                       <div className="relative">
-                        <img
-                          src={logoUrl}
-                          alt="Logo"
-                          className="w-full h-32 rounded-lg bg-white p-4 object-contain"
-                        />
+                        <div className="w-32 h-32 rounded-lg bg-white p-4 flex items-center justify-center mx-auto">
+                          <img
+                            src={logoUrl}
+                            alt="Logo"
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        </div>
                         <button
                           type="button"
                           onClick={() => {
