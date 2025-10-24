@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { title, url, description, email, category, tags, logo, image } = body
+      const { title, url, description, email, category, tags, logo, image, socialLinks } = body
 
       if (!title || !url || !description || !email || !category) {
         return new Response(
@@ -166,6 +166,22 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
+      }
+
+      if (data && socialLinks && Array.isArray(socialLinks) && socialLinks.length > 0) {
+        const socialLinkInserts = socialLinks.map((link: { platform: string; url: string }) => ({
+          submission_id: data.id,
+          platform: link.platform,
+          url: link.url,
+        }))
+
+        const { error: socialError } = await supabase
+          .from('social_links')
+          .insert(socialLinkInserts)
+
+        if (socialError) {
+          console.error('Failed to insert social links:', socialError)
+        }
       }
 
       return new Response(

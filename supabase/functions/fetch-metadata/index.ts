@@ -13,6 +13,7 @@ interface MetaData {
   description?: string
   image?: string
   favicon?: string
+  socialLinks?: Array<{ platform: string; url: string }>
 }
 
 async function fetchUrlMetadata(url: string): Promise<MetaData> {
@@ -79,6 +80,39 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
       } else {
         metadata.favicon = `${baseUrl}/favicon.ico`
       }
+    }
+
+    const socialLinks: Array<{ platform: string; url: string }> = []
+    const socialPatterns = [
+      { platform: 'twitter', pattern: /(?:https?:\/\/)?(?:www\.)?(?:twitter\.com|x\.com)\/[a-zA-Z0-9_]+/gi },
+      { platform: 'github', pattern: /(?:https?:\/\/)?(?:www\.)?github\.com\/[a-zA-Z0-9_-]+/gi },
+      { platform: 'linkedin', pattern: /(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:company|in)\/[a-zA-Z0-9_-]+/gi },
+      { platform: 'facebook', pattern: /(?:https?:\/\/)?(?:www\.)?facebook\.com\/[a-zA-Z0-9._-]+/gi },
+      { platform: 'discord', pattern: /(?:https?:\/\/)?(?:www\.)?discord\.(?:gg|com\/invite)\/[a-zA-Z0-9]+/gi },
+      { platform: 'youtube', pattern: /(?:https?:\/\/)?(?:www\.)?youtube\.com\/(?:c\/|channel\/|@)[a-zA-Z0-9_-]+/gi },
+      { platform: 'instagram', pattern: /(?:https?:\/\/)?(?:www\.)?instagram\.com\/[a-zA-Z0-9._]+/gi },
+    ]
+
+    const seenUrls = new Set<string>()
+    for (const { platform, pattern } of socialPatterns) {
+      const matches = html.match(pattern)
+      if (matches) {
+        for (let match of matches) {
+          if (!match.startsWith('http')) {
+            match = `https://${match}`
+          }
+
+          const normalizedUrl = match.toLowerCase().replace(/\/$/, '')
+          if (!seenUrls.has(normalizedUrl)) {
+            seenUrls.add(normalizedUrl)
+            socialLinks.push({ platform, url: match })
+          }
+        }
+      }
+    }
+
+    if (socialLinks.length > 0) {
+      metadata.socialLinks = socialLinks
     }
 
     return metadata
@@ -341,6 +375,7 @@ Deno.serve(async (req: Request) => {
       tags: aiGenerated.tags,
       image: screenshotPath || imagePath,
       logo: logoPath,
+      socialLinks: metadata.socialLinks || [],
     }
 
     return new Response(
