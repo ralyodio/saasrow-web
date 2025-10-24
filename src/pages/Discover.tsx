@@ -1,15 +1,53 @@
+import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 
+interface CategoryCount {
+  name: string
+  count: number
+}
+
 export default function DiscoverPage() {
-  const categories = [
-    { name: 'Trending This Week', count: 24 },
-    { name: 'New Releases', count: 18 },
-    { name: 'Top Rated', count: 32 },
-    { name: 'Editor\'s Choice', count: 15 },
-    { name: 'Open Source', count: 67 },
-    { name: 'Free Tools', count: 89 },
-  ]
+  const [categories, setCategories] = useState<CategoryCount[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchCategories()
+  }, [])
+
+  const fetchCategories = async () => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const submissions = result.data || []
+
+        const categoryMap = new Map<string, number>()
+        submissions.forEach((sub: { category: string }) => {
+          const current = categoryMap.get(sub.category) || 0
+          categoryMap.set(sub.category, current + 1)
+        })
+
+        const categoryCounts = Array.from(categoryMap.entries())
+          .map(([name, count]) => ({ name, count }))
+          .sort((a, b) => b.count - a.count)
+
+        setCategories(categoryCounts)
+      }
+    } catch (error) {
+      console.error('Failed to fetch categories:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-neutral-800 relative">
@@ -29,19 +67,30 @@ export default function DiscoverPage() {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {categories.map((category, idx) => (
-              <div
-                key={idx}
-                className="bg-[#3a3a3a] rounded-2xl p-8 hover:bg-[#404040] transition-colors cursor-pointer"
-              >
-                <h3 className="text-white text-2xl font-bold font-ubuntu mb-3">{category.name}</h3>
-                <p className="text-white/70 font-ubuntu text-lg">
-                  {category.count} {category.count === 1 ? 'app' : 'apps'}
-                </p>
-              </div>
-            ))}
-          </div>
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-white/70 font-ubuntu text-xl">Loading categories...</p>
+            </div>
+          ) : categories.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-white/70 font-ubuntu text-xl">No categories available yet</p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {categories.map((category) => (
+                <Link
+                  key={category.name}
+                  to={`/category/${category.name.toLowerCase()}`}
+                  className="bg-[#3a3a3a] rounded-2xl p-8 hover:bg-[#404040] transition-colors block"
+                >
+                  <h3 className="text-white text-2xl font-bold font-ubuntu mb-3">{category.name}</h3>
+                  <p className="text-white/70 font-ubuntu text-lg">
+                    {category.count} {category.count === 1 ? 'app' : 'apps'}
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
         </main>
 
         <Footer />
