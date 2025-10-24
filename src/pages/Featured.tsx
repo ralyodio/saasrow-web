@@ -79,7 +79,7 @@ export default function FeaturedPage() {
   const getSavings = (plan: typeof pricingPlans[0]) => {
     if (plan.monthlyPrice === 0) return null
     const yearlySavings = (plan.monthlyPrice * 12) - plan.yearlyPrice
-    return yearlySavings > 0 ? `Save $${yearlySavings}/year` : null
+    return yearlySavings > 0 ? `Save $${yearlySavings.toFixed(2)}/year` : null
   }
 
   return (
