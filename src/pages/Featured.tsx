@@ -35,8 +35,8 @@ export default function FeaturedPage() {
     {
       name: 'Premium',
       description: 'For established brands',
-      monthlyPrice: 5,
-      yearlyPrice: 50,
+      monthlyPrice: 3,
+      yearlyPrice: 30,
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
