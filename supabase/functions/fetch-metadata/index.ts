@@ -60,7 +60,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 
     const pngIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i) ||
                          html.match(/<link[^>]*type=["']image\/png["'][^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i) ||
-                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["]'/i)
+                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["']'/i)
 
     if (pngIconMatch) {
       let favicon = pngIconMatch[1].trim()
@@ -164,7 +164,15 @@ No markdown, no code blocks, just the raw JSON.`
       temperature: 0.7,
     })
 
-    const content = completion.choices[0]?.message?.content || '{}'
+    let content = completion.choices[0]?.message?.content || '{}'
+    content = content.trim()
+
+    if (content.startsWith('```json')) {
+      content = content.replace(/^```json\s*/, '').replace(/\s*```$/, '')
+    } else if (content.startsWith('```')) {
+      content = content.replace(/^```\s*/, '').replace(/\s*```$/, '')
+    }
+
     const parsed = JSON.parse(content.trim())
 
     return {
