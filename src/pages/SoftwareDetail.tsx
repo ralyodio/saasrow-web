@@ -12,6 +12,9 @@ interface Submission {
   email: string
   status: string
   created_at: string
+  logo?: string
+  image?: string
+  tags?: string[]
 }
 
 export default function SoftwareDetailPage() {
@@ -94,8 +97,20 @@ export default function SoftwareDetailPage() {
               </div>
 
               <div className="bg-[#3a3a3a] rounded-2xl p-8 mb-6">
-                <div className="flex items-start justify-between mb-6">
-                  <div>
+                <div className="flex items-start gap-6 mb-6">
+                  {submission.logo && (
+                    <div className="flex-shrink-0">
+                      <img
+                        src={submission.logo}
+                        alt={`${submission.title} logo`}
+                        className="w-24 h-24 rounded-xl bg-white p-3 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
                     <h1 className="text-white text-4xl font-bold font-ubuntu mb-3">
                       {submission.title}
                     </h1>
@@ -105,9 +120,35 @@ export default function SoftwareDetailPage() {
                   </div>
                 </div>
 
-                <p className="text-white/80 font-ubuntu text-lg leading-relaxed mb-8">
+                {submission.image && (
+                  <div className="mb-6 rounded-xl overflow-hidden">
+                    <img
+                      src={submission.image}
+                      alt={`${submission.title} preview`}
+                      className="w-full h-64 object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+
+                <p className="text-white/80 font-ubuntu text-lg leading-relaxed mb-6">
                   {submission.description}
                 </p>
+
+                {submission.tags && submission.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-2 mb-8">
+                    {submission.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-sm font-ubuntu"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
