@@ -18,7 +18,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
   try {
     const response = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WireSniff/1.0)',
+        'User-Agent': 'Mozilla/5.0 (compatible; SaaSRow/1.0)',
       },
     })
 
@@ -59,7 +59,7 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 
     const pngIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i) ||
                          html.match(/<link[^>]*type=["']image\/png["'][^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i) ||
-                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+\.png[^"']*)["']/i)
+                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"'+\.png[^"']*)["]'/i)
 
     if (pngIconMatch) {
       let favicon = pngIconMatch[1].trim()

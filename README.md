@@ -1,4 +1,4 @@
-# WireSniff - Software Directory
+# SaaSRow - Software Directory
 
 A modern React SPA for discovering and sharing software, built with Vite and Supabase.
 

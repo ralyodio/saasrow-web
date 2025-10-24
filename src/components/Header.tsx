@@ -16,7 +16,7 @@ export function Header() {
         <Link to="/">
           <img
             className="h-16 w-auto object-contain"
-            alt="Wiresniff logo"
+            alt="SaaSRow logo"
             src="/wiresniff-logo-1-1.png"
           />
         </Link>

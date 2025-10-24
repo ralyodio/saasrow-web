@@ -116,7 +116,7 @@ export function Footer() {
           <p>© 2019 SaaSRow. All rights reserved.</p>
 
           <Link to="/">
-            <img className="h-10 w-auto" alt="Wiresniff logo" src="/wiresniff-logo-1-1.png" />
+            <img className="h-10 w-auto" alt="SaaSRow logo" src="/wiresniff-logo-1-1.png" />
           </Link>
 
           <nav className="flex gap-8">

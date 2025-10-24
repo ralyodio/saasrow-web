@@ -19,7 +19,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">1. Acceptance of Terms</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
-                By accessing and using WireSniff, you accept and agree to be bound by the terms and provision
+                By accessing and using SaaSRow, you accept and agree to be bound by the terms and provision
                 of this agreement.
               </p>
             </section>
@@ -27,7 +27,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">2. Use License</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
-                Permission is granted to temporarily access the materials on WireSniff for personal,
+                Permission is granted to temporarily access the materials on SaaSRow for personal,
                 non-commercial transitory viewing only.
               </p>
             </section>
@@ -35,7 +35,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">3. Disclaimer</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
-                The materials on WireSniff are provided on an 'as is' basis. WireSniff makes no warranties,
+                The materials on SaaSRow are provided on an 'as is' basis. SaaSRow makes no warranties,
                 expressed or implied, and hereby disclaims and negates all other warranties including, without
                 limitation, implied warranties or conditions of merchantability, fitness for a particular
                 purpose, or non-infringement of intellectual property or other violation of rights.
@@ -45,16 +45,16 @@ export default function TermsPage() {
             <section>
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">4. Limitations</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
-                In no event shall WireSniff or its suppliers be liable for any damages (including, without
+                In no event shall SaaSRow or its suppliers be liable for any damages (including, without
                 limitation, damages for loss of data or profit, or due to business interruption) arising out of
-                the use or inability to use the materials on WireSniff.
+                the use or inability to use the materials on SaaSRow.
               </p>
             </section>
 
             <section>
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">5. Modifications</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
-                WireSniff may revise these terms of service at any time without notice. By using this website
+                SaaSRow may revise these terms of service at any time without notice. By using this website
                 you are agreeing to be bound by the then current version of these terms of service.
               </p>
             </section>

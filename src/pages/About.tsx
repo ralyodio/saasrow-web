@@ -13,11 +13,11 @@ export default function AboutPage() {
         <Header />
 
         <main className="w-full max-w-[1000px] mx-auto px-4 py-12">
-          <h1 className="text-white text-5xl font-bold font-ubuntu mb-8">About WireSniff</h1>
+          <h1 className="text-white text-5xl font-bold font-ubuntu mb-8">About SaaSRow</h1>
 
           <div className="bg-[#3a3a3a] rounded-2xl p-8 mb-6">
             <p className="text-white/90 font-ubuntu text-xl leading-relaxed mb-6">
-              WireSniff is your premier destination for discovering the best software, tools, and applications
+              SaaSRow is your premier destination for discovering the best software, tools, and applications
               across all categories. We help developers, businesses, and individuals find the perfect solutions
               for their needs.
             </p>
@@ -27,7 +27,7 @@ export default function AboutPage() {
             </p>
             <p className="text-white/90 font-ubuntu text-xl leading-relaxed">
               Whether you're searching for productivity software, development tools, or startup accelerators,
-              WireSniff makes it easy to discover, compare, and choose the right solution.
+              SaaSRow makes it easy to discover, compare, and choose the right solution.
             </p>
           </div>
 

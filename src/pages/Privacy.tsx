@@ -28,7 +28,7 @@ export default function PrivacyPage() {
               <h2 className="text-white text-2xl font-bold font-ubuntu mb-3">How We Use Your Information</h2>
               <p className="text-white/90 font-ubuntu leading-relaxed">
                 We use the information we collect to provide, maintain, and improve our services, to develop
-                new features, to protect WireSniff and our users, and to communicate with you about our
+                new features, to protect SaaSRow and our users, and to communicate with you about our
                 services.
               </p>
             </section>
