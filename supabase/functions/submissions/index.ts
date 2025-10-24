@@ -24,7 +24,14 @@ Deno.serve(async (req: Request) => {
       const url = new URL(req.url)
       const includeAll = url.searchParams.get('all') === 'true'
 
-      let query = supabase
+      const client = includeAll
+        ? createClient(
+            Deno.env.get('SUPABASE_URL') ?? '',
+            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+          )
+        : supabase
+
+      let query = client
         .from('software_submissions')
         .select('*')
         .order('created_at', { ascending: false })
@@ -173,7 +180,12 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      const { data, error } = await supabase
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const { data, error } = await supabaseAdmin
         .from('software_submissions')
         .update({ status })
         .eq('id', id)
