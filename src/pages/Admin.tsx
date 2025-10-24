@@ -14,13 +14,52 @@ interface Submission {
 }
 
 export default function AdminPage() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState('')
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
 
   useEffect(() => {
-    fetchSubmissions()
+    const authStatus = sessionStorage.getItem('admin_authenticated')
+    if (authStatus === 'true') {
+      setIsAuthenticated(true)
+      fetchSubmissions()
+    } else {
+      setLoading(false)
+    }
   }, [])
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError('')
+
+    const adminUser = import.meta.env.VITE_ADMIN_USER
+    const adminPass = import.meta.env.VITE_ADMIN_PASS
+
+    if (username === adminUser && password === adminPass) {
+      setIsAuthenticated(true)
+      sessionStorage.setItem('admin_authenticated', 'true')
+      fetchSubmissions()
+    } else {
+      setAuthError('Invalid username or password')
+    }
+  }
+
+  const handleLogout = () => {
+    setIsAuthenticated(false)
+    sessionStorage.removeItem('admin_authenticated')
+    setUsername('')
+    setPassword('')
+  }
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchSubmissions()
+    }
+  }, [isAuthenticated])
 
   const fetchSubmissions = async () => {
     try {
@@ -61,6 +100,68 @@ export default function AdminPage() {
     }
   }
 
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen bg-neutral-800 relative flex items-center justify-center">
+        <div className="absolute w-full h-1/2 top-[7.45%] left-0 pointer-events-none">
+          <div className="absolute w-4/5 h-40 top-1/3 left-[12.93%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
+          <div className="absolute w-4/5 h-40 top-1/4 left-[22.59%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-md px-4">
+          <div className="bg-[#3a3a3a] rounded-2xl p-8">
+            <h1 className="text-white text-3xl font-bold font-ubuntu mb-6 text-center">
+              Admin Login
+            </h1>
+
+            <form onSubmit={handleLogin} className="space-y-6">
+              <div>
+                <label htmlFor="username" className="block text-white font-ubuntu text-sm mb-2">
+                  Username
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-white font-ubuntu text-sm mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                />
+              </div>
+
+              {authError && (
+                <div className="rounded-lg p-3 bg-red-400/10 border border-red-400">
+                  <p className="text-red-400 font-ubuntu text-sm text-center">{authError}</p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity"
+              >
+                Login
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-neutral-800 relative">
       <div className="absolute w-full h-1/2 top-[7.45%] left-0 pointer-events-none">
@@ -72,11 +173,19 @@ export default function AdminPage() {
         <Header />
 
         <main className="w-full max-w-[1400px] mx-auto px-4 py-12">
-          <div className="mb-8">
-            <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">Submissions</h1>
-            <p className="text-white/70 text-xl font-ubuntu">
-              Manage software submissions and approve listings
-            </p>
+          <div className="mb-8 flex items-center justify-between">
+            <div>
+              <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">Submissions</h1>
+              <p className="text-white/70 text-xl font-ubuntu">
+                Manage software submissions and approve listings
+              </p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-6 py-3 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold hover:bg-[#555555] transition-colors"
+            >
+              Logout
+            </button>
           </div>
 
           <div className="flex gap-4 mb-8">
