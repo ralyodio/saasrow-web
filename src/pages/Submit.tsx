@@ -8,7 +8,7 @@ interface FetchedData {
   description: string
   category: string
   image: string | null
-  favicon: string | null
+  logo: string | null
 }
 
 export default function SubmitPage() {
@@ -23,6 +23,7 @@ export default function SubmitPage() {
     category: '',
   })
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -53,6 +54,7 @@ export default function SubmitPage() {
           category: data.category,
         })
         setPreviewImage(data.image)
+        setLogoUrl(data.logo)
         setStep('edit')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to fetch metadata' })
@@ -92,6 +94,7 @@ export default function SubmitPage() {
         setFormData({ title: '', url: '', description: '', email: '', category: '' })
         setUrl('')
         setPreviewImage(null)
+        setLogoUrl(null)
         setStep('url')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
@@ -108,6 +111,7 @@ export default function SubmitPage() {
     setUrl('')
     setFormData({ title: '', url: '', description: '', email: '', category: '' })
     setPreviewImage(null)
+    setLogoUrl(null)
     setMessage(null)
   }
 
@@ -180,17 +184,32 @@ export default function SubmitPage() {
             </form>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
-              {previewImage && (
-                <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                  <label className="block text-white font-ubuntu text-lg mb-4">Preview Image</label>
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="w-full h-48 object-cover rounded-lg"
-                    onError={() => setPreviewImage(null)}
-                  />
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <div className="flex items-start gap-6">
+                  {logoUrl && (
+                    <div className="flex-shrink-0">
+                      <label className="block text-white font-ubuntu text-sm mb-2">Logo</label>
+                      <img
+                        src={logoUrl}
+                        alt="Logo"
+                        className="w-16 h-16 rounded-lg bg-white p-2"
+                        onError={() => setLogoUrl(null)}
+                      />
+                    </div>
+                  )}
+                  {previewImage && (
+                    <div className="flex-1">
+                      <label className="block text-white font-ubuntu text-sm mb-2">Preview Image</label>
+                      <img
+                        src={previewImage}
+                        alt="Preview"
+                        className="w-full h-32 object-cover rounded-lg"
+                        onError={() => setPreviewImage(null)}
+                      />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
 
               <div className="bg-[#3a3a3a] rounded-2xl p-8 space-y-6">
                 <div>

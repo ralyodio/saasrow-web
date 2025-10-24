@@ -54,16 +54,30 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
       metadata.image = ogImageMatch[1].trim()
     }
 
-    const faviconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon)["'][^>]*href=["']([^"']+)["']/i)
-    if (faviconMatch) {
-      let favicon = faviconMatch[1].trim()
+    const urlObj = new URL(url)
+    const baseUrl = `${urlObj.protocol}//${urlObj.host}`
+
+    const pngIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*type=["']image\/png["'][^>]*href=["']([^"']+)["']/i) ||
+                         html.match(/<link[^>]*type=["']image\/png["'][^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i) ||
+                         html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+\.png[^"']*)["']/i)
+
+    if (pngIconMatch) {
+      let favicon = pngIconMatch[1].trim()
       if (!favicon.startsWith('http')) {
-        const urlObj = new URL(url)
-        favicon = favicon.startsWith('/')
-          ? `${urlObj.protocol}//${urlObj.host}${favicon}`
-          : `${urlObj.protocol}//${urlObj.host}/${favicon}`
+        favicon = favicon.startsWith('/') ? `${baseUrl}${favicon}` : `${baseUrl}/${favicon}`
       }
       metadata.favicon = favicon
+    } else {
+      const anyIconMatch = html.match(/<link[^>]*rel=["'](?:icon|shortcut icon|apple-touch-icon)["'][^>]*href=["']([^"']+)["']/i)
+      if (anyIconMatch) {
+        let favicon = anyIconMatch[1].trim()
+        if (!favicon.startsWith('http')) {
+          favicon = favicon.startsWith('/') ? `${baseUrl}${favicon}` : `${baseUrl}/${favicon}`
+        }
+        metadata.favicon = favicon
+      } else {
+        metadata.favicon = `${baseUrl}/favicon.ico`
+      }
     }
 
     return metadata
@@ -174,7 +188,7 @@ Deno.serve(async (req: Request) => {
       description: aiGenerated.description,
       category: aiGenerated.category,
       image: metadata.image || null,
-      favicon: metadata.favicon || null,
+      logo: metadata.favicon || null,
     }
 
     return new Response(
