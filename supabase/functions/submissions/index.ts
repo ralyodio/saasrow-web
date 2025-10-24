@@ -49,11 +49,11 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { title, url, description } = body
+      const { title, url, description, email, category } = body
 
-      if (!title || !url || !description) {
+      if (!title || !url || !description || !email || !category) {
         return new Response(
-          JSON.stringify({ error: 'Missing required fields: title, url, description' }),
+          JSON.stringify({ error: 'Missing required fields: title, url, description, email, category' }),
           {
             status: 400,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -73,9 +73,20 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      const emailRegex = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/
+      if (!emailRegex.test(email)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid email format' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
       const { data, error } = await supabase
         .from('software_submissions')
-        .insert({ title, url, description })
+        .insert({ title, url, description, email, category })
         .select()
         .maybeSingle()
 

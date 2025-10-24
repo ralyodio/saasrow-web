@@ -11,6 +11,7 @@ import Explore from './pages/Explore'
 import News from './pages/News'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
         <Route path="/news" element={<News />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
+        <Route path="/admin" element={<Admin />} />
       </Routes>
     </BrowserRouter>
   )
