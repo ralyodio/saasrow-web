@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 }
 
@@ -251,6 +251,82 @@ Deno.serve(async (req: Request) => {
 
       return new Response(
         JSON.stringify({ data, message: 'Status updated successfully' }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (req.method === 'DELETE') {
+      const body = await req.json()
+      const { id } = body
+
+      if (!id) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required field: id' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      const supabaseAdmin = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      )
+
+      const { data: submission, error: fetchError } = await supabaseAdmin
+        .from('software_submissions')
+        .select('logo, image')
+        .eq('id', id)
+        .maybeSingle()
+
+      if (fetchError || !submission) {
+        return new Response(
+          JSON.stringify({ error: 'Submission not found' }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      if (submission.logo) {
+        await supabaseAdmin.storage
+          .from('software-logos')
+          .remove([submission.logo])
+      }
+
+      if (submission.image) {
+        await supabaseAdmin.storage
+          .from('software-images')
+          .remove([submission.image])
+      }
+
+      await supabaseAdmin
+        .from('social_links')
+        .delete()
+        .eq('submission_id', id)
+
+      const { error: deleteError } = await supabaseAdmin
+        .from('software_submissions')
+        .delete()
+        .eq('id', id)
+
+      if (deleteError) {
+        return new Response(
+          JSON.stringify({ error: deleteError.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ message: 'Submission deleted successfully' }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },

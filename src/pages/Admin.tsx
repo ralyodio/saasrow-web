@@ -121,6 +121,35 @@ export default function AdminPage() {
     }
   }
 
+  const deleteSubmission = async (id: string, title: string) => {
+    if (!confirm(`Are you sure you want to delete "${title}"? This will permanently remove the submission and all associated data (logo, image, social links).`)) {
+      return
+    }
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      })
+
+      if (response.ok) {
+        setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
+        alert('Submission deleted successfully')
+      } else {
+        console.error('Failed to delete submission:', await response.text())
+        alert('Failed to delete submission')
+      }
+    } catch (error) {
+      console.error('Failed to delete submission:', error)
+      alert('Failed to delete submission')
+    }
+  }
+
   const filteredSubmissions = submissions.filter((sub) => {
     if (filter === 'all') return true
     return sub.status === filter
@@ -313,23 +342,31 @@ export default function AdminPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-4">
-                      {submission.status !== 'approved' && (
-                        <button
-                          onClick={() => updateSubmissionStatus(submission.id, 'approved')}
-                          className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
-                        >
-                          Approve
-                        </button>
-                      )}
-                      {submission.status !== 'rejected' && (
-                        <button
-                          onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
-                          className="px-4 py-2 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu font-bold hover:bg-red-400/30 transition-colors"
-                        >
-                          Reject
-                        </button>
-                      )}
+                    <div className="flex flex-col gap-2 ml-4">
+                      <div className="flex gap-2">
+                        {submission.status !== 'approved' && (
+                          <button
+                            onClick={() => updateSubmissionStatus(submission.id, 'approved')}
+                            className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                          >
+                            Approve
+                          </button>
+                        )}
+                        {submission.status !== 'rejected' && (
+                          <button
+                            onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
+                            className="px-4 py-2 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu font-bold hover:bg-red-400/30 transition-colors"
+                          >
+                            Reject
+                          </button>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteSubmission(submission.id, submission.title)}
+                        className="px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors"
+                      >
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </div>
