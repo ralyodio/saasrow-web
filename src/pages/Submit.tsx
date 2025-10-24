@@ -14,8 +14,11 @@ interface FetchedData {
 }
 
 export default function SubmitPage() {
-  const [step, setStep] = useState<'url' | 'edit'>(  'url')
+  const [step, setStep] = useState<'url' | 'review' | 'edit'>('url')
+  const [urls, setUrls] = useState('')
   const [url, setUrl] = useState('')
+  const [submissions, setSubmissions] = useState<FetchedData[]>([])
+  const [currentEditIndex, setCurrentEditIndex] = useState<number | null>(null)
   const [isFetching, setIsFetching] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
@@ -40,51 +43,60 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
+      const urlList = urls
+        .split('\n')
+        .map(u => u.trim())
+        .filter(u => u.length > 0)
+
+      if (urlList.length === 0) {
+        setMessage({ type: 'error', text: 'Please enter at least one URL' })
+        setIsFetching(false)
+        return
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-metadata`
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-        body: JSON.stringify({ url }),
-      })
+      const fetchedData: FetchedData[] = []
 
-      const data = await response.json()
+      for (const url of urlList) {
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ url }),
+          })
 
-      if (response.ok) {
-        setFormData({
-          title: data.title,
-          url: data.url,
-          description: data.description,
-          email: '',
-          category: data.category,
-          tags: data.tags || [],
-        })
+          const data = await response.json()
 
-        if (data.image) {
-          setFetchedImagePath(data.image)
-          const { data: imageData } = supabase.storage.from('software-images').getPublicUrl(data.image)
-          setPreviewImage(imageData.publicUrl)
+          if (response.ok) {
+            fetchedData.push({
+              url: data.url,
+              title: data.title,
+              description: data.description,
+              category: data.category,
+              tags: data.tags || [],
+              image: data.image,
+              logo: data.logo,
+            })
+          }
+        } catch (error) {
+          console.error('Error fetching', url, error)
         }
+      }
 
-        if (data.logo) {
-          setFetchedLogoPath(data.logo)
-          const { data: logoData } = supabase.storage.from('software-logos').getPublicUrl(data.logo)
-          setLogoUrl(logoData.publicUrl)
-        }
-
-        setStep('edit')
+      if (fetchedData.length === 0) {
+        setMessage({ type: 'error', text: 'Failed to fetch metadata for any URLs' })
       } else {
-        const errorMsg = data.error || 'Failed to fetch metadata'
-        const details = data.details ? `\n\nDetails: ${data.details}` : ''
-        setMessage({ type: 'error', text: errorMsg + details })
+        setSubmissions(fetchedData)
+        setStep('review')
       }
     } catch (error) {
       console.error('Fetch error:', error)
       setMessage({
         type: 'error',
-        text: `Something went wrong: ${error instanceof Error ? error.message : 'Please check the URL and try again.'}`
+        text: `Something went wrong: ${error instanceof Error ? error.message : 'Please try again.'}`
       })
     } finally {
       setIsFetching(false)
@@ -186,16 +198,30 @@ export default function SubmitPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
-        setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
-        setUrl('')
-        setPreviewImage(null)
-        setLogoUrl(null)
-        setLogoFile(null)
-        setImageFile(null)
-        setFetchedLogoPath(null)
-        setFetchedImagePath(null)
-        setStep('url')
+        if (currentEditIndex !== null) {
+          const updatedSubmissions = [...submissions]
+          updatedSubmissions[currentEditIndex] = {
+            ...updatedSubmissions[currentEditIndex],
+            ...formData,
+            logo: uploadedLogoPath,
+            image: uploadedImagePath,
+          }
+          setSubmissions(updatedSubmissions)
+          setCurrentEditIndex(null)
+          setStep('review')
+          setMessage({ type: 'success', text: 'Changes saved!' })
+        } else {
+          setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
+          setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
+          setUrls('')
+          setPreviewImage(null)
+          setLogoUrl(null)
+          setLogoFile(null)
+          setImageFile(null)
+          setFetchedLogoPath(null)
+          setFetchedImagePath(null)
+          setStep('url')
+        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
       }
@@ -208,7 +234,10 @@ export default function SubmitPage() {
 
   const handleStartOver = () => {
     setStep('url')
+    setUrls('')
     setUrl('')
+    setSubmissions([])
+    setCurrentEditIndex(null)
     setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
     setPreviewImage(null)
     setLogoUrl(null)
@@ -217,6 +246,109 @@ export default function SubmitPage() {
     setFetchedLogoPath(null)
     setFetchedImagePath(null)
     setMessage(null)
+  }
+
+  const handleEditSubmission = (index: number) => {
+    const submission = submissions[index]
+    setCurrentEditIndex(index)
+    setFormData({
+      title: submission.title,
+      url: submission.url,
+      description: submission.description,
+      email: '',
+      category: submission.category,
+      tags: submission.tags,
+    })
+
+    if (submission.image) {
+      setFetchedImagePath(submission.image)
+      const { data: imageData } = supabase.storage.from('software-images').getPublicUrl(submission.image)
+      setPreviewImage(imageData.publicUrl)
+    }
+
+    if (submission.logo) {
+      setFetchedLogoPath(submission.logo)
+      const { data: logoData } = supabase.storage.from('software-logos').getPublicUrl(submission.logo)
+      setLogoUrl(logoData.publicUrl)
+    }
+
+    setStep('edit')
+  }
+
+  const handleRemoveSubmission = (index: number) => {
+    setSubmissions(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleSubmitAll = async () => {
+    setIsSubmitting(true)
+    setMessage(null)
+
+    try {
+      const email = prompt('Enter your email address for all submissions:')
+      if (!email) {
+        setIsSubmitting(false)
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      let successCount = 0
+
+      for (const submission of submissions) {
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              title: submission.title,
+              url: submission.url,
+              description: submission.description,
+              email,
+              category: submission.category,
+              tags: submission.tags,
+              logo: submission.logo,
+              image: submission.image,
+            }),
+          })
+
+          if (response.ok) {
+            successCount++
+          }
+        } catch (error) {
+          console.error('Error submitting', submission.url, error)
+        }
+      }
+
+      if (successCount > 0) {
+        setMessage({
+          type: 'success',
+          text: `Successfully submitted ${successCount} of ${submissions.length} software entries!`
+        })
+        setTimeout(() => {
+          handleStartOver()
+        }, 2000)
+      } else {
+        setMessage({ type: 'error', text: 'Failed to submit any entries' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleBackToReview = () => {
+    setCurrentEditIndex(null)
+    setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
+    setPreviewImage(null)
+    setLogoUrl(null)
+    setLogoFile(null)
+    setImageFile(null)
+    setFetchedLogoPath(null)
+    setFetchedImagePath(null)
+    setStep('review')
   }
 
   const handleRemoveTag = (indexToRemove: number) => {
@@ -254,28 +386,30 @@ export default function SubmitPage() {
           </h1>
           <p className="text-white/70 text-center font-ubuntu mb-8">
             {step === 'url'
-              ? 'Enter your software URL and we\'ll automatically fetch the details'
+              ? 'Enter your software URLs (one per line) and we\'ll automatically fetch the details'
+              : step === 'review'
+              ? 'Review your submissions and edit if needed'
               : 'Review and edit the information before submitting'}
           </p>
 
           {step === 'url' ? (
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <label htmlFor="url" className="block text-white font-ubuntu text-lg mb-4">
-                  Software URL
+                <label htmlFor="urls" className="block text-white font-ubuntu text-lg mb-4">
+                  Software URLs
                 </label>
-                <input
-                  id="url"
-                  name="url"
-                  type="url"
-                  value={url}
-                  onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://example.com"
+                <textarea
+                  id="urls"
+                  name="urls"
+                  value={urls}
+                  onChange={(e) => setUrls(e.target.value)}
+                  placeholder="https://example.com&#10;https://another-site.com&#10;https://third-site.com"
                   required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg"
+                  rows={6}
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg resize-none"
                 />
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  We'll fetch the title, description, and other details automatically using AI
+                  Enter one URL per line. We'll fetch the title, description, and other details automatically using AI
                 </p>
               </div>
 
@@ -299,12 +433,97 @@ export default function SubmitPage() {
 
               <button
                 type="submit"
-                disabled={isFetching || !url}
+                disabled={isFetching || !urls}
                 className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isFetching ? 'Fetching details...' : 'Continue'}
               </button>
             </form>
+          ) : step === 'review' ? (
+            <div className="space-y-6">
+              <div className="space-y-4">
+                {submissions.map((submission, index) => (
+                  <div key={index} className="bg-[#3a3a3a] rounded-2xl p-6 flex items-start gap-4">
+                    {submission.logo && (
+                      <div className="w-16 h-16 rounded-lg bg-white p-2 flex-shrink-0">
+                        <img
+                          src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
+                          alt={submission.title}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-white font-ubuntu text-xl font-bold mb-2">{submission.title}</h3>
+                      <p className="text-white/70 font-ubuntu text-sm mb-2">{submission.url}</p>
+                      <p className="text-white/60 font-ubuntu text-sm line-clamp-2">{submission.description}</p>
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <span className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu">
+                          {submission.category}
+                        </span>
+                        {submission.tags.slice(0, 3).map((tag, tagIndex) => (
+                          <span key={tagIndex} className="px-3 py-1 bg-white/10 text-white/70 rounded-full text-xs font-ubuntu">
+                            {tag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleEditSubmission(index)}
+                        className="px-4 py-2 bg-[#4a4a4a] text-white rounded-lg hover:bg-[#555555] transition-colors font-ubuntu text-sm"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSubmission(index)}
+                        className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-ubuntu text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {message && (
+                <div
+                  className={`rounded-2xl p-4 ${
+                    message.type === 'success'
+                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
+                      : 'bg-red-400/10 border border-red-400'
+                  }`}
+                >
+                  <p
+                    className={`text-center font-ubuntu ${
+                      message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                    }`}
+                  >
+                    {message.text}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={handleStartOver}
+                  className="flex-1 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-xl hover:bg-[#555555] transition-colors"
+                >
+                  Start Over
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitAll}
+                  disabled={isSubmitting || submissions.length === 0}
+                  className="flex-1 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : `Submit All (${submissions.length})`}
+                </button>
+              </div>
+            </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
@@ -533,17 +752,17 @@ export default function SubmitPage() {
               <div className="flex gap-4">
                 <button
                   type="button"
-                  onClick={handleStartOver}
+                  onClick={currentEditIndex !== null ? handleBackToReview : handleStartOver}
                   className="flex-1 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-xl hover:bg-[#555555] transition-colors"
                 >
-                  Start Over
+                  {currentEditIndex !== null ? 'Back to Review' : 'Start Over'}
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
                   className="flex-1 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                  {isSubmitting ? 'Submitting...' : currentEditIndex !== null ? 'Save Changes' : 'Submit'}
                 </button>
               </div>
             </form>
