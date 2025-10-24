@@ -115,9 +115,12 @@ export default function SoftwareDetailPage() {
                     <h1 className="text-white text-4xl font-bold font-ubuntu mb-3">
                       {submission.title}
                     </h1>
-                    <span className="inline-block px-4 py-2 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3]">
+                    <Link
+                      to={`/category/${submission.category.toLowerCase()}`}
+                      className="inline-block px-4 py-2 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] hover:bg-[#4FFFE3]/30 transition-colors"
+                    >
                       {submission.category}
-                    </span>
+                    </Link>
                   </div>
                 </div>
 
@@ -141,12 +144,13 @@ export default function SoftwareDetailPage() {
                 {submission.tags && submission.tags.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-8">
                     {submission.tags.map((tag, index) => (
-                      <span
+                      <Link
                         key={index}
-                        className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-sm font-ubuntu"
+                        to={`/tags/${tag}`}
+                        className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-sm font-ubuntu hover:bg-[#4FFFE3]/30 transition-colors"
                       >
                         {tag}
-                      </span>
+                      </Link>
                     ))}
                   </div>
                 )}
