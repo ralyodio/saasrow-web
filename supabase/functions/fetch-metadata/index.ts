@@ -18,17 +18,22 @@ interface MetaData {
 
 async function fetchUrlMetadata(url: string): Promise<MetaData> {
   try {
+    console.log('[METADATA] Starting metadata fetch for URL:', url)
     const response = await fetch(url, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (compatible; SaaSRow/1.0)',
       },
     })
 
+    console.log('[METADATA] Fetch response status:', response.status, response.statusText)
+
     if (!response.ok) {
+      console.warn('[METADATA] Fetch failed with status:', response.status)
       return {}
     }
 
     const html = await response.text()
+    console.log('[METADATA] HTML fetched, length:', html.length)
     const metadata: MetaData = {}
 
     const titleMatch = html.match(/<title[^>]*>([^<]+)<\/title>/i)
@@ -113,20 +118,31 @@ async function fetchUrlMetadata(url: string): Promise<MetaData> {
 
     if (socialLinks.length > 0) {
       metadata.socialLinks = socialLinks
+      console.log('[METADATA] Found social links:', socialLinks.length)
     }
+
+    console.log('[METADATA] Metadata extraction complete:', {
+      hasTitle: !!metadata.title,
+      hasDescription: !!metadata.description,
+      hasImage: !!metadata.image,
+      hasFavicon: !!metadata.favicon,
+      socialLinksCount: socialLinks.length
+    })
 
     return metadata
   } catch (error) {
-    console.error('Error fetching metadata:', error)
+    console.error('[METADATA] Error fetching metadata:', error)
+    console.error('[METADATA] Error details:', error instanceof Error ? error.message : String(error))
     return {}
   }
 }
 
 async function generateWithAI(url: string, metadata: MetaData): Promise<{ title: string; description: string; category: string; tags: string[] }> {
+  console.log('[AI] Starting AI generation for URL:', url)
   const apiKey = Deno.env.get('OPENAI_API_KEY')
 
   if (!apiKey) {
-    console.warn('OPENAI_API_KEY not configured, falling back to metadata only')
+    console.warn('[AI] OPENAI_API_KEY not configured, falling back to metadata only')
     return {
       title: metadata.title || 'Unknown Software',
       description: metadata.description || 'No description available',
@@ -134,6 +150,8 @@ async function generateWithAI(url: string, metadata: MetaData): Promise<{ title:
       tags: [],
     }
   }
+
+  console.log('[AI] OpenAI API key found, initializing client')
 
   const openai = new OpenAI({
     apiKey,
@@ -159,13 +177,16 @@ Return ONLY a JSON object with keys: title, description, category, tags (array o
 No markdown, no code blocks, just the raw JSON.`
 
   try {
+    console.log('[AI] Sending request to OpenAI...')
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.7,
     })
 
+    console.log('[AI] Received response from OpenAI')
     let content = completion.choices[0]?.message?.content || '{}'
+    console.log('[AI] Raw AI response:', content.substring(0, 200))
     content = content.trim()
 
     if (content.startsWith('```json')) {
@@ -175,15 +196,20 @@ No markdown, no code blocks, just the raw JSON.`
     }
 
     const parsed = JSON.parse(content.trim())
+    console.log('[AI] Parsed AI response:', parsed)
 
-    return {
+    const result = {
       title: parsed.title || metadata.title || 'Unknown Software',
       description: parsed.description || metadata.description || 'No description available',
       category: parsed.category || 'Software',
       tags: Array.isArray(parsed.tags) ? parsed.tags : [],
     }
+    console.log('[AI] Final AI-generated data:', result)
+
+    return result
   } catch (error) {
-    console.error('AI generation error:', error)
+    console.error('[AI] AI generation error:', error)
+    console.error('[AI] Error details:', error instanceof Error ? error.message : String(error))
     return {
       title: metadata.title || 'Unknown Software',
       description: metadata.description || 'No description available',
@@ -203,7 +229,12 @@ function normalizeUrl(url: string): string {
 }
 
 Deno.serve(async (req: Request) => {
+  console.log('[MAIN] ========== New Request ==========')
+  console.log('[MAIN] Method:', req.method)
+  console.log('[MAIN] URL:', req.url)
+
   if (req.method === 'OPTIONS') {
+    console.log('[MAIN] Handling OPTIONS preflight request')
     return new Response(null, {
       status: 200,
       headers: corsHeaders,
@@ -212,6 +243,7 @@ Deno.serve(async (req: Request) => {
 
   try {
     if (req.method !== 'POST') {
+      console.warn('[MAIN] Invalid method:', req.method)
       return new Response(
         JSON.stringify({ error: 'Method not allowed' }),
         {
@@ -222,9 +254,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const body = await req.json()
+    console.log('[MAIN] Request body:', body)
     const { url: inputUrl } = body
 
     if (!inputUrl) {
+      console.warn('[MAIN] No URL provided in request')
       return new Response(
         JSON.stringify({ error: 'URL is required' }),
         {
@@ -237,7 +271,9 @@ Deno.serve(async (req: Request) => {
     let url: string
     try {
       url = normalizeUrl(inputUrl)
+      console.log('[MAIN] Normalized URL:', url)
     } catch {
+      console.warn('[MAIN] Invalid URL format:', inputUrl)
       return new Response(
         JSON.stringify({ error: 'Invalid URL format. Please provide a valid domain (e.g., https://example.com)' }),
         {
@@ -247,11 +283,13 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    console.log('[MAIN] Initializing Supabase client')
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('[MAIN] Checking for duplicate submissions...')
     const { data: existing } = await supabase
       .from('software_submissions')
       .select('id, title, status')
@@ -259,6 +297,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle()
 
     if (existing) {
+      console.log('[MAIN] Duplicate found:', existing)
       return new Response(
         JSON.stringify({
           error: `This domain has already been submitted as "${existing.title}"${existing.status === 'approved' ? ' and is live' : ' and is pending review'}.`,
@@ -271,7 +310,9 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    console.log('[MAIN] No duplicate found, proceeding with metadata extraction')
     const metadata = await fetchUrlMetadata(url)
+    console.log('[MAIN] Metadata extracted, generating AI content')
     const aiGenerated = await generateWithAI(url, metadata)
 
     let logoPath: string | null = null
@@ -280,11 +321,15 @@ Deno.serve(async (req: Request) => {
 
     if (metadata.favicon) {
       try {
+        console.log('[LOGO] Downloading favicon from:', metadata.favicon)
         const logoResponse = await fetch(metadata.favicon)
+        console.log('[LOGO] Favicon fetch status:', logoResponse.status)
         if (logoResponse.ok) {
           const logoBlob = await logoResponse.blob()
+          console.log('[LOGO] Favicon blob size:', logoBlob.size, 'type:', logoBlob.type)
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${logoBlob.type.split('/')[1] || 'png'}`
 
+          console.log('[LOGO] Uploading to storage as:', fileName)
           const { error: uploadError } = await supabase.storage
             .from('software-logos')
             .upload(fileName, logoBlob, {
@@ -294,20 +339,30 @@ Deno.serve(async (req: Request) => {
 
           if (!uploadError) {
             logoPath = fileName
+            console.log('[LOGO] Logo uploaded successfully:', logoPath)
+          } else {
+            console.error('[LOGO] Upload error:', uploadError)
           }
         }
       } catch (error) {
-        console.error('Failed to download/upload logo:', error)
+        console.error('[LOGO] Failed to download/upload logo:', error)
+        console.error('[LOGO] Error details:', error instanceof Error ? error.message : String(error))
       }
+    } else {
+      console.log('[LOGO] No favicon found in metadata')
     }
 
     if (metadata.image) {
       try {
+        console.log('[IMAGE] Downloading OG image from:', metadata.image)
         const imageResponse = await fetch(metadata.image)
+        console.log('[IMAGE] OG image fetch status:', imageResponse.status)
         if (imageResponse.ok) {
           const imageBlob = await imageResponse.blob()
+          console.log('[IMAGE] OG image blob size:', imageBlob.size, 'type:', imageBlob.type)
           const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${imageBlob.type.split('/')[1] || 'png'}`
 
+          console.log('[IMAGE] Uploading OG image to storage as:', fileName)
           const { error: uploadError } = await supabase.storage
             .from('software-images')
             .upload(fileName, imageBlob, {
@@ -317,39 +372,52 @@ Deno.serve(async (req: Request) => {
 
           if (!uploadError) {
             imagePath = fileName
+            console.log('[IMAGE] OG image uploaded successfully:', imagePath)
+          } else {
+            console.error('[IMAGE] Upload error:', uploadError)
           }
         }
       } catch (error) {
-        console.error('Failed to download/upload image:', error)
+        console.error('[IMAGE] Failed to download/upload OG image:', error)
+        console.error('[IMAGE] Error details:', error instanceof Error ? error.message : String(error))
       }
+    } else {
+      console.log('[IMAGE] No OG image found in metadata')
     }
 
     try {
-      console.log('Starting Puppeteer screenshot capture...')
+      console.log('[PUPPETEER] ========== Starting Puppeteer Screenshot ==========')
+      console.log('[PUPPETEER] Target URL:', url)
+      console.log('[PUPPETEER] Launching browser...')
+
       const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       })
-      console.log('Browser launched successfully')
+      console.log('[PUPPETEER] ✓ Browser launched successfully')
 
       const page = await browser.newPage()
-      console.log('New page created')
+      console.log('[PUPPETEER] ✓ New page created')
 
       await page.setViewport({ width: 1280, height: 800 })
-      console.log('Viewport set, navigating to URL...')
+      console.log('[PUPPETEER] ✓ Viewport set to 1280x800')
 
+      console.log('[PUPPETEER] Navigating to URL (timeout: 30s)...')
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
-      console.log('Page loaded successfully')
+      console.log('[PUPPETEER] ✓ Page loaded successfully')
 
+      console.log('[PUPPETEER] Capturing screenshot...')
       const screenshotBuffer = await page.screenshot({
         type: 'png',
         fullPage: false,
       })
-      console.log('Screenshot captured, size:', screenshotBuffer.length)
+      console.log('[PUPPETEER] ✓ Screenshot captured, size:', screenshotBuffer.length, 'bytes')
 
       await browser.close()
-      console.log('Browser closed')
+      console.log('[PUPPETEER] ✓ Browser closed')
 
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+      console.log('[PUPPETEER] Uploading screenshot as:', fileName)
+
       const { error: uploadError } = await supabase.storage
         .from('software-images')
         .upload(fileName, screenshotBuffer, {
@@ -362,14 +430,16 @@ Deno.serve(async (req: Request) => {
         if (!imagePath) {
           imagePath = fileName
         }
-        console.log('Screenshot uploaded successfully:', fileName)
+        console.log('[PUPPETEER] ✓ Screenshot uploaded successfully:', fileName)
       } else {
-        console.error('Screenshot upload error:', uploadError)
+        console.error('[PUPPETEER] Screenshot upload error:', uploadError)
       }
     } catch (error) {
-      console.error('Failed to capture screenshot - ERROR DETAILS:', error)
-      console.error('Error message:', error instanceof Error ? error.message : String(error))
-      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      console.error('[PUPPETEER] ========== SCREENSHOT FAILED ==========')
+      console.error('[PUPPETEER] Error type:', error?.constructor?.name)
+      console.error('[PUPPETEER] Error message:', error instanceof Error ? error.message : String(error))
+      console.error('[PUPPETEER] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
+      console.error('[PUPPETEER] ========================================')
     }
 
     const result = {
@@ -383,6 +453,17 @@ Deno.serve(async (req: Request) => {
       socialLinks: metadata.socialLinks || [],
     }
 
+    console.log('[MAIN] ========== Request Complete ==========')
+    console.log('[MAIN] Final result:', {
+      url: result.url,
+      title: result.title,
+      category: result.category,
+      tagsCount: result.tags.length,
+      hasImage: !!result.image,
+      hasLogo: !!result.logo,
+      socialLinksCount: result.socialLinks.length
+    })
+
     return new Response(
       JSON.stringify(result),
       {
@@ -391,14 +472,16 @@ Deno.serve(async (req: Request) => {
       }
     )
   } catch (error) {
-    console.error('Server error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Internal server error'
+    console.error('[MAIN] ========== SERVER ERROR ==========')
+    console.error('[MAIN] Error type:', error?.constructor?.name)
+    console.error('[MAIN] Error message:', error instanceof Error ? error.message : String(error))
     const errorStack = error instanceof Error ? error.stack : ''
-    console.error('Error stack:', errorStack)
+    console.error('[MAIN] Error stack:', errorStack)
+    console.error('[MAIN] =====================================')
 
     return new Response(
       JSON.stringify({
-        error: errorMessage,
+        error: error instanceof Error ? error.message : 'Internal server error',
         details: errorStack ? errorStack.split('\n').slice(0, 3).join('\n') : undefined
       }),
       {
