@@ -39,6 +39,14 @@ export default function AdminPage() {
     const adminUser = import.meta.env.VITE_ADMIN_USER
     const adminPass = import.meta.env.VITE_ADMIN_PASS
 
+    console.log('Admin credentials check:', {
+      envUser: adminUser,
+      envPass: adminPass,
+      inputUser: username,
+      inputPass: password,
+      match: username === adminUser && password === adminPass
+    })
+
     if (username === adminUser && password === adminPass) {
       setIsAuthenticated(true)
       sessionStorage.setItem('admin_authenticated', 'true')
