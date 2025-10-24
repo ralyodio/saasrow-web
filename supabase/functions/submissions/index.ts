@@ -86,7 +86,7 @@ Deno.serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from('software_submissions')
-        .insert({ title, url, description, email, category })
+        .insert({ title, url, description, email, category, status: 'pending' })
         .select()
         .maybeSingle()
 
