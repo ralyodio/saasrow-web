@@ -21,8 +21,8 @@ export default function FeaturedPage() {
     {
       name: 'Basic',
       description: 'For growing companies',
-      monthlyPrice: 1,
-      yearlyPrice: 10,
+      monthlyPrice: 2,
+      yearlyPrice: 20,
       features: [
         'Up to 5 software listings',
         'Featured badge on listings',
@@ -35,8 +35,8 @@ export default function FeaturedPage() {
     {
       name: 'Premium',
       description: 'For established brands',
-      monthlyPrice: 3,
-      yearlyPrice: 30,
+      monthlyPrice: 4,
+      yearlyPrice: 40,
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
