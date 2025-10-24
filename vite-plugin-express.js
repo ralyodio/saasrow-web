@@ -131,14 +131,41 @@ export function expressPlugin() {
         }
       }
 
+      function generateBasicTags(title, description, url) {
+        const tags = []
+        const text = `${title} ${description} ${url}`.toLowerCase()
+
+        const tagKeywords = {
+          'api': ['api', 'rest', 'graphql'],
+          'cloud': ['cloud', 'aws', 'azure', 'gcp'],
+          'opensource': ['open-source', 'github', 'open source'],
+          'saas': ['saas', 'software as a service'],
+          'security': ['security', 'encryption', 'auth'],
+          'analytics': ['analytics', 'tracking', 'metrics'],
+          'productivity': ['productivity', 'workflow', 'automation'],
+          'ai': ['ai', 'machine learning', 'ml', 'artificial intelligence'],
+          'database': ['database', 'sql', 'nosql', 'db'],
+          'monitoring': ['monitoring', 'observability', 'logging'],
+        }
+
+        for (const [tag, keywords] of Object.entries(tagKeywords)) {
+          if (keywords.some(keyword => text.includes(keyword))) {
+            tags.push(tag)
+          }
+        }
+
+        return tags.slice(0, 5)
+      }
+
       async function generateWithAI(url, metadata) {
         if (!openai) {
-          console.warn('OPENAI_API_KEY not configured, falling back to metadata only')
+          console.warn('OPENAI_API_KEY not configured, using fallback metadata')
+          const basicTags = generateBasicTags(metadata.title || '', metadata.description || '', url)
           return {
             title: metadata.title || 'Unknown Software',
             description: metadata.description || 'No description available',
             category: 'Software',
-            tags: [],
+            tags: basicTags,
           }
         }
 
@@ -179,11 +206,12 @@ No markdown, no code blocks, just the raw JSON.`
           }
         } catch (error) {
           console.error('AI generation error:', error)
+          const basicTags = generateBasicTags(metadata.title || '', metadata.description || '', url)
           return {
             title: metadata.title || 'Unknown Software',
             description: metadata.description || 'No description available',
             category: 'Software',
-            tags: [],
+            tags: basicTags,
           }
         }
       }
@@ -268,17 +296,30 @@ No markdown, no code blocks, just the raw JSON.`
             })
           }
 
+          console.log(`[fetch-metadata] Processing URL: ${url}`)
+
           const metadata = await fetchUrlMetadata(url)
+          console.log(`[fetch-metadata] Metadata fetched:`, {
+            hasTitle: !!metadata.title,
+            hasDescription: !!metadata.description,
+            hasFavicon: !!metadata.favicon,
+            hasImage: !!metadata.image,
+            socialLinksCount: metadata.socialLinks?.length || 0
+          })
+
           const aiGenerated = await generateWithAI(url, metadata)
+          console.log(`[fetch-metadata] AI generated:`, aiGenerated)
 
           let logoPath = null
           let imagePath = null
           let screenshotPath = null
 
           try {
+            console.log(`[fetch-metadata] Attempting to capture screenshot...`)
             const screenshot = await captureScreenshot(url)
             if (screenshot) {
               const fileName = `screenshot-${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+              console.log(`[fetch-metadata] Screenshot captured, uploading as ${fileName}`)
 
               const { error: uploadError } = await supabase.storage
                 .from('software-images')
@@ -289,7 +330,12 @@ No markdown, no code blocks, just the raw JSON.`
 
               if (!uploadError) {
                 screenshotPath = fileName
+                console.log(`[fetch-metadata] Screenshot uploaded successfully`)
+              } else {
+                console.error(`[fetch-metadata] Screenshot upload failed:`, uploadError)
               }
+            } else {
+              console.log(`[fetch-metadata] No screenshot captured`)
             }
           } catch (screenshotError) {
             console.error('Screenshot capture failed (non-critical):', screenshotError)
@@ -297,12 +343,14 @@ No markdown, no code blocks, just the raw JSON.`
 
           if (metadata.favicon) {
             try {
+              console.log(`[fetch-metadata] Downloading logo from: ${metadata.favicon}`)
               const logoResponse = await fetch(metadata.favicon)
               if (logoResponse.ok) {
                 const logoBuffer = await logoResponse.arrayBuffer()
                 const contentType = logoResponse.headers.get('content-type') || 'image/png'
                 const ext = contentType.split('/')[1] || 'png'
                 const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`
+                console.log(`[fetch-metadata] Logo downloaded, uploading as ${fileName}`)
 
                 const { error: uploadError } = await supabase.storage
                   .from('software-logos')
@@ -313,7 +361,12 @@ No markdown, no code blocks, just the raw JSON.`
 
                 if (!uploadError) {
                   logoPath = fileName
+                  console.log(`[fetch-metadata] Logo uploaded successfully`)
+                } else {
+                  console.error(`[fetch-metadata] Logo upload failed:`, uploadError)
                 }
+              } else {
+                console.log(`[fetch-metadata] Logo fetch failed with status: ${logoResponse.status}`)
               }
             } catch (error) {
               console.error('Failed to download/upload logo:', error)
@@ -355,6 +408,14 @@ No markdown, no code blocks, just the raw JSON.`
             logo: logoPath,
             socialLinks: metadata.socialLinks || [],
           }
+
+          console.log(`[fetch-metadata] Final result:`, {
+            ...result,
+            tagsCount: result.tags.length,
+            hasLogo: !!result.logo,
+            hasImage: !!result.image,
+            socialLinksCount: result.socialLinks.length
+          })
 
           res.json(result)
         } catch (error) {
