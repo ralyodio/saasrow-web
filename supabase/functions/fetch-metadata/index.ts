@@ -385,6 +385,12 @@ Deno.serve(async (req: Request) => {
       console.log('[IMAGE] No OG image found in metadata')
     }
 
+    // Screenshot functionality commented out - Puppeteer doesn't work in Supabase Edge Functions
+    // Reason: No Chrome/Chromium binaries available in the serverless environment
+    // TODO: Consider using a third-party screenshot service API if screenshots are needed
+    // For now, relying on OG images from websites
+
+    /*
     try {
       console.log('[PUPPETEER] ========== Starting Puppeteer Screenshot ==========')
       console.log('[PUPPETEER] Target URL:', url)
@@ -441,6 +447,7 @@ Deno.serve(async (req: Request) => {
       console.error('[PUPPETEER] Error stack:', error instanceof Error ? error.stack : 'No stack trace')
       console.error('[PUPPETEER] ========================================')
     }
+    */
 
     const result = {
       url,
