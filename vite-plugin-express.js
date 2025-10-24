@@ -3,26 +3,23 @@ import cors from 'cors'
 import { createClient } from '@supabase/supabase-js'
 import OpenAI from 'openai'
 import puppeteer from 'puppeteer'
-import dotenv from 'dotenv'
-
-dotenv.config()
 
 export function expressPlugin() {
   return {
     name: 'vite-plugin-express',
-    configureServer(server) {
+    configureServer(viteServer) {
       const app = express()
 
       app.use(cors())
       app.use(express.json())
 
       const supabase = createClient(
-        process.env.VITE_SUPABASE_URL,
-        process.env.SUPABASE_SERVICE_ROLE_KEY
+        viteServer.config.env.VITE_SUPABASE_URL,
+        viteServer.config.env.SUPABASE_SERVICE_ROLE_KEY
       )
 
-      const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY,
+      const openai = viteServer.config.env.OPENAI_API_KEY ? new OpenAI({
+        apiKey: viteServer.config.env.OPENAI_API_KEY,
       }) : null
 
       async function fetchUrlMetadata(url) {
@@ -388,7 +385,7 @@ No markdown, no code blocks, just the raw JSON.`
         }
       })
 
-      server.middlewares.use(app)
+      viteServer.middlewares.use(app)
     },
   }
 }
