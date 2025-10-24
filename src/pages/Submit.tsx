@@ -29,6 +29,8 @@ export default function SubmitPage() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
+  const [fetchedLogoPath, setFetchedLogoPath] = useState<string | null>(null)
+  const [fetchedImagePath, setFetchedImagePath] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -61,11 +63,13 @@ export default function SubmitPage() {
         })
 
         if (data.image) {
+          setFetchedImagePath(data.image)
           const { data: imageData } = supabase.storage.from('software-images').getPublicUrl(data.image)
           setPreviewImage(imageData.publicUrl)
         }
 
         if (data.logo) {
+          setFetchedLogoPath(data.logo)
           const { data: logoData } = supabase.storage.from('software-logos').getPublicUrl(data.logo)
           setLogoUrl(logoData.publicUrl)
         }
@@ -141,6 +145,8 @@ export default function SubmitPage() {
           return
         }
         uploadedLogoPath = fileName
+      } else if (fetchedLogoPath) {
+        uploadedLogoPath = fetchedLogoPath
       }
 
       if (imageFile) {
@@ -159,6 +165,8 @@ export default function SubmitPage() {
           return
         }
         uploadedImagePath = fileName
+      } else if (fetchedImagePath) {
+        uploadedImagePath = fetchedImagePath
       }
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
@@ -185,6 +193,8 @@ export default function SubmitPage() {
         setLogoUrl(null)
         setLogoFile(null)
         setImageFile(null)
+        setFetchedLogoPath(null)
+        setFetchedImagePath(null)
         setStep('url')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
@@ -204,6 +214,8 @@ export default function SubmitPage() {
     setLogoUrl(null)
     setLogoFile(null)
     setImageFile(null)
+    setFetchedLogoPath(null)
+    setFetchedImagePath(null)
     setMessage(null)
   }
 
@@ -314,6 +326,7 @@ export default function SubmitPage() {
                           onClick={() => {
                             setLogoUrl(null)
                             setLogoFile(null)
+                            setFetchedLogoPath(null)
                           }}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
                         >
@@ -351,6 +364,7 @@ export default function SubmitPage() {
                           onClick={() => {
                             setPreviewImage(null)
                             setImageFile(null)
+                            setFetchedImagePath(null)
                           }}
                           className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
                         >
