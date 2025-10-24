@@ -1,9 +1,26 @@
 import { useState, useRef, useEffect } from 'react'
 
-export function SearchSection() {
-  const [searchQuery, setSearchQuery] = useState('')
-  const [selectedFilter, setSelectedFilter] = useState<'all' | 'featured' | 'premium'>('all')
-  const [activeCategories, setActiveCategories] = useState<string[]>(['Software', 'Security'])
+interface SearchSectionProps {
+  searchQuery: string
+  onSearchChange: (query: string) => void
+  selectedFilter: 'all' | 'featured' | 'premium'
+  onFilterChange: (filter: 'all' | 'featured' | 'premium') => void
+  activeCategories: string[]
+  onCategoriesChange: (categories: string[]) => void
+  selectedSort: string
+  onSortChange: (sort: string) => void
+}
+
+export function SearchSection({
+  searchQuery,
+  onSearchChange,
+  selectedFilter,
+  onFilterChange,
+  activeCategories,
+  onCategoriesChange,
+  selectedSort,
+  onSortChange,
+}: SearchSectionProps) {
 
   const filterButtons = [
     { id: 'all' as const, label: 'All' },
@@ -26,7 +43,6 @@ export function SearchSection() {
 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
-  const [selectedSort, setSelectedSort] = useState('Most Popular')
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
 
@@ -44,9 +60,10 @@ export function SearchSection() {
   }, [])
 
   const handleCategoryToggle = (category: string) => {
-    setActiveCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    )
+    const newCategories = activeCategories.includes(category)
+      ? activeCategories.filter((c) => c !== category)
+      : [...activeCategories, category]
+    onCategoriesChange(newCategories)
   }
 
   return (
@@ -57,7 +74,7 @@ export function SearchSection() {
           <input
             type="search"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search keywords..."
             className="flex-1 bg-transparent border-none outline-none text-white text-2xl placeholder:text-white/70 font-inter"
           />
@@ -68,7 +85,7 @@ export function SearchSection() {
               return (
                 <button
                   key={filter.id}
-                  onClick={() => setSelectedFilter(filter.id)}
+                  onClick={() => onFilterChange(filter.id)}
                   className={`px-6 py-2 rounded-full font-roboto text-xl transition-all ${
                     isActive
                       ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
@@ -137,7 +154,7 @@ export function SearchSection() {
                   <button
                     key={option}
                     onClick={() => {
-                      setSelectedSort(option)
+                      onSortChange(option)
                       setShowSortDropdown(false)
                     }}
                     className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors ${
@@ -172,7 +189,7 @@ export function SearchSection() {
                 ))}
               </div>
               <button
-                onClick={() => setActiveCategories([])}
+                onClick={() => onCategoriesChange([])}
                 className="px-6 py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-xl hover:opacity-80 transition-opacity"
               >
                 Clear All

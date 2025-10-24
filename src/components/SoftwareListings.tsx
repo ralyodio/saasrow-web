@@ -10,9 +10,22 @@ interface Software {
   logo?: string
   image?: string
   tags?: string[]
+  submitted_at?: string
 }
 
-export function SoftwareListings() {
+interface SoftwareListingsProps {
+  searchQuery: string
+  selectedFilter: 'all' | 'featured' | 'premium'
+  activeCategories: string[]
+  selectedSort: string
+}
+
+export function SoftwareListings({
+  searchQuery,
+  selectedFilter,
+  activeCategories,
+  selectedSort,
+}: SoftwareListingsProps) {
   const [listings, setListings] = useState<Software[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -64,6 +77,34 @@ export function SoftwareListings() {
     )
   }
 
+  const filteredAndSortedListings = listings
+    .filter((software) => {
+      const matchesSearch =
+        searchQuery === '' ||
+        software.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        software.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        software.tags?.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+
+      const matchesCategory =
+        activeCategories.length === 0 || activeCategories.includes(software.category)
+
+      return matchesSearch && matchesCategory
+    })
+    .sort((a, b) => {
+      switch (selectedSort) {
+        case 'Newest':
+          return new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()
+        case 'A-Z':
+          return a.title.localeCompare(b.title)
+        case 'Z-A':
+          return b.title.localeCompare(a.title)
+        case 'Most Popular':
+        case 'Top Rated':
+        default:
+          return 0
+      }
+    })
+
   if (listings.length === 0) {
     return (
       <section className="w-full max-w-[1318px] mx-auto px-4 py-12">
@@ -80,10 +121,26 @@ export function SoftwareListings() {
     )
   }
 
+  if (filteredAndSortedListings.length === 0) {
+    return (
+      <section className="w-full max-w-[1318px] mx-auto px-4 py-12">
+        <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
+          <p className="text-white/70 text-xl font-ubuntu">No software matches your filters.</p>
+          <p className="text-white/50 text-sm font-ubuntu mt-2">Try adjusting your search or category filters.</p>
+        </div>
+      </section>
+    )
+  }
+
   return (
     <section className="w-full max-w-[1318px] mx-auto px-4 py-12">
+      <div className="mb-6">
+        <p className="text-white/70 font-ubuntu">
+          Showing {filteredAndSortedListings.length} of {listings.length} software listings
+        </p>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {listings.map((software) => (
+        {filteredAndSortedListings.map((software) => (
           <div
             key={software.id}
             className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:transform hover:scale-105 cursor-pointer"

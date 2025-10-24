@@ -1,9 +1,15 @@
+import { useState } from 'react'
 import { Header } from '../components/Header'
 import { SearchSection } from '../components/SearchSection'
 import { SoftwareListings } from '../components/SoftwareListings'
 import { Footer } from '../components/Footer'
 
 export default function HomePage() {
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedFilter, setSelectedFilter] = useState<'all' | 'featured' | 'premium'>('all')
+  const [activeCategories, setActiveCategories] = useState<string[]>([])
+  const [selectedSort, setSelectedSort] = useState('Most Popular')
+
   return (
     <div className="min-h-screen bg-neutral-800 relative">
       <div className="absolute w-full h-1/2 top-[7.45%] left-0 pointer-events-none">
@@ -15,8 +21,22 @@ export default function HomePage() {
 
       <div className="relative z-10">
         <Header />
-        <SearchSection />
-        <SoftwareListings />
+        <SearchSection
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          selectedFilter={selectedFilter}
+          onFilterChange={setSelectedFilter}
+          activeCategories={activeCategories}
+          onCategoriesChange={setActiveCategories}
+          selectedSort={selectedSort}
+          onSortChange={setSelectedSort}
+        />
+        <SoftwareListings
+          searchQuery={searchQuery}
+          selectedFilter={selectedFilter}
+          activeCategories={activeCategories}
+          selectedSort={selectedSort}
+        />
         <Footer />
       </div>
     </div>
