@@ -8,40 +8,44 @@ export default function FeaturedPage() {
   const pricingPlans = [
     {
       name: 'Free',
-      description: 'Best for personal use',
-      price: '$0',
-      period: '/month',
+      description: 'Perfect for trying us out',
+      monthlyPrice: 0,
+      yearlyPrice: 0,
       features: [
-        'Task Management',
-        'Project Planning',
-        'Team Collaboration',
-        'Notifications and Reminders',
+        'Submit 1 software listing',
+        'Basic listing page',
+        'Community visibility',
+        'Standard review time (7-10 days)',
       ],
     },
     {
       name: 'Basic',
-      description: 'Best for personal use',
-      price: '$8',
-      period: '/month',
+      description: 'For growing companies',
+      monthlyPrice: 29,
+      yearlyPrice: 290,
       features: [
-        'Kanban Boards',
-        'Gantt Charts',
-        'Resource Allocation',
-        'Calendar Integration',
-        'Progress Tracking',
+        'Up to 5 software listings',
+        'Featured badge on listings',
+        'Priority review (2-3 days)',
+        'Monthly performance analytics',
+        'Logo in category pages',
+        'Social media mentions',
       ],
     },
     {
       name: 'Premium',
-      description: 'Best for personal use',
-      price: '$16',
-      period: '/month',
+      description: 'For established brands',
+      monthlyPrice: 99,
+      yearlyPrice: 990,
       features: [
-        'Customizable Workflows',
-        'Reporting and Analytics',
-        'Document Management',
-        'Agile Methodology Support',
-        'Issue Tracking',
+        'Unlimited software listings',
+        'Homepage featured spot',
+        'Same-day review',
+        'Advanced analytics dashboard',
+        'Custom company profile page',
+        'Newsletter feature (200K+ subscribers)',
+        'Dedicated account manager',
+        'SEO optimization support',
       ],
       isPopular: true,
     },
@@ -50,17 +54,33 @@ export default function FeaturedPage() {
   const faqs = [
     {
       question: 'What is SaaSRow?',
-      answer: 'SaaSRow is a growing software marketplace with 856,000+ monthly page views.',
+      answer: 'SaaSRow is a growing software marketplace with 856,000+ monthly page views where users discover and compare software solutions.',
     },
     {
       question: 'How does pricing work?',
-      answer: 'Choose from our flexible plans based on your needs.',
+      answer: 'Choose from our flexible plans based on your needs. Annual plans save you 2 months compared to monthly billing. All paid plans include priority support.',
     },
     {
       question: 'Can I cancel anytime?',
-      answer: 'Yes, you can cancel your subscription at any time.',
+      answer: 'Yes, you can cancel your subscription at any time. Your listings will remain active until the end of your billing period.',
+    },
+    {
+      question: 'What happens to my listings if I downgrade?',
+      answer: 'Your listings stay active, but premium features like featured badges and priority placement will be removed. You can always upgrade again.',
     },
   ]
+
+  const getDisplayPrice = (plan: typeof pricingPlans[0]) => {
+    if (plan.monthlyPrice === 0) return '$0'
+    const price = billingPeriod === 'yearly' ? plan.yearlyPrice / 12 : plan.monthlyPrice
+    return `$${Math.round(price)}`
+  }
+
+  const getSavings = (plan: typeof pricingPlans[0]) => {
+    if (plan.monthlyPrice === 0) return null
+    const yearlySavings = (plan.monthlyPrice * 12) - plan.yearlyPrice
+    return yearlySavings > 0 ? `Save $${yearlySavings}/year` : null
+  }
 
   return (
     <div className="min-h-screen bg-neutral-800 relative">
@@ -75,6 +95,9 @@ export default function FeaturedPage() {
         <Header />
 
         <section className="w-full max-w-[1200px] mx-auto px-4 py-12 text-center">
+          <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">
+            Get Your Software Featured
+          </h1>
           <p className="text-white text-xl max-w-3xl mx-auto mb-12 font-ubuntu">
             SaaSRow is a growing software marketplace with 856,000+ monthly page views.
             <br />
@@ -91,7 +114,7 @@ export default function FeaturedPage() {
                     : 'text-white'
                 }`}
               >
-                Yearly
+                Yearly <span className="text-sm opacity-70">(Save 17%)</span>
               </button>
               <button
                 onClick={() => setBillingPeriod('monthly')}
@@ -121,10 +144,20 @@ export default function FeaturedPage() {
                 )}
                 <h3 className="text-white text-3xl font-bold font-ubuntu mb-2">{plan.name}</h3>
                 <p className="text-white/70 mb-6 font-ubuntu">{plan.description}</p>
-                <div className="mb-6">
-                  <span className="text-white text-5xl font-bold font-ubuntu">{plan.price}</span>
-                  <span className="text-white/70 font-ubuntu">{plan.period}</span>
+                <div className="mb-2">
+                  <span className="text-white text-5xl font-bold font-ubuntu">
+                    {getDisplayPrice(plan)}
+                  </span>
+                  <span className="text-white/70 font-ubuntu">/month</span>
                 </div>
+                {billingPeriod === 'yearly' && getSavings(plan) && (
+                  <p className="text-[#4FFFE3] text-sm font-ubuntu mb-4">{getSavings(plan)}</p>
+                )}
+                {billingPeriod === 'yearly' && plan.yearlyPrice > 0 && (
+                  <p className="text-white/50 text-sm font-ubuntu mb-4">
+                    Billed ${plan.yearlyPrice} annually
+                  </p>
+                )}
                 <button
                   onClick={() => {
                     if (plan.name === 'Free') {
@@ -135,13 +168,13 @@ export default function FeaturedPage() {
                   }}
                   className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6"
                 >
-                  {plan.name === 'Free' ? 'Submit Now' : 'Checkout'}
+                  {plan.name === 'Free' ? 'Submit Now' : 'Get Started'}
                 </button>
                 <ul className="space-y-3 text-left">
                   {plan.features.map((feature, idx) => (
-                    <li key={idx} className="flex items-center gap-3 text-white font-ubuntu">
+                    <li key={idx} className="flex items-start gap-3 text-white font-ubuntu">
                       <svg
-                        className="w-5 h-5 text-[#4FFFE3]"
+                        className="w-5 h-5 text-[#4FFFE3] flex-shrink-0 mt-0.5"
                         fill="currentColor"
                         viewBox="0 0 20 20"
                       >
@@ -151,7 +184,7 @@ export default function FeaturedPage() {
                           clipRule="evenodd"
                         />
                       </svg>
-                      {feature}
+                      <span className="text-sm">{feature}</span>
                     </li>
                   ))}
                 </ul>
