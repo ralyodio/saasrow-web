@@ -8,7 +8,6 @@ export function Header() {
     { id: 'apps', label: 'Apps', href: '/' },
     { id: 'tags', label: 'Tags', href: '/tags' },
     { id: 'community', label: 'Community', href: '/community' },
-    { id: 'featured', label: 'Get Featured', href: '/featured' },
   ]
 
   return (
@@ -38,9 +37,12 @@ export function Header() {
             </Link>
           ))}
 
-          <button className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-roboto text-xl hover:opacity-90 transition-opacity">
-            Sign in
-          </button>
+          <Link
+            to="/featured"
+            className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-roboto text-xl hover:opacity-90 transition-opacity"
+          >
+            Get Featured
+          </Link>
         </nav>
       </div>
     </header>
