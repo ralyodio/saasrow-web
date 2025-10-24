@@ -147,27 +147,29 @@ export function SoftwareListings({
             to={`/software/${software.id}`}
             className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:transform hover:scale-105 block"
           >
-            <div className="flex items-start gap-4 mb-4">
-              {software.logo && (
-                <div className="flex-shrink-0">
-                  <img
-                    src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
-                    alt={`${software.title} logo`}
-                    className="w-16 h-16 rounded-lg bg-white p-2 object-contain"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none'
-                    }}
-                  />
+            <div className="mb-4">
+              <div className="flex items-center gap-3 mb-2">
+                {software.logo && (
+                  <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-white p-2 flex items-center justify-center">
+                    <img
+                      src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
+                      alt={`${software.title} logo`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none'
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white text-xl font-bold font-ubuntu truncate">
+                    {software.title}
+                  </h3>
                 </div>
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-white text-xl font-bold font-ubuntu mb-1 truncate">
-                  {software.title}
-                </h3>
-                <span className="inline-block px-3 py-1 rounded-full text-xs font-ubuntu bg-[#4a4a4a] text-white/70">
-                  {software.category}
-                </span>
               </div>
+              <span className="inline-block px-3 py-1 rounded-full text-xs font-ubuntu bg-[#4a4a4a] text-white/70">
+                {software.category}
+              </span>
             </div>
 
             {software.image && (
