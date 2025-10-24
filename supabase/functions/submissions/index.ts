@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { title, url, description, email, category, tags } = body
+      const { title, url, description, email, category, tags, logo, image } = body
 
       if (!title || !url || !description || !email || !category) {
         return new Response(
@@ -142,6 +142,14 @@ Deno.serve(async (req: Request) => {
 
       if (tags && Array.isArray(tags)) {
         submissionData.tags = tags
+      }
+
+      if (logo) {
+        submissionData.logo = logo
+      }
+
+      if (image) {
+        submissionData.image = image
       }
 
       const { data, error } = await supabase

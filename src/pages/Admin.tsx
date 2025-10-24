@@ -11,6 +11,9 @@ interface Submission {
   category: string
   status: 'pending' | 'approved' | 'rejected'
   submitted_at: string
+  logo?: string
+  image?: string
+  tags?: string[]
 }
 
 export default function AdminPage() {
@@ -253,7 +256,19 @@ export default function AdminPage() {
                   key={submission.id}
                   className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-colors"
                 >
-                  <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-start gap-4 mb-4">
+                    {submission.logo && (
+                      <div className="flex-shrink-0">
+                        <img
+                          src={submission.logo}
+                          alt={`${submission.title} logo`}
+                          className="w-16 h-16 rounded-lg bg-white p-2 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      </div>
+                    )}
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-white text-2xl font-bold font-ubuntu">
@@ -279,6 +294,18 @@ export default function AdminPage() {
                         {submission.url}
                       </a>
                       <p className="text-white/70 font-ubuntu mb-2">{submission.description}</p>
+                      {submission.tags && submission.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {submission.tags.map((tag, index) => (
+                            <span
+                              key={index}
+                              className="px-2 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu"
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                       <div className="flex items-center gap-4 text-white/50 font-ubuntu text-sm">
                         <span>Contact: {submission.email}</span>
                         <span>

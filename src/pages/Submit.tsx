@@ -87,7 +87,11 @@ export default function SubmitPage() {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          ...formData,
+          logo: logoUrl,
+          image: previewImage,
+        }),
       })
 
       const data = await response.json()

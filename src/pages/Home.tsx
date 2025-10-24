@@ -1,5 +1,6 @@
 import { Header } from '../components/Header'
 import { SearchSection } from '../components/SearchSection'
+import { SoftwareListings } from '../components/SoftwareListings'
 import { Footer } from '../components/Footer'
 
 export default function HomePage() {
@@ -15,6 +16,7 @@ export default function HomePage() {
       <div className="relative z-10">
         <Header />
         <SearchSection />
+        <SoftwareListings />
         <Footer />
       </div>
     </div>
