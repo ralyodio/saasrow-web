@@ -2,7 +2,19 @@ import { useState, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 
+interface FetchedData {
+  url: string
+  title: string
+  description: string
+  category: string
+  image: string | null
+  favicon: string | null
+}
+
 export default function SubmitPage() {
+  const [step, setStep] = useState<'url' | 'edit'>(  'url')
+  const [url, setUrl] = useState('')
+  const [isFetching, setIsFetching] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     url: '',
@@ -10,10 +22,49 @@ export default function SubmitPage() {
     email: '',
     category: '',
   })
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleFetchMetadata = async (e: FormEvent) => {
+    e.preventDefault()
+    setIsFetching(true)
+    setMessage(null)
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-metadata`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setFormData({
+          title: data.title,
+          url: data.url,
+          description: data.description,
+          email: '',
+          category: data.category,
+        })
+        setPreviewImage(data.image)
+        setStep('edit')
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to fetch metadata' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Something went wrong. Please check the URL and try again.' })
+    } finally {
+      setIsFetching(false)
+    }
+  }
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
@@ -39,6 +90,9 @@ export default function SubmitPage() {
       if (response.ok) {
         setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
         setFormData({ title: '', url: '', description: '', email: '', category: '' })
+        setUrl('')
+        setPreviewImage(null)
+        setStep('url')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
       }
@@ -47,6 +101,14 @@ export default function SubmitPage() {
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleStartOver = () => {
+    setStep('url')
+    setUrl('')
+    setFormData({ title: '', url: '', description: '', email: '', category: '' })
+    setPreviewImage(null)
+    setMessage(null)
   }
 
   return (
@@ -60,183 +122,202 @@ export default function SubmitPage() {
         <Header />
 
         <main className="w-full max-w-[800px] mx-auto px-4 py-12">
-          <h1 className="text-white text-4xl font-bold font-ubuntu mb-8 text-center">
+          <h1 className="text-white text-4xl font-bold font-ubuntu mb-4 text-center">
             Submit Your Software
           </h1>
+          <p className="text-white/70 text-center font-ubuntu mb-8">
+            {step === 'url'
+              ? 'Enter your software URL and we\'ll automatically fetch the details'
+              : 'Review and edit the information before submitting'}
+          </p>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="bg-[#3a3a3a] rounded-2xl p-8 space-y-6">
-              <div>
-                <label htmlFor="title" className="block text-white font-ubuntu text-lg mb-2">
-                  Title
-                </label>
-                <input
-                  id="title"
-                  name="title"
-                  type="text"
-                  value={formData.title}
-                  onChange={handleInputChange}
-                  placeholder="Enter your Title"
-                  required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="url" className="block text-white font-ubuntu text-lg mb-2">
-                  URL
+          {step === 'url' ? (
+            <form onSubmit={handleFetchMetadata} className="space-y-6">
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <label htmlFor="url" className="block text-white font-ubuntu text-lg mb-4">
+                  Software URL
                 </label>
                 <input
                   id="url"
                   name="url"
                   type="url"
-                  value={formData.url}
-                  onChange={handleInputChange}
-                  placeholder="Enter your URL"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://example.com"
                   required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg"
                 />
+                <p className="text-white/50 text-sm font-ubuntu mt-3">
+                  We'll fetch the title, description, and other details automatically using AI
+                </p>
               </div>
 
-              <div>
-                <label htmlFor="email" className="block text-white font-ubuntu text-lg mb-2">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="your.email@example.com"
-                  required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="category" className="block text-white font-ubuntu text-lg mb-2">
-                  Category
-                </label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, category: e.target.value }))}
-                  required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+              {message && (
+                <div
+                  className={`rounded-2xl p-4 ${
+                    message.type === 'success'
+                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
+                      : 'bg-red-400/10 border border-red-400'
+                  }`}
                 >
-                  <option value="">Select a category</option>
-                  <option value="Software">Software</option>
-                  <option value="Security">Security</option>
-                  <option value="Productivity">Productivity</option>
-                  <option value="Development">Development</option>
-                  <option value="Design">Design</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Analytics">Analytics</option>
-                  <option value="Communication">Communication</option>
-                </select>
-              </div>
-
-              <div>
-                <label htmlFor="description" className="block text-white font-ubuntu text-lg mb-2">
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  placeholder="Enter your Description"
-                  required
-                  rows={4}
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="bg-[#3a3a3a] rounded-2xl p-8">
-              <h2 className="text-white text-xl font-bold font-ubuntu mb-4">Upload Files</h2>
-
-              <div className="border-2 border-dashed border-[#4a4a4a] rounded-2xl p-12 text-center mb-4">
-                <div className="flex flex-col items-center gap-4">
-                  <svg
-                    className="w-16 h-16 text-[#4FFFE3]"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                  <p
+                    className={`text-center font-ubuntu ${
+                      message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                    }`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                    />
-                  </svg>
-                  <div className="text-white font-ubuntu">
-                    <span>Drag your file(s) or </span>
-                    <button
-                      type="button"
-                      className="text-[#4FFFE3] underline hover:opacity-80"
-                    >
-                      browse
-                    </button>
-                  </div>
-                  <p className="text-white/50 text-sm font-ubuntu">Max 10 MB files are allowed</p>
+                    {message.text}
+                  </p>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={isFetching || !url}
+                className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isFetching ? 'Fetching details...' : 'Continue'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {previewImage && (
+                <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                  <label className="block text-white font-ubuntu text-lg mb-4">Preview Image</label>
+                  <img
+                    src={previewImage}
+                    alt="Preview"
+                    className="w-full h-48 object-cover rounded-lg"
+                    onError={() => setPreviewImage(null)}
+                  />
+                </div>
+              )}
+
+              <div className="bg-[#3a3a3a] rounded-2xl p-8 space-y-6">
+                <div>
+                  <label htmlFor="title" className="block text-white font-ubuntu text-lg mb-2">
+                    Title
+                  </label>
+                  <input
+                    id="title"
+                    name="title"
+                    type="text"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Software title"
+                    required
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="url" className="block text-white font-ubuntu text-lg mb-2">
+                    URL
+                  </label>
+                  <input
+                    id="url"
+                    name="url"
+                    type="url"
+                    value={formData.url}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com"
+                    required
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="category" className="block text-white font-ubuntu text-lg mb-2">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    name="category"
+                    value={formData.category}
+                    onChange={handleInputChange}
+                    required
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  >
+                    <option value="">Select a category</option>
+                    <option value="Software">Software</option>
+                    <option value="Security">Security</option>
+                    <option value="Productivity">Productivity</option>
+                    <option value="Development">Development</option>
+                    <option value="Design">Design</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Analytics">Analytics</option>
+                    <option value="Communication">Communication</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="description" className="block text-white font-ubuntu text-lg mb-2">
+                    Description
+                  </label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Brief description of the software"
+                    required
+                    rows={4}
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="email" className="block text-white font-ubuntu text-lg mb-2">
+                    Your Email
+                  </label>
+                  <input
+                    id="email"
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="your.email@example.com"
+                    required
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
+                  />
                 </div>
               </div>
 
-              <p className="text-white/50 text-sm font-ubuntu mb-4">
-                Only support .jpg, .png and .svg
-              </p>
-
-              <div className="flex items-center gap-4 mb-4">
-                <div className="flex-1 h-px bg-[#4a4a4a]" />
-                <span className="text-white/50 font-ubuntu">OR</span>
-                <div className="flex-1 h-px bg-[#4a4a4a]" />
-              </div>
-
-              <div className="flex gap-4">
-                <input
-                  type="url"
-                  placeholder="Add file URL"
-                  className="flex-1 px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
-                />
-                <button
-                  type="button"
-                  className="px-8 py-3 rounded-lg bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
-                >
-                  Upload
-                </button>
-              </div>
-            </div>
-
-            {message && (
-              <div
-                className={`rounded-2xl p-4 ${
-                  message.type === 'success'
-                    ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                    : 'bg-red-400/10 border border-red-400'
-                }`}
-              >
-                <p
-                  className={`text-center font-ubuntu ${
-                    message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+              {message && (
+                <div
+                  className={`rounded-2xl p-4 ${
+                    message.type === 'success'
+                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
+                      : 'bg-red-400/10 border border-red-400'
                   }`}
                 >
-                  {message.text}
-                </p>
-              </div>
-            )}
+                  <p
+                    className={`text-center font-ubuntu ${
+                      message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                    }`}
+                  >
+                    {message.text}
+                  </p>
+                </div>
+              )}
 
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit'}
-            </button>
-          </form>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={handleStartOver}
+                  className="flex-1 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-xl hover:bg-[#555555] transition-colors"
+                >
+                  Start Over
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
+              </div>
+            </form>
+          )}
         </main>
 
         <Footer />
