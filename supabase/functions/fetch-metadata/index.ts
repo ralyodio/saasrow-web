@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 import { OpenAI } from 'npm:openai@4.47.1'
+import puppeteer from 'https://deno.land/x/puppeteer@16.2.0/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -275,6 +276,7 @@ Deno.serve(async (req: Request) => {
 
     let logoPath: string | null = null
     let imagePath: string | null = null
+    let screenshotPath: string | null = null
 
     if (metadata.favicon) {
       try {
@@ -320,6 +322,39 @@ Deno.serve(async (req: Request) => {
       } catch (error) {
         console.error('Failed to download/upload image:', error)
       }
+    }
+
+    try {
+      const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      })
+      const page = await browser.newPage()
+      await page.setViewport({ width: 1280, height: 800 })
+      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+
+      const screenshotBuffer = await page.screenshot({
+        type: 'png',
+        fullPage: false,
+      })
+
+      await browser.close()
+
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.png`
+      const { error: uploadError } = await supabase.storage
+        .from('software-images')
+        .upload(fileName, screenshotBuffer, {
+          contentType: 'image/png',
+          cacheControl: '3600',
+        })
+
+      if (!uploadError) {
+        screenshotPath = fileName
+        if (!imagePath) {
+          imagePath = fileName
+        }
+      }
+    } catch (error) {
+      console.error('Failed to capture screenshot:', error)
     }
 
     const result = {
