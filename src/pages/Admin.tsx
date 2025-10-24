@@ -92,6 +92,32 @@ export default function AdminPage() {
     }
   }
 
+  const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected') => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const response = await fetch(apiUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, status }),
+      })
+
+      if (response.ok) {
+        setSubmissions((prev) =>
+          prev.map((sub) => (sub.id === id ? { ...sub, status } : sub))
+        )
+      } else {
+        console.error('Failed to update submission:', await response.text())
+        alert('Failed to update submission status')
+      }
+    } catch (error) {
+      console.error('Failed to update submission:', error)
+      alert('Failed to update submission status')
+    }
+  }
+
   const filteredSubmissions = submissions.filter((sub) => {
     if (filter === 'all') return true
     return sub.status === filter
@@ -259,6 +285,24 @@ export default function AdminPage() {
                           Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                         </span>
                       </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      {submission.status !== 'approved' && (
+                        <button
+                          onClick={() => updateSubmissionStatus(submission.id, 'approved')}
+                          className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {submission.status !== 'rejected' && (
+                        <button
+                          onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
+                          className="px-4 py-2 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu font-bold hover:bg-red-400/30 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

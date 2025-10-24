@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 }
 
@@ -144,6 +144,66 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ data, message: 'Submission created successfully' }),
         {
           status: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (req.method === 'PATCH') {
+      const body = await req.json()
+      const { id, status } = body
+
+      if (!id || !status) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required fields: id, status' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      if (!['pending', 'approved', 'rejected'].includes(status)) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid status. Must be: pending, approved, or rejected' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      const { data, error } = await supabase
+        .from('software_submissions')
+        .update({ status })
+        .eq('id', id)
+        .select()
+        .maybeSingle()
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      if (!data) {
+        return new Response(
+          JSON.stringify({ error: 'Submission not found' }),
+          {
+            status: 404,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ data, message: 'Status updated successfully' }),
+        {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
