@@ -21,8 +21,8 @@ export default function FeaturedPage() {
     {
       name: 'Basic',
       description: 'For growing companies',
-      monthlyPrice: 29,
-      yearlyPrice: 290,
+      monthlyPrice: 1,
+      yearlyPrice: 10,
       features: [
         'Up to 5 software listings',
         'Featured badge on listings',
@@ -35,8 +35,8 @@ export default function FeaturedPage() {
     {
       name: 'Premium',
       description: 'For established brands',
-      monthlyPrice: 99,
-      yearlyPrice: 990,
+      monthlyPrice: 5,
+      yearlyPrice: 50,
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
@@ -73,7 +73,7 @@ export default function FeaturedPage() {
   const getDisplayPrice = (plan: typeof pricingPlans[0]) => {
     if (plan.monthlyPrice === 0) return '$0'
     const price = billingPeriod === 'yearly' ? plan.yearlyPrice / 12 : plan.monthlyPrice
-    return `$${Math.round(price)}`
+    return `$${price.toFixed(2).replace(/\.00$/, '')}`
   }
 
   const getSavings = (plan: typeof pricingPlans[0]) => {
