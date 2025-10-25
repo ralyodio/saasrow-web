@@ -35,6 +35,8 @@ export default function ManageListings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addUrl, setAddUrl] = useState('')
   const [formData, setFormData] = useState<Partial<Submission> & { socialLinks?: SocialLink[] }>({
     title: '',
     url: '',
@@ -46,6 +48,7 @@ export default function ManageListings() {
     socialLinks: []
   })
   const [saving, setSaving] = useState(false)
+  const [processing, setProcessing] = useState(false)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -105,7 +108,69 @@ export default function ManageListings() {
   }
 
   const handleAddNew = () => {
-    navigate('/submit')
+    setShowAddForm(true)
+    setEditingId(null)
+    setAddUrl('')
+  }
+
+  const handleProcessUrl = async () => {
+    if (!addUrl || !token) return
+
+    setProcessing(true)
+    try {
+      const response = await fetch(`${apiUrl}/functions/v1/fetch-metadata`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: addUrl }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to fetch metadata')
+      }
+
+      // Create new submission with the email from existing submissions
+      const email = submissions[0]?.email
+      if (!email) {
+        throw new Error('No email found')
+      }
+
+      const createResponse = await fetch(`${apiUrl}/functions/v1/submissions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          url: addUrl,
+          email: email,
+          title: result.metadata.title,
+          description: result.metadata.description,
+          category: 'Software',
+          tags: [],
+          logo: result.metadata.logo,
+          image: result.metadata.image,
+        }),
+      })
+
+      if (!createResponse.ok) {
+        const createResult = await createResponse.json()
+        throw new Error(createResult.error || 'Failed to create submission')
+      }
+
+      // Refresh submissions list
+      await fetchSubmissions()
+      setShowAddForm(false)
+      setAddUrl('')
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to process URL')
+    } finally {
+      setProcessing(false)
+    }
   }
 
   const handleSave = async () => {
@@ -116,6 +181,7 @@ export default function ManageListings() {
       const response = await fetch(`${apiUrl}/functions/v1/submissions`, {
         method: 'PUT',
         headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ token, submission: formData })
@@ -211,6 +277,39 @@ export default function ManageListings() {
             </button>
           </div>
 
+          {showAddForm && (
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-8 mb-6">
+              <h2 className="text-2xl font-bold mb-4 text-white font-ubuntu">Add New Listing</h2>
+              <p className="text-white/70 mb-6 font-ubuntu">
+                Enter the URL of your software and we'll automatically extract the details for you.
+              </p>
+
+              <div className="flex gap-4">
+                <input
+                  type="url"
+                  value={addUrl}
+                  onChange={(e) => setAddUrl(e.target.value)}
+                  placeholder="https://example.com"
+                  className="flex-1 px-6 py-4 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu text-lg"
+                  disabled={processing}
+                />
+                <button
+                  onClick={handleProcessUrl}
+                  disabled={processing || !addUrl}
+                  className="px-8 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  {processing ? 'Processing...' : 'Add Listing'}
+                </button>
+                <button
+                  onClick={() => setShowAddForm(false)}
+                  disabled={processing}
+                  className="px-8 py-4 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-6">
             {submissions.map((submission) => (
