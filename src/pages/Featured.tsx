@@ -42,8 +42,8 @@ export default function FeaturedPage() {
       description: 'For growing companies',
       monthlyPrice: 2,
       yearlyPrice: 19.2,
-      monthlyPriceId: 'price_basic_monthly',
-      yearlyPriceId: 'price_basic_yearly',
+      monthlyPriceId: 'REPLACE_WITH_YOUR_STRIPE_PRICE_ID_BASIC_MONTHLY',
+      yearlyPriceId: 'REPLACE_WITH_YOUR_STRIPE_PRICE_ID_BASIC_YEARLY',
       features: [
         'Up to 5 software listings',
         'Featured badge on listings',
@@ -58,8 +58,8 @@ export default function FeaturedPage() {
       description: 'For established brands',
       monthlyPrice: 4,
       yearlyPrice: 38.4,
-      monthlyPriceId: 'price_premium_monthly',
-      yearlyPriceId: 'price_premium_yearly',
+      monthlyPriceId: 'REPLACE_WITH_YOUR_STRIPE_PRICE_ID_PREMIUM_MONTHLY',
+      yearlyPriceId: 'REPLACE_WITH_YOUR_STRIPE_PRICE_ID_PREMIUM_YEARLY',
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
