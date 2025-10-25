@@ -213,32 +213,29 @@ Deno.serve(async (req: Request) => {
 
       const userTier = userToken?.tier || 'free'
 
-      const tierLimits = {
-        free: 10,
-        basic: 50,
-        premium: 999999
-      }
+      // Only apply daily limit to free tier
+      if (userTier === 'free') {
+        const dailyLimit = 10
 
-      // Calculate timestamp for 24 hours ago
-      const oneDayAgo = new Date()
-      oneDayAgo.setHours(oneDayAgo.getHours() - 24)
+        // Calculate timestamp for 24 hours ago
+        const oneDayAgo = new Date()
+        oneDayAgo.setHours(oneDayAgo.getHours() - 24)
 
-      const { count } = await supabase
-        .from('software_submissions')
-        .select('*', { count: 'exact', head: true })
-        .eq('email', email)
-        .gte('created_at', oneDayAgo.toISOString())
+        const { count } = await supabase
+          .from('software_submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('email', email)
+          .gte('created_at', oneDayAgo.toISOString())
 
-      const limit = tierLimits[userTier as keyof typeof tierLimits] || 10
-
-      if (count !== null && count >= limit) {
-        return new Response(
-          JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${limit}/day). ${userTier === 'free' ? 'Upgrade to submit more.' : 'Please try again later.'}` }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        )
+        if (count !== null && count >= dailyLimit) {
+          return new Response(
+            JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${dailyLimit}/day). Upgrade to submit unlimited listings.` }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
       }
 
       const submissionData: any = {
