@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { SoftwareCard } from '../components/SoftwareCard'
 
 interface Submission {
   id: string
@@ -9,6 +10,9 @@ interface Submission {
   url: string
   description: string
   category: string
+  logo?: string
+  image?: string
+  tags?: string[]
   status: string
   created_at: string
 }
@@ -87,26 +91,7 @@ export default function CategoryPage() {
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {submissions.map((submission) => (
-                <Link
-                  key={submission.id}
-                  to={`/software/${submission.id}`}
-                  className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-colors block"
-                >
-                  <h3 className="text-white text-2xl font-bold font-ubuntu mb-3">
-                    {submission.title}
-                  </h3>
-                  <p className="text-white/70 font-ubuntu mb-4 line-clamp-3">
-                    {submission.description}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <span className="px-3 py-1 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3]">
-                      {submission.category}
-                    </span>
-                    <span className="text-[#4FFFE3] font-ubuntu text-sm hover:underline">
-                      View Details →
-                    </span>
-                  </div>
-                </Link>
+                <SoftwareCard key={submission.id} software={submission} />
               ))}
             </div>
           )}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { SoftwareCard } from '../components/SoftwareCard'
 
 interface TagCount {
   name: string
@@ -14,6 +15,7 @@ interface Submission {
   description: string
   url: string
   logo?: string
+  image?: string
   category: string
   tags: string[]
 }
@@ -136,33 +138,7 @@ export default function TagsPage() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {software.map((app) => (
-                  <Link
-                    key={app.id}
-                    to={`/software/${app.id}`}
-                    className="group bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:scale-105 block"
-                  >
-                    {app.logo && (
-                      <img
-                        src={app.logo}
-                        alt={app.title}
-                        className="w-16 h-16 rounded-xl mb-4 object-cover"
-                      />
-                    )}
-                    <h3 className="text-white text-xl font-bold font-ubuntu mb-2">{app.title}</h3>
-                    <p className="text-white/70 font-ubuntu text-sm mb-4 line-clamp-2">
-                      {app.description}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {app.tags && app.tags.slice(0, 3).map((t, idx) => (
-                        <span
-                          key={idx}
-                          className="px-3 py-1 bg-[#2a2a2a] rounded-full text-xs text-[#4FFFE3] font-ubuntu"
-                        >
-                          {t}
-                        </span>
-                      ))}
-                    </div>
-                  </Link>
+                  <SoftwareCard key={app.id} software={app} />
                 ))}
               </div>
             )}
