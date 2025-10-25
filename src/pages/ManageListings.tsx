@@ -28,6 +28,24 @@ interface Submission {
   social_links?: SocialLink[]
 }
 
+interface SubscriptionInfo {
+  tier: string
+  status: string
+  currentPeriodStart: number
+  currentPeriodEnd: number
+  cancelAtPeriodEnd: boolean
+  paymentMethodBrand: string | null
+  paymentMethodLast4: string | null
+}
+
+interface BillingHistoryItem {
+  id: number
+  amount: number
+  currency: string
+  status: string
+  createdAt: string
+}
+
 export default function ManageListings() {
   const { token } = useParams<{ token: string }>()
   const navigate = useNavigate()
@@ -52,6 +70,9 @@ export default function ManageListings() {
   const [cancelling, setCancelling] = useState(false)
   const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
   const [userTier, setUserTier] = useState<string | null>(null)
+  const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
+  const [billingHistory, setBillingHistory] = useState<BillingHistoryItem[]>([])
+  const [showBilling, setShowBilling] = useState(false)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -63,6 +84,7 @@ export default function ManageListings() {
     }
 
     fetchSubmissions()
+    fetchSubscriptionInfo()
   }, [token])
 
   const fetchSubmissions = async () => {
@@ -87,12 +109,38 @@ export default function ManageListings() {
         const firstSubmission = result.data[0]
         const tier = firstSubmission.tier || 'free'
         setUserTier(tier)
-        setHasActiveSubscription(tier === 'featured' || tier === 'premium')
+        setHasActiveSubscription(tier === 'basic' || tier === 'premium')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchSubscriptionInfo = async () => {
+    try {
+      const decodedToken = token ? decodeURIComponent(token) : ''
+      const response = await fetch(`${apiUrl}/functions/v1/get-subscription`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token: decodedToken }),
+      })
+
+      if (!response.ok) return
+
+      const result = await response.json()
+      if (result.subscription) {
+        setSubscriptionInfo(result.subscription)
+      }
+      if (result.billingHistory) {
+        setBillingHistory(result.billingHistory)
+      }
+    } catch (err) {
+      console.error('Failed to fetch subscription info:', err)
     }
   }
 
@@ -332,23 +380,86 @@ export default function ManageListings() {
 
           {hasActiveSubscription && (
             <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6 mb-6">
-              <div className="flex justify-between items-start">
-                <div>
+              <div className="flex justify-between items-start mb-6">
+                <div className="flex-1">
                   <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">
                     Subscription Management
                   </h2>
                   <p className="text-white/70 mb-4 font-ubuntu">
-                    You're currently on the <span className="font-bold text-[#4FFFE3]">{userTier === 'premium' ? 'Premium' : 'Featured'}</span> tier
+                    You're currently on the <span className="font-bold text-[#4FFFE3] capitalize">{userTier}</span> tier
                   </p>
+
+                  {subscriptionInfo && (
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50">Status:</span>
+                        <span className={`capitalize ${subscriptionInfo.status === 'active' ? 'text-green-400' : 'text-yellow-400'}`}>
+                          {subscriptionInfo.status}
+                        </span>
+                        {subscriptionInfo.cancelAtPeriodEnd && (
+                          <span className="text-red-400">(Cancels at period end)</span>
+                        )}
+                      </div>
+                      {subscriptionInfo.currentPeriodEnd && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-white/50">Renews on:</span>
+                          <span className="text-white/90">
+                            {new Date(subscriptionInfo.currentPeriodEnd * 1000).toLocaleDateString()}
+                          </span>
+                        </div>
+                      )}
+                      {subscriptionInfo.paymentMethodBrand && subscriptionInfo.paymentMethodLast4 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-white/50">Payment method:</span>
+                          <span className="text-white/90 capitalize">
+                            {subscriptionInfo.paymentMethodBrand} •••• {subscriptionInfo.paymentMethodLast4}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={handleCancelSubscription}
-                  disabled={cancelling}
-                  className="px-6 py-3 border border-red-400/30 rounded-full hover:bg-red-400/10 transition text-red-400 font-ubuntu font-bold disabled:opacity-50"
-                >
-                  {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => setShowBilling(!showBilling)}
+                    className="px-6 py-3 border border-white/10 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
+                  >
+                    {showBilling ? 'Hide' : 'View'} Billing History
+                  </button>
+                  <button
+                    onClick={handleCancelSubscription}
+                    disabled={cancelling}
+                    className="px-6 py-3 border border-red-400/30 rounded-full hover:bg-red-400/10 transition text-red-400 font-ubuntu font-bold disabled:opacity-50"
+                  >
+                    {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                  </button>
+                </div>
               </div>
+
+              {showBilling && billingHistory.length > 0 && (
+                <div className="border-t border-white/10 pt-6">
+                  <h3 className="text-lg font-bold text-white mb-4 font-ubuntu">Billing History</h3>
+                  <div className="space-y-3">
+                    {billingHistory.map((item) => (
+                      <div key={item.id} className="flex justify-between items-center p-4 bg-[#1a1a1a] rounded-lg">
+                        <div>
+                          <div className="text-white font-ubuntu">
+                            ${(item.amount / 100).toFixed(2)} {item.currency.toUpperCase()}
+                          </div>
+                          <div className="text-white/50 text-sm font-ubuntu">
+                            {new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString()}
+                          </div>
+                        </div>
+                        <div className={`px-3 py-1 rounded-full text-sm font-ubuntu ${
+                          item.status === 'paid' ? 'bg-green-400/20 text-green-400' : 'bg-yellow-400/20 text-yellow-400'
+                        }`}>
+                          {item.status}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
