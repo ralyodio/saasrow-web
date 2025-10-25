@@ -395,9 +395,29 @@ export default function AdminPage() {
 
     setSendingNewsletter(true)
     try {
-      alert(`Newsletter functionality coming soon! Would send to ${activeSubscribers.length} subscribers.\n\nSubject: ${newsletterSubject}\n\nThis would require email service integration (e.g., SendGrid, Resend).`)
-      setNewsletterSubject('')
-      setNewsletterContent('')
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-newsletter`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          subject: newsletterSubject,
+          content: newsletterContent,
+          adminEmail: adminEmail
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        alert(`Newsletter sent successfully to ${result.recipientCount} subscribers!`)
+        setNewsletterSubject('')
+        setNewsletterContent('')
+      } else {
+        alert(`Failed to send newsletter: ${result.error}`)
+      }
     } catch (error) {
       console.error('Failed to send newsletter:', error)
       alert('Failed to send newsletter')
