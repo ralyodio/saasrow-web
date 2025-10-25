@@ -59,6 +59,34 @@ interface User {
   cancel_at_period_end: boolean
 }
 
+interface AnalyticsData {
+  totalSubmissions: number
+  approvedSubmissions: number
+  pendingSubmissions: number
+  rejectedSubmissions: number
+  totalViews: number
+  totalClicks: number
+  topPerformers: Array<{
+    id: string
+    title: string
+    url: string
+    view_count: number
+    total_clicks: number
+    tier: string
+    submitted_at: string
+  }>
+  tierBreakdown: {
+    free: number
+    featured: number
+    premium: number
+  }
+  recentActivity: Array<{
+    date: string
+    views: number
+    clicks: number
+  }>
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
@@ -67,7 +95,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users'>('submissions')
+  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users' | 'analytics'>('submissions')
   const [newsTopic, setNewsTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
@@ -89,6 +117,8 @@ export default function AdminPage() {
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
   const [userSubmissions, setUserSubmissions] = useState<{ [email: string]: Submission[] }>({})
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -329,6 +359,9 @@ export default function AdminPage() {
     if (isAuthenticated && activeTab === 'users') {
       fetchUsers()
     }
+    if (isAuthenticated && activeTab === 'analytics') {
+      fetchAnalytics()
+    }
   }, [isAuthenticated, activeTab])
 
   const fetchUsers = async () => {
@@ -558,6 +591,66 @@ export default function AdminPage() {
         }
       }
     })
+  }
+
+  const fetchAnalytics = async () => {
+    setLoadingAnalytics(true)
+    try {
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('software_submissions')
+        .select('id, title, url, view_count, tier, status, submitted_at')
+
+      if (submissionsError) throw submissionsError
+
+      const { data: clicks, error: clicksError } = await supabase
+        .from('submission_clicks')
+        .select('submission_id')
+
+      if (clicksError) throw clicksError
+
+      const clicksBySubmission = clicks.reduce((acc, click) => {
+        acc[click.submission_id] = (acc[click.submission_id] || 0) + 1
+        return acc
+      }, {} as Record<string, number>)
+
+      const approved = submissions?.filter(s => s.status === 'approved') || []
+      const pending = submissions?.filter(s => s.status === 'pending') || []
+      const rejected = submissions?.filter(s => s.status === 'rejected') || []
+
+      const totalViews = submissions?.reduce((sum, s) => sum + (s.view_count || 0), 0) || 0
+      const totalClicks = Object.values(clicksBySubmission).reduce((sum, count) => sum + count, 0)
+
+      const topPerformers = approved
+        .map(s => ({
+          ...s,
+          total_clicks: clicksBySubmission[s.id] || 0
+        }))
+        .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
+        .slice(0, 10)
+
+      const tierBreakdown = {
+        free: approved.filter(s => s.tier === 'free').length,
+        featured: approved.filter(s => s.tier === 'featured').length,
+        premium: approved.filter(s => s.tier === 'premium').length,
+      }
+
+      setAnalyticsData({
+        totalSubmissions: submissions?.length || 0,
+        approvedSubmissions: approved.length,
+        pendingSubmissions: pending.length,
+        rejectedSubmissions: rejected.length,
+        totalViews,
+        totalClicks,
+        topPerformers,
+        tierBreakdown,
+        recentActivity: []
+      })
+    } catch (error) {
+      console.error('Failed to fetch analytics:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to load analytics data' })
+    } finally {
+      setLoadingAnalytics(false)
+    }
   }
 
   const toggleUserSubmissions = async (email: string) => {
@@ -1002,6 +1095,16 @@ export default function AdminPage() {
             >
               Users
             </button>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+                activeTab === 'analytics'
+                  ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+              }`}
+            >
+              Analytics
+            </button>
           </div>
 
           {activeTab === 'submissions' && (
@@ -1432,6 +1535,162 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <div className="space-y-8">
+              {loadingAnalytics ? (
+                <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
+                  <p className="text-white/70 font-ubuntu text-xl">Loading analytics...</p>
+                </div>
+              ) : analyticsData ? (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="bg-[#3a3a3a] rounded-2xl p-6">
+                      <h3 className="text-white/70 font-ubuntu text-sm mb-2">Total Submissions</h3>
+                      <p className="text-white text-4xl font-bold font-ubuntu">{analyticsData.totalSubmissions}</p>
+                      <div className="mt-3 flex gap-3 text-xs font-ubuntu">
+                        <span className="text-[#4FFFE3]">✓ {analyticsData.approvedSubmissions}</span>
+                        <span className="text-[#E0FF04]">⏳ {analyticsData.pendingSubmissions}</span>
+                        <span className="text-red-400">✗ {analyticsData.rejectedSubmissions}</span>
+                      </div>
+                    </div>
+
+                    <div className="bg-[#3a3a3a] rounded-2xl p-6">
+                      <h3 className="text-white/70 font-ubuntu text-sm mb-2">Total Views</h3>
+                      <p className="text-white text-4xl font-bold font-ubuntu">{analyticsData.totalViews.toLocaleString()}</p>
+                      <p className="mt-3 text-xs text-white/50 font-ubuntu">
+                        Across all approved listings
+                      </p>
+                    </div>
+
+                    <div className="bg-[#3a3a3a] rounded-2xl p-6">
+                      <h3 className="text-white/70 font-ubuntu text-sm mb-2">Total Clicks</h3>
+                      <p className="text-white text-4xl font-bold font-ubuntu">{analyticsData.totalClicks.toLocaleString()}</p>
+                      <p className="mt-3 text-xs text-white/50 font-ubuntu">
+                        {analyticsData.totalViews > 0
+                          ? `${((analyticsData.totalClicks / analyticsData.totalViews) * 100).toFixed(1)}% CTR`
+                          : 'N/A CTR'
+                        }
+                      </p>
+                    </div>
+
+                    <div className="bg-[#3a3a3a] rounded-2xl p-6">
+                      <h3 className="text-white/70 font-ubuntu text-sm mb-2">Tier Distribution</h3>
+                      <div className="space-y-2 mt-3">
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs font-ubuntu">Premium</span>
+                          <span className="text-[#E0FF04] text-lg font-bold font-ubuntu">{analyticsData.tierBreakdown.premium}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs font-ubuntu">Featured</span>
+                          <span className="text-[#4FFFE3] text-lg font-bold font-ubuntu">{analyticsData.tierBreakdown.featured}</span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-white/70 text-xs font-ubuntu">Free</span>
+                          <span className="text-white text-lg font-bold font-ubuntu">{analyticsData.tierBreakdown.free}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <div>
+                        <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                          Top Performing Software
+                        </h2>
+                        <p className="text-white/70 font-ubuntu">
+                          Ranked by total views and engagement
+                        </p>
+                      </div>
+                      <button
+                        onClick={fetchAnalytics}
+                        className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                      >
+                        Refresh
+                      </button>
+                    </div>
+
+                    {analyticsData.topPerformers.length === 0 ? (
+                      <div className="text-center py-8">
+                        <p className="text-white/70 font-ubuntu text-lg">No approved submissions yet</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {analyticsData.topPerformers.map((software, index) => (
+                          <div
+                            key={software.id}
+                            className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] flex items-center justify-center">
+                                <span className="text-neutral-800 text-xl font-bold font-ubuntu">#{index + 1}</span>
+                              </div>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-3 mb-2">
+                                  <h3 className="text-white text-xl font-bold font-ubuntu">
+                                    {software.title}
+                                  </h3>
+                                  <span
+                                    className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                                      software.tier === 'premium'
+                                        ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
+                                        : software.tier === 'featured'
+                                        ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                        : 'text-white/70 bg-white/10 border-white/30'
+                                    }`}
+                                  >
+                                    {software.tier}
+                                  </span>
+                                </div>
+                                <a
+                                  href={software.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-[#4FFFE3] text-sm font-ubuntu hover:underline block mb-2"
+                                >
+                                  {software.url}
+                                </a>
+                                <div className="flex gap-6 text-sm">
+                                  <div>
+                                    <span className="text-white/50 font-ubuntu">Views: </span>
+                                    <span className="text-white font-bold font-ubuntu">{software.view_count.toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-white/50 font-ubuntu">Clicks: </span>
+                                    <span className="text-white font-bold font-ubuntu">{software.total_clicks.toLocaleString()}</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-white/50 font-ubuntu">CTR: </span>
+                                    <span className="text-white font-bold font-ubuntu">
+                                      {software.view_count > 0
+                                        ? `${((software.total_clicks / software.view_count) * 100).toFixed(1)}%`
+                                        : 'N/A'
+                                      }
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-white/50 font-ubuntu">Listed: </span>
+                                    <span className="text-white/90 font-ubuntu">
+                                      {new Date(software.submitted_at).toLocaleDateString()}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
+                  <p className="text-white/70 font-ubuntu text-xl">Failed to load analytics</p>
+                </div>
+              )}
             </div>
           )}
 
