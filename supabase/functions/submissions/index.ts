@@ -213,8 +213,9 @@ Deno.serve(async (req: Request) => {
 
       const userTier = userToken?.tier || 'free'
 
-      // Only apply daily limit to free tier
+      // Apply limits based on tier
       if (userTier === 'free') {
+        // Free tier: 10 submissions per day
         const dailyLimit = 10
 
         // Calculate timestamp for 24 hours ago
@@ -229,7 +230,25 @@ Deno.serve(async (req: Request) => {
 
         if (count !== null && count >= dailyLimit) {
           return new Response(
-            JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${dailyLimit}/day). Upgrade to submit unlimited listings.` }),
+            JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${dailyLimit}/day). Upgrade to basic for 5 total listings or premium for unlimited.` }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+      } else if (userTier === 'basic') {
+        // Basic tier: 5 total submissions
+        const totalLimit = 5
+
+        const { count } = await supabase
+          .from('software_submissions')
+          .select('*', { count: 'exact', head: true })
+          .eq('email', email)
+
+        if (count !== null && count >= totalLimit) {
+          return new Response(
+            JSON.stringify({ error: `Submission limit reached. You have ${count} of ${totalLimit} total submissions. Upgrade to premium for unlimited listings.` }),
             {
               status: 429,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -237,6 +256,7 @@ Deno.serve(async (req: Request) => {
           )
         }
       }
+      // Premium tier: unlimited (no check needed)
 
       const submissionData: any = {
         title,
