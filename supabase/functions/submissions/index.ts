@@ -213,6 +213,9 @@ Deno.serve(async (req: Request) => {
 
       const userTier = userToken?.tier || 'free'
 
+      // Map tier names: 'basic' -> 'featured' for database compatibility
+      const dbTier = userTier === 'basic' ? 'featured' : userTier
+
       // Apply limits based on tier
       if (userTier === 'free') {
         // Free tier: 10 submissions per day
@@ -265,7 +268,7 @@ Deno.serve(async (req: Request) => {
         email,
         category,
         status: 'pending',
-        tier: userTier
+        tier: dbTier
       }
 
       if (tags && Array.isArray(tags)) {
