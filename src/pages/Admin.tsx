@@ -41,31 +41,70 @@ export default function AdminPage() {
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
   const [newsPosts, setNewsPosts] = useState<NewsPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(false)
+  const [adminEmail, setAdminEmail] = useState<string | null>(null)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+    const urlParams = new URLSearchParams(window.location.search)
+    const token = urlParams.get('token')
+
+    if (token) {
+      verifyAdminToken(token)
+    } else {
+      const storedEmail = sessionStorage.getItem('adminEmail')
+      if (storedEmail) {
+        setAdminEmail(storedEmail)
         setIsAuthenticated(true)
         fetchSubmissions()
       } else {
         setLoading(false)
       }
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        setIsAuthenticated(true)
-        setAuthMessage('')
-        setAuthError('')
-        fetchSubmissions()
-      } else {
-        setIsAuthenticated(false)
-        setLoading(false)
-      }
-    })
-
-    return () => subscription.unsubscribe()
+    }
   }, [])
+
+  const verifyAdminToken = async (token: string) => {
+    try {
+      const supabaseAdmin = supabase
+      const { data, error } = await supabaseAdmin
+        .from('admin_tokens')
+        .select('email, expires_at, used')
+        .eq('token', token)
+        .maybeSingle()
+
+      if (error || !data) {
+        setAuthError('Invalid or expired admin token')
+        setLoading(false)
+        return
+      }
+
+      if (data.used) {
+        setAuthError('This login link has already been used')
+        setLoading(false)
+        return
+      }
+
+      if (new Date(data.expires_at) < new Date()) {
+        setAuthError('This login link has expired')
+        setLoading(false)
+        return
+      }
+
+      await supabaseAdmin
+        .from('admin_tokens')
+        .update({ used: true })
+        .eq('token', token)
+
+      sessionStorage.setItem('adminEmail', data.email)
+      setAdminEmail(data.email)
+      setIsAuthenticated(true)
+      fetchSubmissions()
+
+      window.history.replaceState({}, document.title, '/admin')
+    } catch (error) {
+      console.error('Token verification error:', error)
+      setAuthError('Failed to verify admin token')
+      setLoading(false)
+    }
+  }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,26 +112,34 @@ export default function AdminPage() {
     setAuthMessage('')
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: {
-          emailRedirectTo: window.location.origin + '/admin',
-        },
-      })
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-admin-link`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: email.trim() }),
+        }
+      )
 
-      if (error) {
-        setAuthError(error.message)
-      } else {
-        setAuthMessage('Check your email for the magic link!')
+      const result = await response.json()
+
+      if (response.ok) {
+        setAuthMessage('Check your email for the admin login link!')
         setEmail('')
+      } else {
+        setAuthError(result.error || 'Failed to send admin login link')
       }
     } catch (error) {
-      setAuthError('Failed to send magic link')
+      setAuthError('Failed to send admin login link')
     }
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
+    sessionStorage.removeItem('adminEmail')
+    setAdminEmail(null)
     setIsAuthenticated(false)
   }
 
