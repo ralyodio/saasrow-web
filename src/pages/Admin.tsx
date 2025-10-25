@@ -46,6 +46,17 @@ interface NewsletterHistoryItem {
   sent_at: string
 }
 
+interface User {
+  email: string
+  tier: 'featured' | 'premium'
+  created_at: string
+  expires_at: string
+  last_used_at: string | null
+  subscription_status: string | null
+  subscription_end: number | null
+  cancel_at_period_end: boolean
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
@@ -54,7 +65,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter'>('submissions')
+  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users'>('submissions')
   const [newsTopic, setNewsTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
@@ -72,6 +83,8 @@ export default function AdminPage() {
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
+  const [users, setUsers] = useState<User[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -309,7 +322,51 @@ export default function AdminPage() {
       fetchSubscribers()
       fetchNewsletterHistory()
     }
+    if (isAuthenticated && activeTab === 'users') {
+      fetchUsers()
+    }
   }, [isAuthenticated, activeTab])
+
+  const fetchUsers = async () => {
+    setLoadingUsers(true)
+    try {
+      const { data: tokens, error: tokensError } = await supabase
+        .from('user_tokens')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (tokensError) throw tokensError
+
+      const { data: subscriptions, error: subsError } = await supabase
+        .from('stripe_subscriptions')
+        .select('customer_id, status, current_period_end, cancel_at_period_end')
+        .is('deleted_at', null)
+
+      if (subsError) throw subsError
+
+      const subsMap = new Map(
+        subscriptions?.map(s => [s.customer_id, s]) || []
+      )
+
+      const usersData: User[] = tokens?.map(token => ({
+        email: token.email,
+        tier: token.tier as 'featured' | 'premium',
+        created_at: token.created_at,
+        expires_at: token.expires_at,
+        last_used_at: token.last_used_at,
+        subscription_status: null,
+        subscription_end: null,
+        cancel_at_period_end: false
+      })) || []
+
+      setUsers(usersData)
+    } catch (error) {
+      console.error('Failed to fetch users:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to load users' })
+    } finally {
+      setLoadingUsers(false)
+    }
+  }
 
   const fetchSubscribers = async () => {
     setLoadingSubscribers(true)
@@ -713,6 +770,16 @@ export default function AdminPage() {
               }`}
             >
               Newsletter
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+                activeTab === 'users'
+                  ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+              }`}
+            >
+              Users
             </button>
           </div>
 
@@ -1139,6 +1206,125 @@ export default function AdminPage() {
                             />
                           </div>
                         )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'users' && (
+            <div className="space-y-8">
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                      Paid Users ({users.length})
+                    </h2>
+                    <p className="text-white/70 font-ubuntu">
+                      Manage users with Featured and Premium tiers
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchUsers}
+                    className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                {loadingUsers ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">Loading users...</p>
+                  </div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">No paid users yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {users.map((user, index) => (
+                      <div
+                        key={index}
+                        className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-3">
+                              <h3 className="text-white text-xl font-bold font-ubuntu">
+                                {user.email}
+                              </h3>
+                              <span
+                                className={`px-3 py-1 rounded-full text-sm font-ubuntu border ${
+                                  user.tier === 'premium'
+                                    ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
+                                    : 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                }`}
+                              >
+                                {user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}
+                              </span>
+                              {user.subscription_status && (
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                                    user.subscription_status === 'active'
+                                      ? 'text-green-400 bg-green-400/10 border-green-400'
+                                      : user.subscription_status === 'canceled'
+                                      ? 'text-red-400 bg-red-400/10 border-red-400'
+                                      : 'text-yellow-400 bg-yellow-400/10 border-yellow-400'
+                                  }`}
+                                >
+                                  {user.subscription_status}
+                                </span>
+                              )}
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 text-sm">
+                              <div>
+                                <span className="text-white/50 font-ubuntu">Joined:</span>
+                                <span className="text-white/90 font-ubuntu ml-2">
+                                  {new Date(user.created_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-white/50 font-ubuntu">Token Expires:</span>
+                                <span className="text-white/90 font-ubuntu ml-2">
+                                  {new Date(user.expires_at).toLocaleDateString()}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="text-white/50 font-ubuntu">Last Used:</span>
+                                <span className="text-white/90 font-ubuntu ml-2">
+                                  {user.last_used_at
+                                    ? new Date(user.last_used_at).toLocaleDateString()
+                                    : 'Never'}
+                                </span>
+                              </div>
+                              {user.subscription_end && (
+                                <div>
+                                  <span className="text-white/50 font-ubuntu">Subscription End:</span>
+                                  <span className="text-white/90 font-ubuntu ml-2">
+                                    {new Date(user.subscription_end * 1000).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            {user.cancel_at_period_end && (
+                              <div className="mt-3 px-3 py-2 bg-yellow-400/10 border border-yellow-400/30 rounded-lg">
+                                <p className="text-yellow-400 text-sm font-ubuntu">
+                                  ⚠ Subscription will cancel at period end
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2">
+                            <a
+                              href={`mailto:${user.email}`}
+                              className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center"
+                            >
+                              Email
+                            </a>
+                          </div>
+                        </div>
                       </div>
                     ))}
                   </div>
