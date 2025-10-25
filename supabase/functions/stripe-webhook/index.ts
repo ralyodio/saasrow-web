@@ -235,7 +235,29 @@ async function syncCustomerFromStripe(customerId: string) {
           }
         }
       } else if (['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
-        // Handle cancelled/inactive subscriptions - remove user token
+        // Handle cancelled/inactive subscriptions - revert to free tier
+
+        // Revert all submissions to free tier
+        const { error: revertError } = await supabase
+          .from('software_submissions')
+          .update({
+            tier: 'free',
+            homepage_featured: false,
+            newsletter_featured: false,
+            analytics_enabled: false,
+            monthly_analytics_enabled: false,
+            social_media_mentions: false,
+            category_logo_enabled: false
+          })
+          .eq('email', customer.email);
+
+        if (revertError) {
+          console.error(`Error reverting submissions to free tier for ${customer.email}:`, revertError);
+        } else {
+          console.info(`Reverted all submissions to free tier for ${customer.email}`);
+        }
+
+        // Remove user token
         const { error: deleteError } = await supabase
           .from('user_tokens')
           .delete()
