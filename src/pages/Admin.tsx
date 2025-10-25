@@ -261,8 +261,7 @@ export default function AdminPage() {
     setGeneratedPost(null)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      if (!adminEmail) {
         alert('You must be logged in to perform this action')
         setIsGenerating(false)
         return
@@ -272,10 +271,10 @@ export default function AdminPage() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ topic: newsTopic }),
+        body: JSON.stringify({ topic: newsTopic, email: adminEmail }),
       })
 
       if (response.ok) {
@@ -298,8 +297,7 @@ export default function AdminPage() {
 
   const togglePublishStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      if (!adminEmail) {
         alert('You must be logged in to perform this action')
         return
       }
@@ -308,10 +306,10 @@ export default function AdminPage() {
       const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id, published: !currentStatus }),
+        body: JSON.stringify({ id, published: !currentStatus, email: adminEmail }),
       })
 
       if (!response.ok) {
@@ -335,8 +333,7 @@ export default function AdminPage() {
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
+      if (!adminEmail) {
         alert('You must be logged in to perform this action')
         return
       }
@@ -345,10 +342,10 @@ export default function AdminPage() {
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, email: adminEmail }),
       })
 
       if (!response.ok) {

@@ -17,47 +17,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const adminEmail = Deno.env.get('ADMIN_EMAIL')!;
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
+    console.log('Received request, parsing body...');
+    const { topic, email } = await req.json();
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
-    if (user.email !== adminEmail) {
+    if (!email || email !== adminEmail) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         {
@@ -69,9 +34,6 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-
-    console.log('Received request, parsing body...');
-    const { topic } = await req.json();
     console.log('Topic received:', topic);
 
     if (!topic || typeof topic !== 'string') {
