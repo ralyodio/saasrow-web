@@ -84,92 +84,9 @@ async function handleEvent(event: Stripe.Event) {
       console.info(`Processing ${isSubscription ? 'subscription' : 'one-time payment'} checkout session`);
     }
 
-    const { mode, payment_status } = stripeData as Stripe.Checkout.Session;
-
     if (isSubscription) {
       console.info(`Starting subscription sync for customer: ${customerId}`);
       await syncCustomerFromStripe(customerId);
-    } else if (mode === 'payment' && payment_status === 'paid') {
-      try {
-        // Extract the necessary information from the session
-        const {
-          id: checkout_session_id,
-          payment_intent,
-          amount_subtotal,
-          amount_total,
-          currency,
-          customer_email,
-        } = stripeData as Stripe.Checkout.Session;
-
-        // Insert the order into the stripe_orders table
-        const { error: orderError } = await supabase.from('stripe_orders').insert({
-          checkout_session_id,
-          payment_intent_id: payment_intent,
-          customer_id: customerId,
-          amount_subtotal,
-          amount_total,
-          currency,
-          payment_status,
-          status: 'completed',
-        });
-
-        if (orderError) {
-          console.error('Error inserting order:', orderError);
-          return;
-        }
-
-        // Create a user token for the paid user if email is available
-        if (customer_email) {
-          // Get the full session to retrieve line items with price info
-          const session = await stripe.checkout.sessions.retrieve(checkout_session_id, {
-            expand: ['line_items.data.price']
-          });
-
-          // Determine tier based on price_id
-          let tier = 'basic';
-          if (session.line_items?.data?.[0]?.price?.id) {
-            const priceId = session.line_items.data[0].price.id;
-            // Premium tier price IDs typically contain 'premium' or are the higher price
-            if (priceId.toLowerCase().includes('premium')) {
-              tier = 'premium';
-            }
-          }
-
-          const { data: existingToken } = await supabase
-            .from('user_tokens')
-            .select('token')
-            .eq('email', customer_email)
-            .maybeSingle();
-
-          if (!existingToken) {
-            const { data: newToken, error: tokenError } = await supabase
-              .from('user_tokens')
-              .insert({ email: customer_email, tier })
-              .select()
-              .maybeSingle();
-
-            if (tokenError) {
-              console.error('Error creating user token:', tokenError);
-            } else if (newToken) {
-              console.info(`Created user token for ${customer_email} with tier: ${tier}`);
-              // TODO: Send management link email with token
-              const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
-              console.log('Management URL:', managementUrl);
-            }
-          } else {
-            // Update tier if token already exists
-            await supabase
-              .from('user_tokens')
-              .update({ tier })
-              .eq('email', customer_email);
-            console.info(`Updated tier for ${customer_email} to: ${tier}`);
-          }
-        }
-
-        console.info(`Successfully processed one-time payment for session: ${checkout_session_id}`);
-      } catch (error) {
-        console.error('Error processing one-time payment:', error);
-      }
     }
   }
 }
@@ -202,17 +119,19 @@ async function syncCustomerFromStripe(customerId: string) {
         console.error('Error updating subscription status:', noSubError);
         throw new Error('Failed to update subscription status in database');
       }
+      return;
     }
 
     // assumes that a customer can only have a single subscription
     const subscription = subscriptions.data[0];
+    const priceId = subscription.items.data[0].price.id;
 
     // store subscription state
     const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
       {
         customer_id: customerId,
         subscription_id: subscription.id,
-        price_id: subscription.items.data[0].price.id,
+        price_id: priceId,
         current_period_start: subscription.current_period_start,
         current_period_end: subscription.current_period_end,
         cancel_at_period_end: subscription.cancel_at_period_end,
@@ -233,6 +152,46 @@ async function syncCustomerFromStripe(customerId: string) {
       console.error('Error syncing subscription:', subError);
       throw new Error('Failed to sync subscription in database');
     }
+
+    // Get customer email and create/update user token
+    const customer = await stripe.customers.retrieve(customerId);
+    if (customer && !customer.deleted && customer.email) {
+      // Determine tier based on price_id
+      let tier = 'basic';
+      if (priceId.toLowerCase().includes('premium')) {
+        tier = 'premium';
+      }
+
+      const { data: existingToken } = await supabase
+        .from('user_tokens')
+        .select('token')
+        .eq('email', customer.email)
+        .maybeSingle();
+
+      if (!existingToken) {
+        const { data: newToken, error: tokenError } = await supabase
+          .from('user_tokens')
+          .insert({ email: customer.email, tier })
+          .select()
+          .maybeSingle();
+
+        if (tokenError) {
+          console.error('Error creating user token:', tokenError);
+        } else if (newToken) {
+          console.info(`Created user token for ${customer.email} with tier: ${tier}`);
+          const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
+          console.log('Management URL:', managementUrl);
+        }
+      } else {
+        // Update tier if token already exists
+        await supabase
+          .from('user_tokens')
+          .update({ tier })
+          .eq('email', customer.email);
+        console.info(`Updated tier for ${customer.email} to: ${tier}`);
+      }
+    }
+
     console.info(`Successfully synced subscription for customer: ${customerId}`);
   } catch (error) {
     console.error(`Failed to sync subscription for customer ${customerId}:`, error);
