@@ -48,40 +48,31 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const { data: submissions } = await supabase
-      .from('software_submissions')
-      .select('stripe_payment_id')
-      .eq('email', userToken.email)
-      .not('stripe_payment_id', 'is', null)
-      .limit(1)
-      .maybeSingle()
-
     let subscriptionInfo = null
     let billingHistory = []
 
-    if (submissions?.stripe_payment_id) {
-      const { data: subscription } = await supabase
-        .from('stripe_subscriptions')
-        .select('*')
-        .eq('customer_id', submissions.stripe_payment_id)
-        .maybeSingle()
+    const { data: subscription } = await supabase
+      .from('stripe_subscriptions')
+      .select('*')
+      .eq('email', userToken.email)
+      .is('deleted_at', null)
+      .maybeSingle()
 
-      if (subscription) {
-        subscriptionInfo = {
-          tier: userToken.tier,
-          status: subscription.status,
-          currentPeriodStart: subscription.current_period_start,
-          currentPeriodEnd: subscription.current_period_end,
-          cancelAtPeriodEnd: subscription.cancel_at_period_end,
-          paymentMethodBrand: subscription.payment_method_brand,
-          paymentMethodLast4: subscription.payment_method_last4,
-        }
+    if (subscription) {
+      subscriptionInfo = {
+        tier: userToken.tier,
+        status: subscription.status,
+        currentPeriodStart: subscription.current_period_start,
+        currentPeriodEnd: subscription.current_period_end,
+        cancelAtPeriodEnd: subscription.cancel_at_period_end,
+        paymentMethodBrand: subscription.payment_method_brand,
+        paymentMethodLast4: subscription.payment_method_last4,
       }
 
       const { data: orders } = await supabase
         .from('stripe_orders')
         .select('*')
-        .eq('customer_id', submissions.stripe_payment_id)
+        .eq('customer_id', subscription.customer_id)
         .order('created_at', { ascending: false })
         .limit(10)
 

@@ -402,7 +402,22 @@ export default function ManageListings() {
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white font-ubuntu">Manage Your Listings</h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl sm:text-3xl font-bold text-white font-ubuntu">Manage Your Listings</h1>
+                {userTier && (
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs sm:text-sm font-ubuntu border ${
+                      userTier === 'premium'
+                        ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
+                        : userTier === 'featured'
+                        ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                        : 'text-white/70 bg-white/10 border-white/30'
+                    }`}
+                  >
+                    {userTier.charAt(0).toUpperCase() + userTier.slice(1)} Tier
+                  </span>
+                )}
+              </div>
               <p className="text-white/70 mt-2 font-ubuntu text-sm sm:text-base">
                 {submissions.length === 0
                   ? 'No listings found. Add your first listing below.'
@@ -417,7 +432,7 @@ export default function ManageListings() {
             </button>
           </div>
 
-          {hasActiveSubscription && (
+          {userTier && userTier !== 'free' && (
             <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6 mb-6">
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
                 <div className="flex-1">

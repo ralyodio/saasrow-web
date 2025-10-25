@@ -117,6 +117,9 @@ async function syncCustomerFromStripe(customerId: string) {
     const subscription = subscriptions.data[0];
     const priceId = subscription.items.data[0].price.id;
 
+    const customer = await stripe.customers.retrieve(customerId);
+    const customerEmail = customer && !customer.deleted && customer.email ? customer.email : null;
+
     const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
       {
         customer_id: customerId,
@@ -125,6 +128,7 @@ async function syncCustomerFromStripe(customerId: string) {
         current_period_start: subscription.current_period_start,
         current_period_end: subscription.current_period_end,
         cancel_at_period_end: subscription.cancel_at_period_end,
+        email: customerEmail,
         ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
           ? {
               payment_method_brand: subscription.default_payment_method.card?.brand ?? null,
@@ -143,8 +147,7 @@ async function syncCustomerFromStripe(customerId: string) {
       throw new Error('Failed to sync subscription in database');
     }
 
-    const customer = await stripe.customers.retrieve(customerId);
-    if (customer && !customer.deleted && customer.email) {
+    if (customerEmail) {
       let tier = 'featured';
       if (priceId.toLowerCase().includes('premium')) {
         tier = 'premium';
@@ -156,32 +159,32 @@ async function syncCustomerFromStripe(customerId: string) {
         const { data: existingToken } = await supabase
           .from('user_tokens')
           .select('token, tier')
-          .eq('email', customer.email)
+          .eq('email', customerEmail)
           .maybeSingle();
 
         if (!existingToken) {
           const { data: newToken, error: tokenError } = await supabase
             .from('user_tokens')
-            .insert({ email: customer.email, tier })
+            .insert({ email: customerEmail, tier })
             .select()
             .maybeSingle();
 
           if (tokenError) {
             console.error('Error creating user token:', tokenError);
           } else if (newToken) {
-            console.info(`Created user token for ${customer.email} with tier: ${tier}`);
+            console.info(`Created user token for ${customerEmail} with tier: ${tier}`);
             const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
             console.log('Management URL:', managementUrl);
 
             const { error: upgradeError } = await supabase
               .from('software_submissions')
               .update({ tier })
-              .eq('email', customer.email);
+              .eq('email', customerEmail);
 
             if (upgradeError) {
-              console.error(`Error upgrading submissions for ${customer.email}:`, upgradeError);
+              console.error(`Error upgrading submissions for ${customerEmail}:`, upgradeError);
             } else {
-              console.info(`Upgraded all submissions for ${customer.email} to tier: ${tier}`);
+              console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
             }
           }
         } else {
@@ -202,14 +205,14 @@ async function syncCustomerFromStripe(customerId: string) {
                 }
               }
             } catch (cancelError) {
-              console.error(`Error cancelling old subscriptions for ${customer.email}:`, cancelError);
+              console.error(`Error cancelling old subscriptions for ${customerEmail}:`, cancelError);
             }
 
             await supabase
               .from('user_tokens')
               .update({ tier })
-              .eq('email', customer.email);
-            console.info(`Updated tier for ${customer.email} from ${oldTier} to: ${tier}`);
+              .eq('email', customerEmail);
+            console.info(`Updated tier for ${customerEmail} from ${oldTier} to: ${tier}`);
 
             const tierLevels = { featured: 1, premium: 2 };
             const isUpgrade = tierLevels[tier as 'featured' | 'premium'] > tierLevels[oldTier as 'featured' | 'premium'];
@@ -218,12 +221,12 @@ async function syncCustomerFromStripe(customerId: string) {
               const { error: upgradeError } = await supabase
                 .from('software_submissions')
                 .update({ tier })
-                .eq('email', customer.email);
+                .eq('email', customerEmail);
 
               if (upgradeError) {
-                console.error(`Error upgrading submissions for ${customer.email}:`, upgradeError);
+                console.error(`Error upgrading submissions for ${customerEmail}:`, upgradeError);
               } else {
-                console.info(`Upgraded all submissions for ${customer.email} to tier: ${tier}`);
+                console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
               }
             }
           }
@@ -240,23 +243,23 @@ async function syncCustomerFromStripe(customerId: string) {
             social_media_mentions: false,
             category_logo_enabled: false
           })
-          .eq('email', customer.email);
+          .eq('email', customerEmail);
 
         if (revertError) {
-          console.error(`Error reverting submissions to free tier for ${customer.email}:`, revertError);
+          console.error(`Error reverting submissions to free tier for ${customerEmail}:`, revertError);
         } else {
-          console.info(`Reverted all submissions to free tier for ${customer.email}`);
+          console.info(`Reverted all submissions to free tier for ${customerEmail}`);
         }
 
         const { error: deleteError } = await supabase
           .from('user_tokens')
           .delete()
-          .eq('email', customer.email);
+          .eq('email', customerEmail);
 
         if (deleteError) {
-          console.error(`Error removing user token for ${customer.email}:`, deleteError);
+          console.error(`Error removing user token for ${customerEmail}:`, deleteError);
         } else {
-          console.info(`Removed user token for ${customer.email} due to subscription status: ${subscription.status}`);
+          console.info(`Removed user token for ${customerEmail} due to subscription status: ${subscription.status}`);
         }
       }
     }
