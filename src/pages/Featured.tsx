@@ -15,6 +15,11 @@ export default function FeaturedPage() {
   const [pendingDiscount, setPendingDiscount] = useState<string | undefined>(undefined)
 
   useEffect(() => {
+    const storedEmail = sessionStorage.getItem('userEmail')
+    if (storedEmail) {
+      setEmail(storedEmail)
+    }
+
     const urlParams = new URLSearchParams(window.location.search)
     const success = urlParams.get('success')
     const cancelled = urlParams.get('cancelled')
@@ -134,6 +139,7 @@ export default function FeaturedPage() {
   const proceedToCheckout = async () => {
     if (!pendingPlan || !email) return
 
+    sessionStorage.setItem('userEmail', email)
     setProcessingPlan(pendingPlan.name)
     setShowEmailModal(false)
 
