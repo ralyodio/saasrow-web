@@ -36,6 +36,16 @@ export default function SoftwareDetailPage() {
     }
   }, [id])
 
+  const addReferralParam = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.set('ref', 'SaasRow')
+      return urlObj.toString()
+    } catch {
+      return url
+    }
+  }
+
   const incrementViewCount = async (submissionId: string) => {
     try {
       const viewKey = `viewed_${submissionId}`
@@ -219,7 +229,7 @@ export default function SoftwareDetailPage() {
 
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
-                    href={submission.url}
+                    href={addReferralParam(submission.url)}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => trackClick(submission.id)}
@@ -249,7 +259,7 @@ export default function SoftwareDetailPage() {
                   <div className="flex items-center gap-3">
                     <span className="text-white/50 font-ubuntu">Website:</span>
                     <a
-                      href={submission.url}
+                      href={addReferralParam(submission.url)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-[#4FFFE3] font-ubuntu hover:underline"

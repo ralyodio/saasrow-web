@@ -24,6 +24,16 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   const isPremium = software.tier === 'premium'
   const isFeatured = software.tier === 'featured'
 
+  const addReferralParam = (url: string): string => {
+    try {
+      const urlObj = new URL(url)
+      urlObj.searchParams.set('ref', 'SaasRow')
+      return urlObj.toString()
+    } catch {
+      return url
+    }
+  }
+
   const trackClick = async (submissionId: string) => {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
@@ -139,7 +149,7 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
 
       <div className="flex items-center justify-between">
         <a
-          href={software.url}
+          href={addReferralParam(software.url)}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
