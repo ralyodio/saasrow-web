@@ -35,7 +35,6 @@ export default function ManageListings() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [showAddForm, setShowAddForm] = useState(false)
   const [formData, setFormData] = useState<Partial<Submission> & { socialLinks?: SocialLink[] }>({
     title: '',
     url: '',
@@ -89,7 +88,6 @@ export default function ManageListings() {
       image: submission.image,
       socialLinks: submission.social_links || []
     })
-    setShowAddForm(false)
   }
 
   const handleCancelEdit = () => {
@@ -107,36 +105,20 @@ export default function ManageListings() {
   }
 
   const handleAddNew = () => {
-    setShowAddForm(true)
-    setEditingId(null)
-    setFormData({
-      title: '',
-      url: '',
-      description: '',
-      category: 'Software',
-      tags: [],
-      logo: null,
-      image: null,
-      socialLinks: []
-    })
+    navigate('/submit')
   }
 
-  const handleSave = async (isNew: boolean = false) => {
+  const handleSave = async () => {
     if (!token) return
 
     setSaving(true)
     try {
-      const endpoint = isNew ? 'POST' : 'PUT'
-      const body = isNew
-        ? { ...formData, email: submissions[0]?.email }
-        : { token, submission: formData }
-
       const response = await fetch(`${apiUrl}/functions/v1/submissions`, {
-        method: endpoint,
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ token, submission: formData })
       })
 
       const result = await response.json()
@@ -147,7 +129,6 @@ export default function ManageListings() {
 
       await fetchSubmissions()
       setEditingId(null)
-      setShowAddForm(false)
       handleCancelEdit()
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to save submission')
@@ -230,139 +211,6 @@ export default function ManageListings() {
             </button>
           </div>
 
-          {showAddForm && (
-            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4 text-white font-ubuntu">Add New Listing</h2>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault()
-                  handleSave(true)
-                }}
-                className="space-y-4"
-              >
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Title</label>
-                  <input
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">URL</label>
-                  <input
-                    type="url"
-                    value={formData.url}
-                    onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Description</label>
-                  <textarea
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    rows={4}
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                    required
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Category</label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                    required
-                  >
-                    <option value="Software">Software</option>
-                    <option value="Tool">Tool</option>
-                    <option value="Service">Service</option>
-                    <option value="Resource">Resource</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
-                    Tags (comma-separated)
-                  </label>
-                  <input
-                    type="text"
-                    value={(formData.tags || []).join(', ')}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean)
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                    placeholder="productivity, automation, saas"
-                  />
-                </div>
-
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-white/90 font-ubuntu">Social Links</label>
-                    <button
-                      type="button"
-                      onClick={addSocialLink}
-                      className="text-sm text-[#4FFFE3] hover:text-[#E0FF04] font-ubuntu"
-                    >
-                      + Add Link
-                    </button>
-                  </div>
-                  {(formData.socialLinks || []).map((link, index) => (
-                    <div key={index} className="flex gap-2 mb-2">
-                      <input
-                        type="text"
-                        placeholder="Platform (e.g., Twitter)"
-                        value={link.platform}
-                        onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                      />
-                      <input
-                        type="url"
-                        placeholder="URL"
-                        value={link.url}
-                        onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => removeSocialLink(index)}
-                        className="px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg font-ubuntu"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : 'Add Listing'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAddForm(false)}
-                    className="px-8 py-3 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
 
           <div className="space-y-6">
             {submissions.map((submission) => (
@@ -371,7 +219,7 @@ export default function ManageListings() {
                   <form
                     onSubmit={(e) => {
                       e.preventDefault()
-                      handleSave(false)
+                      handleSave()
                     }}
                     className="space-y-4"
                   >

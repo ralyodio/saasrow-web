@@ -113,7 +113,7 @@ export function Footer() {
         <hr className="border-white/20" />
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-white/75 font-ubuntu text-sm">
-          <p>© 2019 SaaSRow. All rights reserved.</p>
+          <p>© 2025 Profullstack, Inc. All rights reserved.</p>
 
           <Link to="/">
             <img className="h-10 w-auto" alt="SaaSRow logo" src="/wiresniff-logo-1-1.png" />
