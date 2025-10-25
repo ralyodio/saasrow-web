@@ -8,7 +8,7 @@ export default function FeaturedPage() {
   const [billingPeriod, setBillingPeriod] = useState<'yearly' | 'monthly'>('yearly')
   const [showDiscountPopup, setShowDiscountPopup] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
+  const [processingPlan, setProcessingPlan] = useState<string | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -111,7 +111,7 @@ export default function FeaturedPage() {
       return
     }
 
-    setIsProcessing(true)
+    setProcessingPlan(plan.name)
 
     try {
       const priceId = billingPeriod === 'yearly' ? plan.yearlyPriceId : plan.monthlyPriceId
@@ -146,7 +146,7 @@ export default function FeaturedPage() {
       console.error('Checkout error:', error)
       alert('Something went wrong. Please try again.')
     } finally {
-      setIsProcessing(false)
+      setProcessingPlan(null)
     }
   }
 
@@ -228,10 +228,10 @@ export default function FeaturedPage() {
                 )}
                 <button
                   onClick={() => handleCheckout(plan)}
-                  disabled={isProcessing}
+                  disabled={processingPlan !== null}
                   className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isProcessing ? 'Processing...' : plan.name === 'Free' ? 'Submit Now' : 'Get Started'}
+                  {processingPlan === plan.name ? 'Processing...' : plan.name === 'Free' ? 'Submit Now' : 'Get Started'}
                 </button>
                 <ul className="space-y-3 text-left">
                   {plan.features.map((feature, idx) => (
