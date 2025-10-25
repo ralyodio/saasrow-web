@@ -172,6 +172,17 @@ async function syncCustomerFromStripe(customerId: string) {
             console.info(`Created user token for ${customer.email} with tier: ${tier}`);
             const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
             console.log('Management URL:', managementUrl);
+
+            const { error: upgradeError } = await supabase
+              .from('software_submissions')
+              .update({ tier })
+              .eq('email', customer.email);
+
+            if (upgradeError) {
+              console.error(`Error upgrading submissions for ${customer.email}:`, upgradeError);
+            } else {
+              console.info(`Upgraded all submissions for ${customer.email} to tier: ${tier}`);
+            }
           }
         } else {
           const oldTier = existingToken.tier;
