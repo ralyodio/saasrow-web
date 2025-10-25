@@ -63,42 +63,30 @@ export default function AdminPage() {
 
   const verifyAdminToken = async (token: string) => {
     try {
-      const supabaseAdmin = supabase
-      const { data, error } = await supabaseAdmin
-        .from('admin_tokens')
-        .select('email, expires_at, used')
-        .eq('token', token)
-        .maybeSingle()
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-admin-token`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ token }),
+        }
+      )
 
-      if (error || !data) {
-        setAuthError('Invalid or expired admin token')
+      const result = await response.json()
+
+      if (response.ok && result.valid) {
+        sessionStorage.setItem('adminEmail', result.email)
+        setAdminEmail(result.email)
+        setIsAuthenticated(true)
+        fetchSubmissions()
+        window.history.replaceState({}, document.title, '/admin')
+      } else {
+        setAuthError(result.error || 'Invalid or expired admin token')
         setLoading(false)
-        return
       }
-
-      if (data.used) {
-        setAuthError('This login link has already been used')
-        setLoading(false)
-        return
-      }
-
-      if (new Date(data.expires_at) < new Date()) {
-        setAuthError('This login link has expired')
-        setLoading(false)
-        return
-      }
-
-      await supabaseAdmin
-        .from('admin_tokens')
-        .update({ used: true })
-        .eq('token', token)
-
-      sessionStorage.setItem('adminEmail', data.email)
-      setAdminEmail(data.email)
-      setIsAuthenticated(true)
-      fetchSubmissions()
-
-      window.history.replaceState({}, document.title, '/admin')
     } catch (error) {
       console.error('Token verification error:', error)
       setAuthError('Failed to verify admin token')
