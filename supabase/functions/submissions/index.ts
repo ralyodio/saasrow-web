@@ -50,8 +50,22 @@ Deno.serve(async (req: Request) => {
           )
         }
 
+        // Get email from the first submission or from the token lookup
+        let email = data && data.length > 0 ? data[0].email : null
+
+        // If no submissions exist but token is valid, look up the email
+        if (!email) {
+          const { data: tokenData } = await supabase
+            .from('software_submissions')
+            .select('email')
+            .eq('management_token', token)
+            .maybeSingle()
+
+          email = tokenData?.email || null
+        }
+
         return new Response(
-          JSON.stringify({ data }),
+          JSON.stringify({ data, email }),
           {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

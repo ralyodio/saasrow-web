@@ -72,6 +72,11 @@ export default function ManageListings() {
       }
 
       setSubmissions(result.data || [])
+
+      // Store email for later use
+      if (result.email) {
+        sessionStorage.setItem('userEmail', result.email)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
@@ -133,10 +138,10 @@ export default function ManageListings() {
         throw new Error(result.error || 'Failed to fetch metadata')
       }
 
-      // Create new submission with the email from existing submissions
-      const email = submissions[0]?.email
+      // Get email from submissions or session storage
+      const email = submissions[0]?.email || sessionStorage.getItem('userEmail')
       if (!email) {
-        throw new Error('No email found')
+        throw new Error('No email found. Please submit your first listing through the main submission form.')
       }
 
       const createResponse = await fetch(`${apiUrl}/functions/v1/submissions`, {
