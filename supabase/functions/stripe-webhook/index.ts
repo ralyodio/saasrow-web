@@ -162,33 +162,71 @@ async function syncCustomerFromStripe(customerId: string) {
         tier = 'premium';
       }
 
-      const { data: existingToken } = await supabase
-        .from('user_tokens')
-        .select('token')
-        .eq('email', customer.email)
-        .maybeSingle();
+      // Only create/update token if subscription is active
+      const isActiveSubscription = ['active', 'trialing'].includes(subscription.status);
 
-      if (!existingToken) {
-        const { data: newToken, error: tokenError } = await supabase
+      if (isActiveSubscription) {
+        const { data: existingToken } = await supabase
           .from('user_tokens')
-          .insert({ email: customer.email, tier })
-          .select()
+          .select('token, tier')
+          .eq('email', customer.email)
           .maybeSingle();
 
-        if (tokenError) {
-          console.error('Error creating user token:', tokenError);
-        } else if (newToken) {
-          console.info(`Created user token for ${customer.email} with tier: ${tier}`);
-          const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
-          console.log('Management URL:', managementUrl);
+        if (!existingToken) {
+          const { data: newToken, error: tokenError } = await supabase
+            .from('user_tokens')
+            .insert({ email: customer.email, tier })
+            .select()
+            .maybeSingle();
+
+          if (tokenError) {
+            console.error('Error creating user token:', tokenError);
+          } else if (newToken) {
+            console.info(`Created user token for ${customer.email} with tier: ${tier}`);
+            const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
+            console.log('Management URL:', managementUrl);
+          }
+        } else {
+          const oldTier = existingToken.tier;
+
+          // Only update if tier changed
+          if (oldTier !== tier) {
+            await supabase
+              .from('user_tokens')
+              .update({ tier })
+              .eq('email', customer.email);
+            console.info(`Updated tier for ${customer.email} from ${oldTier} to: ${tier}`);
+
+            // Upgrade all existing submissions to the new tier (only if upgrading)
+            const tierLevels = { basic: 1, premium: 2 };
+            const isUpgrade = tierLevels[tier as 'basic' | 'premium'] > tierLevels[oldTier as 'basic' | 'premium'];
+
+            if (isUpgrade) {
+              const { error: upgradeError } = await supabase
+                .from('software_submissions')
+                .update({ tier })
+                .eq('email', customer.email);
+
+              if (upgradeError) {
+                console.error(`Error upgrading submissions for ${customer.email}:`, upgradeError);
+              } else {
+                console.info(`Upgraded all submissions for ${customer.email} to tier: ${tier}`);
+              }
+            }
+          }
         }
-      } else {
-        // Update tier if token already exists
-        await supabase
+      } else if (['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
+        // Handle cancelled/inactive subscriptions - remove user token
+        const { error: deleteError } = await supabase
           .from('user_tokens')
-          .update({ tier })
+          .delete()
           .eq('email', customer.email);
-        console.info(`Updated tier for ${customer.email} to: ${tier}`);
+
+        if (deleteError) {
+          console.error(`Error removing user token for ${customer.email}:`, deleteError);
+        } else {
+          console.info(`Removed user token for ${customer.email} due to subscription status: ${subscription.status}`);
+        }
       }
     }
 
