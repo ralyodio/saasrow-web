@@ -72,11 +72,62 @@ async function handleEvent(event: Stripe.Event) {
     let isSubscription = true;
 
     if (event.type === 'checkout.session.completed') {
-      const { mode } = stripeData as Stripe.Checkout.Session;
+      const checkoutSession = stripeData as Stripe.Checkout.Session;
+      const { mode } = checkoutSession;
 
       isSubscription = mode === 'subscription';
 
       console.info(`Processing ${isSubscription ? 'subscription' : 'one-time payment'} checkout session`);
+
+      // Store order record for billing history
+      if (checkoutSession.payment_intent && checkoutSession.payment_status === 'paid') {
+        const { error: orderError } = await supabase.from('stripe_orders').insert({
+          checkout_session_id: checkoutSession.id,
+          payment_intent_id: typeof checkoutSession.payment_intent === 'string'
+            ? checkoutSession.payment_intent
+            : checkoutSession.payment_intent.id,
+          customer_id: customerId,
+          amount_subtotal: checkoutSession.amount_subtotal || 0,
+          amount_total: checkoutSession.amount_total || 0,
+          currency: checkoutSession.currency || 'usd',
+          payment_status: checkoutSession.payment_status,
+          status: 'completed',
+        });
+
+        if (orderError) {
+          console.error('Error inserting order record:', orderError);
+        } else {
+          console.info(`Created order record for session ${checkoutSession.id}`);
+        }
+      }
+    }
+
+    // Handle recurring invoice payments
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = stripeData as Stripe.Invoice;
+
+      if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
+        console.info(`Processing recurring subscription payment for invoice ${invoice.id}`);
+
+        const { error: orderError } = await supabase.from('stripe_orders').insert({
+          checkout_session_id: invoice.id,
+          payment_intent_id: typeof invoice.payment_intent === 'string'
+            ? invoice.payment_intent
+            : invoice.payment_intent?.id || invoice.id,
+          customer_id: customerId,
+          amount_subtotal: invoice.subtotal || 0,
+          amount_total: invoice.amount_paid || 0,
+          currency: invoice.currency || 'usd',
+          payment_status: 'paid',
+          status: 'completed',
+        });
+
+        if (orderError) {
+          console.error('Error inserting recurring payment order:', orderError);
+        } else {
+          console.info(`Created order record for recurring invoice ${invoice.id}`);
+        }
+      }
     }
 
     if (isSubscription) {
