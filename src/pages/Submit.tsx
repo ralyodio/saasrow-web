@@ -507,6 +507,79 @@ export default function SubmitPage() {
               : 'Review and edit the information before submitting'}
           </p>
 
+          {step === 'url' && userTier === 'free' && (
+            <div className="mb-8 bg-gradient-to-br from-[#3a3a3a] to-[#2a2a2a] rounded-2xl p-6 border border-[#4FFFE3]/20">
+              <h2 className="text-white text-xl font-bold font-ubuntu mb-4 text-center">
+                🚀 Upgrade for More Visibility & Features
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#4FFFE3]/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[#4FFFE3] font-bold font-ubuntu text-lg">Featured Tier</h3>
+                    <span className="text-white font-ubuntu text-sm">$49</span>
+                  </div>
+                  <ul className="text-white/70 text-sm font-ubuntu space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Up to 5 listings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Featured badge</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Priority review (2-3 days)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Monthly analytics</span>
+                    </li>
+                  </ul>
+                  <a
+                    href="/featured"
+                    className="block mt-4 w-full py-2 text-center rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] font-ubuntu font-semibold hover:bg-[#4FFFE3]/30 transition-colors"
+                  >
+                    Learn More
+                  </a>
+                </div>
+                <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#E0FF04]/50">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[#E0FF04] font-bold font-ubuntu text-lg">Premium Tier</h3>
+                    <span className="text-white font-ubuntu text-sm">$99</span>
+                  </div>
+                  <ul className="text-white/70 text-sm font-ubuntu space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#E0FF04] mt-0.5">✓</span>
+                      <span>Unlimited listings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#E0FF04] mt-0.5">✓</span>
+                      <span>Homepage feature + Premium badge</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#E0FF04] mt-0.5">✓</span>
+                      <span>Same-day review</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#E0FF04] mt-0.5">✓</span>
+                      <span>Newsletter (200K+ subscribers)</span>
+                    </li>
+                  </ul>
+                  <a
+                    href="/featured"
+                    className="block mt-4 w-full py-2 text-center rounded-lg bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
+                  >
+                    Upgrade Now
+                  </a>
+                </div>
+              </div>
+              <p className="text-center text-white/60 text-sm font-ubuntu mt-4">
+                💰 Have a discount code? You'll be able to apply it at checkout.
+              </p>
+            </div>
+          )}
+
           {step === 'url' ? (
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
