@@ -29,9 +29,9 @@ interface NewsPost {
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [email, setEmail] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authMessage, setAuthMessage] = useState('')
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
@@ -43,44 +43,57 @@ export default function AdminPage() {
   const [loadingPosts, setLoadingPosts] = useState(false)
 
   useEffect(() => {
-    const authStatus = sessionStorage.getItem('admin_authenticated')
-    if (authStatus === 'true') {
-      setIsAuthenticated(true)
-      fetchSubmissions()
-    } else {
-      setLoading(false)
-    }
-  }, [])
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault()
-    setAuthError('')
-
-    const adminUser = import.meta.env.VITE_ADMIN_USER
-    const adminPass = import.meta.env.VITE_ADMIN_PASS
-
-    console.log('Admin credentials check:', {
-      envUser: adminUser,
-      envPass: adminPass,
-      inputUser: username,
-      inputPass: password,
-      match: username === adminUser && password === adminPass
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setIsAuthenticated(true)
+        fetchSubmissions()
+      } else {
+        setLoading(false)
+      }
     })
 
-    if (username === adminUser && password === adminPass) {
-      setIsAuthenticated(true)
-      sessionStorage.setItem('admin_authenticated', 'true')
-      fetchSubmissions()
-    } else {
-      setAuthError('Invalid username or password')
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setIsAuthenticated(true)
+        setAuthMessage('')
+        setAuthError('')
+        fetchSubmissions()
+      } else {
+        setIsAuthenticated(false)
+        setLoading(false)
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setAuthError('')
+    setAuthMessage('')
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
+        email: email.trim(),
+        options: {
+          emailRedirectTo: window.location.origin + '/admin',
+        },
+      })
+
+      if (error) {
+        setAuthError(error.message)
+      } else {
+        setAuthMessage('Check your email for the magic link!')
+        setEmail('')
+      }
+    } catch (error) {
+      setAuthError('Failed to send magic link')
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     setIsAuthenticated(false)
-    sessionStorage.removeItem('admin_authenticated')
-    setUsername('')
-    setPassword('')
   }
 
   useEffect(() => {
@@ -213,11 +226,18 @@ export default function AdminPage() {
     setGeneratedPost(null)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('You must be logged in to perform this action')
+        setIsGenerating(false)
+        return
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-news-post`
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ topic: newsTopic }),
@@ -243,18 +263,25 @@ export default function AdminPage() {
 
   const togglePublishStatus = async (id: string, currentStatus: boolean) => {
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('You must be logged in to perform this action')
+        return
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts`
       const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id, published: !currentStatus }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to update post')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update post')
       }
 
       setNewsPosts(prev =>
@@ -273,18 +300,25 @@ export default function AdminPage() {
     }
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('You must be logged in to perform this action')
+        return
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts`
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to delete post')
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete post')
       }
 
       setNewsPosts(prev => prev.filter(post => post.id !== id))
@@ -314,29 +348,16 @@ export default function AdminPage() {
 
             <form onSubmit={handleLogin} className="space-y-6">
               <div>
-                <label htmlFor="username" className="block text-white font-ubuntu text-sm mb-2">
-                  Username
+                <label htmlFor="email" className="block text-white font-ubuntu text-sm mb-2">
+                  Admin Email
                 </label>
                 <input
-                  id="username"
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="password" className="block text-white font-ubuntu text-sm mb-2">
-                  Password
-                </label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  placeholder="admin@example.com"
                   className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu"
                 />
               </div>
@@ -347,11 +368,17 @@ export default function AdminPage() {
                 </div>
               )}
 
+              {authMessage && (
+                <div className="rounded-lg p-3 bg-[#4FFFE3]/10 border border-[#4FFFE3]">
+                  <p className="text-[#4FFFE3] font-ubuntu text-sm text-center">{authMessage}</p>
+                </div>
+              )}
+
               <button
                 type="submit"
                 className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity"
               >
-                Login
+                Send Magic Link
               </button>
             </form>
           </div>
