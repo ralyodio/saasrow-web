@@ -66,7 +66,6 @@ Deno.serve(async (req) => {
       mode,
       success_url,
       cancel_url,
-      allow_promotion_codes: true,
     };
 
     if (discount_code === '50OFF') {
@@ -96,6 +95,8 @@ Deno.serve(async (req) => {
       } catch (couponError) {
         console.error('Error applying discount code:', couponError);
       }
+    } else {
+      sessionParams.allow_promotion_codes = true;
     }
 
     const session = await stripe.checkout.sessions.create(sessionParams);
