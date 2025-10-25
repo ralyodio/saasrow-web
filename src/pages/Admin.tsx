@@ -52,6 +52,7 @@ interface User {
   created_at: string
   expires_at: string | null
   last_used_at: string | null
+  last_submission_at: string | null
   submission_count: number
   subscription_status: string | null
   subscription_end: number | null
@@ -86,6 +87,8 @@ export default function AdminPage() {
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
   const [users, setUsers] = useState<User[]>([])
   const [loadingUsers, setLoadingUsers] = useState(false)
+  const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
+  const [userSubmissions, setUserSubmissions] = useState<{ [email: string]: Submission[] }>({})
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -333,7 +336,7 @@ export default function AdminPage() {
     try {
       const { data: submissions, error: submissionsError } = await supabase
         .from('software_submissions')
-        .select('email, tier, created_at')
+        .select('email, tier, created_at, submitted_at')
         .order('created_at', { ascending: false })
 
       if (submissionsError) throw submissionsError
@@ -363,6 +366,7 @@ export default function AdminPage() {
             created_at: sub.created_at,
             expires_at: null,
             last_used_at: null,
+            last_submission_at: sub.submitted_at || sub.created_at,
             submission_count: 1,
             subscription_status: null,
             subscription_end: null,
@@ -373,6 +377,11 @@ export default function AdminPage() {
           existing.submission_count++
           if (sub.tier && sub.tier !== 'free' && (!existing.tier || existing.tier === 'free')) {
             existing.tier = sub.tier as 'free' | 'featured' | 'premium'
+          }
+          const subDate = new Date(sub.submitted_at || sub.created_at)
+          const existingDate = new Date(existing.last_submission_at!)
+          if (subDate > existingDate) {
+            existing.last_submission_at = sub.submitted_at || sub.created_at
           }
         }
       })
@@ -391,6 +400,7 @@ export default function AdminPage() {
             created_at: token.created_at,
             expires_at: token.expires_at,
             last_used_at: token.last_used_at,
+            last_submission_at: null,
             submission_count: 0,
             subscription_status: null,
             subscription_end: null,
@@ -548,6 +558,35 @@ export default function AdminPage() {
         }
       }
     })
+  }
+
+  const toggleUserSubmissions = async (email: string) => {
+    if (expandedUserId === email) {
+      setExpandedUserId(null)
+      return
+    }
+
+    setExpandedUserId(email)
+
+    if (!userSubmissions[email]) {
+      try {
+        const { data, error } = await supabase
+          .from('software_submissions')
+          .select('*')
+          .eq('email', email)
+          .order('created_at', { ascending: false })
+
+        if (error) throw error
+
+        setUserSubmissions(prev => ({
+          ...prev,
+          [email]: data as Submission[]
+        }))
+      } catch (error) {
+        console.error('Failed to fetch user submissions:', error)
+        setAlertMessage({ type: 'error', message: 'Failed to load user submissions' })
+      }
+    }
   }
 
   const fetchSubscribers = async () => {
@@ -1459,9 +1498,12 @@ export default function AdminPage() {
                               >
                                 {user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}
                               </span>
-                              <span className="px-3 py-1 rounded-full text-xs font-ubuntu bg-white/5 text-white/60 border border-white/20">
+                              <button
+                                onClick={() => toggleUserSubmissions(user.email)}
+                                className="px-3 py-1 rounded-full text-xs font-ubuntu bg-white/5 text-white/60 border border-white/20 hover:bg-white/10 transition-colors cursor-pointer"
+                              >
                                 {user.submission_count} {user.submission_count === 1 ? 'submission' : 'submissions'}
-                              </span>
+                              </button>
                               {user.subscription_status && (
                                 <span
                                   className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
@@ -1492,9 +1534,11 @@ export default function AdminPage() {
                                 </div>
                               )}
                               <div>
-                                <span className="text-white/50 font-ubuntu">Last Used:</span>
+                                <span className="text-white/50 font-ubuntu">Last Activity:</span>
                                 <span className="text-white/90 font-ubuntu ml-2">
-                                  {user.last_used_at
+                                  {user.last_submission_at
+                                    ? new Date(user.last_submission_at).toLocaleDateString()
+                                    : user.last_used_at
                                     ? new Date(user.last_used_at).toLocaleDateString()
                                     : 'Never'}
                                 </span>
@@ -1517,6 +1561,16 @@ export default function AdminPage() {
                             )}
                           </div>
                           <div className="flex flex-col gap-2">
+                            {user.submission_count > 0 && (
+                              <button
+                                onClick={() => toggleUserSubmissions(user.email)}
+                                className="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/20 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                              >
+                                {expandedUserId === user.email ? 'Hide' : 'View'} Submissions
+                              </button>
+                            )}
+                          </div>
+                          <div className="flex flex-col gap-2 ml-2">
                             <a
                               href={`mailto:${user.email}`}
                               className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center text-sm"
@@ -1571,6 +1625,105 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </div>
+                        {expandedUserId === user.email && userSubmissions[user.email] && (
+                          <div className="mt-6 pt-6 border-t border-white/10">
+                            <h4 className="text-white text-lg font-bold font-ubuntu mb-4">
+                              Submissions for {user.email}
+                            </h4>
+                            <div className="space-y-3">
+                              {userSubmissions[user.email].map((submission) => (
+                                <div
+                                  key={submission.id}
+                                  className="bg-[#3a3a3a] rounded-lg p-4 hover:bg-[#404040] transition-colors"
+                                >
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <div className="flex items-center gap-3 mb-2">
+                                        {submission.logo && (
+                                          <img
+                                            src={submission.logo}
+                                            alt={`${submission.title} logo`}
+                                            className="w-10 h-10 rounded-lg bg-white p-1 object-contain"
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none'
+                                            }}
+                                          />
+                                        )}
+                                        <div className="flex-1">
+                                          <h5 className="text-white text-base font-bold font-ubuntu">
+                                            {submission.title}
+                                          </h5>
+                                          <a
+                                            href={submission.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="text-[#4FFFE3] text-sm font-ubuntu hover:underline"
+                                          >
+                                            {submission.url}
+                                          </a>
+                                        </div>
+                                        <span
+                                          className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${getStatusColor(
+                                            submission.status
+                                          )}`}
+                                        >
+                                          {submission.status}
+                                        </span>
+                                        <span
+                                          className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                                            submission.tier === 'premium'
+                                              ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
+                                              : submission.tier === 'featured'
+                                              ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                              : 'text-white/70 bg-white/10 border-white/30'
+                                          }`}
+                                        >
+                                          {submission.tier}
+                                        </span>
+                                      </div>
+                                      <p className="text-white/70 text-sm font-ubuntu mb-2">
+                                        {submission.description}
+                                      </p>
+                                      <div className="flex gap-4 text-xs text-white/50 font-ubuntu">
+                                        <span>Category: {submission.category}</span>
+                                        <span>
+                                          Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
+                                        </span>
+                                        {submission.tags && submission.tags.length > 0 && (
+                                          <span>Tags: {submission.tags.join(', ')}</span>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex gap-2">
+                                      {submission.status !== 'approved' && (
+                                        <button
+                                          onClick={() => updateSubmissionStatus(submission.id, 'approved')}
+                                          className="px-3 py-1 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu text-xs font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                                        >
+                                          Approve
+                                        </button>
+                                      )}
+                                      {submission.status !== 'rejected' && (
+                                        <button
+                                          onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
+                                          className="px-3 py-1 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu text-xs font-bold hover:bg-red-400/30 transition-colors"
+                                        >
+                                          Reject
+                                        </button>
+                                      )}
+                                      <button
+                                        onClick={() => deleteSubmission(submission.id, submission.title)}
+                                        className="px-3 py-1 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu text-xs font-bold hover:bg-red-600/30 transition-colors"
+                                      >
+                                        Delete
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
