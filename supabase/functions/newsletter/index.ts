@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 }
 
@@ -110,6 +110,44 @@ Deno.serve(async (req: Request) => {
         JSON.stringify({ data, message: 'Successfully subscribed!' }),
         {
           status: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (req.method === 'DELETE') {
+      const body = await req.json()
+      const { email } = body
+
+      if (!email) {
+        return new Response(
+          JSON.stringify({ error: 'Email is required' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      const { error } = await supabase
+        .from('newsletter_subscriptions')
+        .update({ is_active: false })
+        .eq('email', email)
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      return new Response(
+        JSON.stringify({ message: 'Successfully unsubscribed' }),
+        {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )

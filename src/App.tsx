@@ -17,6 +17,7 @@ import Admin from './pages/Admin'
 import Category from './pages/Category'
 import SoftwareDetail from './pages/SoftwareDetail'
 import ManageListings from './pages/ManageListings'
+import Unsubscribe from './pages/Unsubscribe'
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/category/:category" element={<Category />} />
         <Route path="/software/:id" element={<SoftwareDetail />} />
         <Route path="/manage/:token" element={<ManageListings />} />
+        <Route path="/unsubscribe" element={<Unsubscribe />} />
       </Routes>
     </BrowserRouter>
   )

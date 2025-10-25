@@ -15,6 +15,7 @@ export function Footer() {
   const footerLinks = [
     { label: 'Terms of Service', href: '/terms' },
     { label: 'Privacy Policy', href: '/privacy' },
+    { label: 'Unsubscribe', href: '/unsubscribe' },
   ]
 
   const handleSubscribe = async (e: FormEvent) => {
