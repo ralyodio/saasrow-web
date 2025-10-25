@@ -54,6 +54,7 @@ export default function FeaturedPage() {
       monthlyPriceId: null,
       yearlyPriceId: null,
       features: [
+        'Free dofollow link',
         'Submit 1 software listing',
         'Basic listing page',
         'Community visibility',
@@ -68,6 +69,7 @@ export default function FeaturedPage() {
       monthlyPriceId: 'price_1SLuVoEfmU4X8cUlYucpStOt',
       yearlyPriceId: 'price_1SLuWrEfmU4X8cUlwxalZJsT',
       features: [
+        'Free dofollow link',
         'Up to 5 software listings',
         'Featured badge on listings',
         'Priority review (2-3 days)',
@@ -84,6 +86,7 @@ export default function FeaturedPage() {
       monthlyPriceId: 'price_1SLuXuEfmU4X8cUllzHZ8zt8',
       yearlyPriceId: 'price_1SLuYiEfmU4X8cUlttdoOo8j',
       features: [
+        'Free dofollow link',
         'Unlimited software listings',
         'Homepage featured spot',
         'Same-day review',
