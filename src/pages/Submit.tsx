@@ -36,7 +36,6 @@ export default function SubmitPage() {
   const [fetchedImagePath, setFetchedImagePath] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [managementToken, setManagementToken] = useState<string | null>(null)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [emailInput, setEmailInput] = useState('')
 
@@ -329,35 +328,38 @@ export default function SubmitPage() {
       }
 
       if (successCount > 0) {
-        const lastResponseData = await fetch(`${apiUrl}`, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            title: submissions[submissions.length - 1].title,
-            url: submissions[submissions.length - 1].url,
-            description: submissions[submissions.length - 1].description,
-            email: emailInput,
-            category: submissions[submissions.length - 1].category,
-            tags: submissions[submissions.length - 1].tags,
-            logo: submissions[submissions.length - 1].logo,
-            image: submissions[submissions.length - 1].image,
-          }),
-        }).then(r => r.json())
+        try {
+          const sendLinkResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-management-link`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: emailInput }),
+          })
 
-        if (lastResponseData.managementToken) {
-          setManagementToken(lastResponseData.managementToken)
+          if (sendLinkResponse.ok) {
+            setMessage({
+              type: 'success',
+              text: `Successfully submitted ${successCount} of ${submissions.length} software ${successCount === 1 ? 'entry' : 'entries'}! Check your email (${emailInput}) for your management link.`
+            })
+          } else {
+            setMessage({
+              type: 'success',
+              text: `Successfully submitted ${successCount} of ${submissions.length} software ${successCount === 1 ? 'entry' : 'entries'}! We'll send you a management link shortly.`
+            })
+          }
+        } catch (emailError) {
+          console.error('Error sending management link:', emailError)
+          setMessage({
+            type: 'success',
+            text: `Successfully submitted ${successCount} of ${submissions.length} software ${successCount === 1 ? 'entry' : 'entries'}! We'll send you a management link shortly.`
+          })
         }
 
-        setMessage({
-          type: 'success',
-          text: `Successfully submitted ${successCount} of ${submissions.length} software entries!`
-        })
         setTimeout(() => {
           handleStartOver()
-        }, 2000)
+        }, 5000)
       } else {
         setMessage({ type: 'error', text: 'Failed to submit any entries' })
       }
@@ -512,35 +514,24 @@ export default function SubmitPage() {
 
               {message && (
                 <div
-                  className={`rounded-2xl p-4 ${
+                  className={`rounded-2xl p-6 ${
                     message.type === 'success'
                       ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
                       : 'bg-red-400/10 border border-red-400'
                   }`}
                 >
                   <p
-                    className={`text-center font-ubuntu ${
+                    className={`text-center font-ubuntu text-lg ${
                       message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
                     }`}
                   >
                     {message.text}
                   </p>
-                  {managementToken && message.type === 'success' && (
-                    <div className="mt-4 space-y-2">
-                      <p className="text-white text-center font-ubuntu text-sm">
-                        Save this link to manage your listings:
+                  {message.type === 'success' && (
+                    <div className="mt-4 text-center">
+                      <p className="text-white/70 font-ubuntu text-sm">
+                        Please check your spam folder if you don't see the email within a few minutes.
                       </p>
-                      <div className="bg-[#4a4a4a] rounded-lg p-3">
-                        <p className="text-[#4FFFE3] text-sm font-mono break-all text-center">
-                          {window.location.origin}/manage/{managementToken}
-                        </p>
-                      </div>
-                      <a
-                        href={`/manage/${managementToken}`}
-                        className="block text-center text-[#4FFFE3] hover:underline text-sm font-ubuntu"
-                      >
-                        Go to Management Page
-                      </a>
                     </div>
                   )}
                 </div>
