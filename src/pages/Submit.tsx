@@ -463,8 +463,11 @@ export default function SubmitPage() {
             <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">
               Enter Your Email
             </h2>
-            <p className="text-white/70 font-ubuntu mb-6">
+            <p className="text-white/70 font-ubuntu mb-4">
               We'll send you a management link so you can edit your listings later.
+            </p>
+            <p className="text-white/50 font-ubuntu text-sm mb-6">
+              Your email is only used to send you the management link and optional updates. We never sell or share your data with third parties.
             </p>
             <input
               type="email"
