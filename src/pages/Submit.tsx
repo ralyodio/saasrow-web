@@ -1,4 +1,4 @@
-import { useState, FormEvent, ChangeEvent } from 'react'
+import { useState, useEffect, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { supabase } from '../lib/supabase'
@@ -39,6 +39,7 @@ export default function SubmitPage() {
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [userTier, setUserTier] = useState<'free' | 'basic' | 'premium'>('free')
 
   const checkUserTier = async (email: string) => {
     try {
@@ -54,16 +55,25 @@ export default function SubmitPage() {
     }
   }
 
+  useEffect(() => {
+    const storedEmail = sessionStorage.getItem('userEmail')
+    if (storedEmail) {
+      checkUserTier(storedEmail).then(tier => {
+        setUserTier(tier as 'free' | 'basic' | 'premium')
+        setUserEmail(storedEmail)
+      })
+    }
+  }, [])
+
   const handleFetchMetadata = async (e: FormEvent) => {
     e.preventDefault()
     setIsFetching(true)
     setMessage(null)
 
     try {
-      const urlList = urls
-        .split('\n')
-        .map(u => u.trim())
-        .filter(u => u.length > 0)
+      const urlList = userTier === 'free'
+        ? [url.trim()].filter(u => u.length > 0)
+        : urls.split('\n').map(u => u.trim()).filter(u => u.length > 0)
 
       if (urlList.length === 0) {
         setMessage({ type: 'error', text: 'Please enter at least one URL' })
@@ -71,16 +81,13 @@ export default function SubmitPage() {
         return
       }
 
-      const storedEmail = sessionStorage.getItem('userEmail')
-      const tier = storedEmail ? await checkUserTier(storedEmail) : 'free'
-
-      if (tier === 'free' && urlList.length > 1) {
+      if (userTier === 'free' && urlList.length > 1) {
         setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Basic (5 URLs) or Premium (unlimited).' })
         setIsFetching(false)
         return
       }
 
-      if (tier === 'basic' && urlList.length > 5) {
+      if (userTier === 'basic' && urlList.length > 5) {
         setMessage({ type: 'error', text: 'Basic tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
         setIsFetching(false)
         return
@@ -486,7 +493,9 @@ export default function SubmitPage() {
           </h1>
           <p className="text-white/70 text-center font-ubuntu mb-8">
             {step === 'url'
-              ? 'Enter your software URL and we\'ll automatically fetch the details'
+              ? userTier === 'free'
+                ? 'Enter your software URL and we\'ll automatically fetch the details'
+                : `Enter your software URLs and we'll automatically fetch the details`
               : step === 'review'
               ? 'Review your submissions and edit if needed'
               : 'Review and edit the information before submitting'}
@@ -495,43 +504,92 @@ export default function SubmitPage() {
           {step === 'url' ? (
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <label htmlFor="urls" className="block text-white font-ubuntu text-lg mb-4">
-                  Software URL (Free Tier - 1 URL)
+                <label htmlFor={userTier === 'free' ? 'url' : 'urls'} className="block text-white font-ubuntu text-lg mb-4">
+                  {userTier === 'free' && 'Software URL (Free Tier - 1 URL)'}
+                  {userTier === 'basic' && 'Software URLs (Basic Tier - Up to 5 URLs)'}
+                  {userTier === 'premium' && 'Software URLs (Premium Tier - Unlimited)'}
                 </label>
-                <textarea
-                  id="urls"
-                  name="urls"
-                  value={urls}
-                  onChange={(e) => setUrls(e.target.value)}
-                  placeholder="https://example.com&#10;https://another-site.com&#10;https://third-site.com"
-                  required
-                  rows={5}
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg resize-none"
-                />
+                {userTier === 'free' ? (
+                  <input
+                    id="url"
+                    name="url"
+                    type="url"
+                    value={url}
+                    onChange={(e) => setUrl(e.target.value)}
+                    placeholder="https://example.com"
+                    required
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg"
+                  />
+                ) : (
+                  <textarea
+                    id="urls"
+                    name="urls"
+                    value={urls}
+                    onChange={(e) => setUrls(e.target.value)}
+                    placeholder="https://example.com&#10;https://another-site.com&#10;https://third-site.com"
+                    required
+                    rows={5}
+                    className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg resize-none"
+                  />
+                )}
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  Enter 1 URL for free tier. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!
+                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!"}
+                  {userTier === 'basic' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
+                  {userTier === 'premium' && "Enter unlimited URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                 </p>
                 <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
                   <p className="text-white font-ubuntu text-sm mb-2">
-                    <strong className="text-[#4FFFE3]">Free Tier Includes:</strong>
+                    <strong className="text-[#4FFFE3]">{userTier === 'free' ? 'Free' : userTier === 'basic' ? 'Basic' : 'Premium'} Tier Includes:</strong>
                   </p>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
-                    <li>• 1 software listing</li>
-                    <li>• Basic listing page</li>
-                    <li>• Community visibility</li>
-                    <li>• Standard review time (7-10 days)</li>
+                    {userTier === 'free' && (
+                      <>
+                        <li>• 1 software listing</li>
+                        <li>• Basic listing page</li>
+                        <li>• Community visibility</li>
+                        <li>• Standard review time (7-10 days)</li>
+                      </>
+                    )}
+                    {userTier === 'basic' && (
+                      <>
+                        <li>• Up to 5 software listings</li>
+                        <li>• Featured badge on listings</li>
+                        <li>• Priority review (2-3 days)</li>
+                        <li>• Monthly performance analytics</li>
+                        <li>• Logo in category pages</li>
+                        <li>• Social media mentions</li>
+                      </>
+                    )}
+                    {userTier === 'premium' && (
+                      <>
+                        <li>• Unlimited software listings</li>
+                        <li>• Homepage featured spot</li>
+                        <li>• Same-day review</li>
+                        <li>• Advanced analytics dashboard</li>
+                        <li>• Newsletter feature (200K+ subscribers)</li>
+                        <li>• Dedicated account manager</li>
+                        <li>• SEO optimization support</li>
+                      </>
+                    )}
                   </ul>
                 </div>
-                <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
-                  <p className="text-white/70 text-sm font-ubuntu flex items-start gap-2">
-                    <span className="text-[#E0FF04] text-lg">⭐</span>
-                    <span>
-                      <strong className="text-white">Need more?</strong>
-                      <br />
-                      Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!
-                    </span>
-                  </p>
-                </div>
+                {userTier !== 'premium' && (
+                  <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
+                    <p className="text-white/70 text-sm font-ubuntu flex items-start gap-2">
+                      <span className="text-[#E0FF04] text-lg">⭐</span>
+                      <span>
+                        <strong className="text-white">Need more?</strong>
+                        <br />
+                        {userTier === 'free' && (
+                          <>Upgrade to <span className="text-[#E0FF04]">Basic</span> for 5 URLs and priority review, or <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
+                        )}
+                        {userTier === 'basic' && (
+                          <>Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
+                        )}
+                      </span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               {message && (
@@ -561,7 +619,7 @@ export default function SubmitPage() {
 
               <button
                 type="submit"
-                disabled={isFetching || !urls}
+                disabled={isFetching || (userTier === 'free' ? !url : !urls)}
                 className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isFetching ? 'Fetching details...' : 'Continue'}
