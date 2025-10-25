@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { Alert } from '../components/Alert'
+import { ScreenshotGallery } from '../components/ScreenshotGallery'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -18,6 +19,7 @@ interface Submission {
   image?: string
   tags?: string[]
   view_count?: number
+  tier?: string
 }
 
 export default function SoftwareDetailPage() {
@@ -237,7 +239,11 @@ export default function SoftwareDetailPage() {
                 </div>
               </div>
 
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+              {submission.tier && (submission.tier === 'featured' || submission.tier === 'premium') && (
+                <ScreenshotGallery submissionId={submission.id} />
+              )}
+
+              <div className="bg-[#3a3a3a] rounded-2xl p-8 mt-6">
                 <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">Details</h2>
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
