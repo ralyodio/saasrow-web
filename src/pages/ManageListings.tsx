@@ -21,6 +21,10 @@ interface Submission {
   status: string
   created_at: string
   email: string
+  tier?: string
+  homepage_featured?: boolean
+  newsletter_featured?: boolean
+  analytics_enabled?: boolean
   social_links?: SocialLink[]
 }
 
@@ -508,7 +512,17 @@ export default function ManageListings() {
                           {submission.url}
                         </a>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {submission.tier === 'premium' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 text-gray-900">
+                            PREMIUM
+                          </span>
+                        )}
+                        {submission.tier === 'featured' && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
+                            FEATURED
+                          </span>
+                        )}
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             submission.status === 'approved'
@@ -541,6 +555,34 @@ export default function ManageListings() {
                         </span>
                       ))}
                     </div>
+
+                    {submission.tier === 'premium' && (
+                      <div className="bg-gradient-to-r from-yellow-50 to-cyan-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <span className="text-yellow-600">⭐</span> Premium Features
+                        </h3>
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          <li>✓ Unlimited software listings</li>
+                          {submission.homepage_featured && <li>✓ Homepage featured spot (ACTIVE)</li>}
+                          <li>✓ Same-day review</li>
+                          {submission.analytics_enabled && <li>✓ Advanced analytics dashboard</li>}
+                          {submission.newsletter_featured && <li>✓ Newsletter feature - 200K+ subscribers (ACTIVE)</li>}
+                          <li>✓ Dedicated account manager</li>
+                          <li>✓ SEO optimization support</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {submission.tier === 'featured' && (
+                      <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-4">
+                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <span className="text-cyan-600">⭐</span> Featured Listing
+                        </h3>
+                        <p className="text-sm text-gray-700">
+                          Your listing is featured with a special badge and priority placement in search results.
+                        </p>
+                      </div>
+                    )}
 
                     {submission.social_links && submission.social_links.length > 0 && (
                       <div className="border-t pt-4">

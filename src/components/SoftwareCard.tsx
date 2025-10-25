@@ -10,6 +10,9 @@ interface Software {
   logo?: string
   image?: string
   tags?: string[]
+  tier?: string
+  homepage_featured?: boolean
+  newsletter_featured?: boolean
 }
 
 interface SoftwareCardProps {
@@ -17,11 +20,26 @@ interface SoftwareCardProps {
 }
 
 export function SoftwareCard({ software }: SoftwareCardProps) {
+  const isPremium = software.tier === 'premium'
+  const isFeatured = software.tier === 'featured' || isPremium
+
   return (
     <Link
       to={`/software/${software.id}`}
-      className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:transform hover:scale-105 block"
+      className={`bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:transform hover:scale-105 block relative ${
+        isPremium ? 'ring-2 ring-[#E0FF04]' : ''
+      }`}
     >
+      {isPremium && (
+        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+          PREMIUM
+        </div>
+      )}
+      {isFeatured && !isPremium && (
+        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+          FEATURED
+        </div>
+      )}
       <div className="mb-4">
         <div className="flex items-center gap-3 mb-2">
           {software.logo && (
@@ -42,9 +60,25 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
             </h3>
           </div>
         </div>
-        <span className="inline-block px-3 py-1 rounded-full text-xs font-ubuntu bg-[#4a4a4a] text-white/70">
-          {software.category}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="inline-block px-3 py-1 rounded-full text-xs font-ubuntu bg-[#4a4a4a] text-white/70">
+            {software.category}
+          </span>
+          {isPremium && (
+            <>
+              {software.homepage_featured && (
+                <span className="inline-block px-2 py-1 rounded-full text-xs font-ubuntu bg-[#E0FF04]/20 text-[#E0FF04]">
+                  Homepage Featured
+                </span>
+              )}
+              {software.newsletter_featured && (
+                <span className="inline-block px-2 py-1 rounded-full text-xs font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3]">
+                  Newsletter Featured
+                </span>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {software.image && (
