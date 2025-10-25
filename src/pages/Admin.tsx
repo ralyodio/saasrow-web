@@ -48,10 +48,11 @@ interface NewsletterHistoryItem {
 
 interface User {
   email: string
-  tier: 'featured' | 'premium'
+  tier: 'free' | 'featured' | 'premium'
   created_at: string
-  expires_at: string
+  expires_at: string | null
   last_used_at: string | null
+  submission_count: number
   subscription_status: string | null
   subscription_end: number | null
   cancel_at_period_end: boolean
@@ -330,6 +331,13 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     setLoadingUsers(true)
     try {
+      const { data: submissions, error: submissionsError } = await supabase
+        .from('software_submissions')
+        .select('email, tier, created_at')
+        .order('created_at', { ascending: false })
+
+      if (submissionsError) throw submissionsError
+
       const { data: tokens, error: tokensError } = await supabase
         .from('user_tokens')
         .select('*')
@@ -344,20 +352,56 @@ export default function AdminPage() {
 
       if (subsError) throw subsError
 
-      const subsMap = new Map(
-        subscriptions?.map(s => [s.customer_id, s]) || []
-      )
+      const emailMap = new Map<string, User>()
 
-      const usersData: User[] = tokens?.map(token => ({
-        email: token.email,
-        tier: token.tier as 'featured' | 'premium',
-        created_at: token.created_at,
-        expires_at: token.expires_at,
-        last_used_at: token.last_used_at,
-        subscription_status: null,
-        subscription_end: null,
-        cancel_at_period_end: false
-      })) || []
+      submissions?.forEach(sub => {
+        const email = sub.email.toLowerCase()
+        if (!emailMap.has(email)) {
+          emailMap.set(email, {
+            email: sub.email,
+            tier: (sub.tier as 'free' | 'featured' | 'premium') || 'free',
+            created_at: sub.created_at,
+            expires_at: null,
+            last_used_at: null,
+            submission_count: 1,
+            subscription_status: null,
+            subscription_end: null,
+            cancel_at_period_end: false
+          })
+        } else {
+          const existing = emailMap.get(email)!
+          existing.submission_count++
+          if (sub.tier && sub.tier !== 'free' && (!existing.tier || existing.tier === 'free')) {
+            existing.tier = sub.tier as 'free' | 'featured' | 'premium'
+          }
+        }
+      })
+
+      tokens?.forEach(token => {
+        const email = token.email.toLowerCase()
+        const existing = emailMap.get(email)
+        if (existing) {
+          existing.tier = token.tier as 'free' | 'featured' | 'premium'
+          existing.expires_at = token.expires_at
+          existing.last_used_at = token.last_used_at
+        } else {
+          emailMap.set(email, {
+            email: token.email,
+            tier: token.tier as 'free' | 'featured' | 'premium',
+            created_at: token.created_at,
+            expires_at: token.expires_at,
+            last_used_at: token.last_used_at,
+            submission_count: 0,
+            subscription_status: null,
+            subscription_end: null,
+            cancel_at_period_end: false
+          })
+        }
+      })
+
+      const usersData = Array.from(emailMap.values()).sort((a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
 
       setUsers(usersData)
     } catch (error) {
@@ -366,6 +410,144 @@ export default function AdminPage() {
     } finally {
       setLoadingUsers(false)
     }
+  }
+
+  const handleUpgradeUser = async (email: string, newTier: 'featured' | 'premium') => {
+    setConfirmDialog({
+      title: 'Upgrade User',
+      message: `Upgrade ${email} to ${newTier} tier? This will grant them access to ${newTier} features.`,
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        try {
+          const { data: existingToken } = await supabase
+            .from('user_tokens')
+            .select('id')
+            .eq('email', email)
+            .maybeSingle()
+
+          if (existingToken) {
+            const { error } = await supabase
+              .from('user_tokens')
+              .update({ tier: newTier })
+              .eq('email', email)
+
+            if (error) throw error
+          } else {
+            const { error } = await supabase
+              .from('user_tokens')
+              .insert({
+                email,
+                tier: newTier,
+                expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
+              })
+
+            if (error) throw error
+          }
+
+          const { error: updateSubmissionsError } = await supabase
+            .from('software_submissions')
+            .update({ tier: newTier })
+            .eq('email', email)
+
+          if (updateSubmissionsError) throw updateSubmissionsError
+
+          setAlertMessage({ type: 'success', message: `User upgraded to ${newTier} successfully!` })
+          fetchUsers()
+        } catch (error) {
+          console.error('Failed to upgrade user:', error)
+          setAlertMessage({ type: 'error', message: 'Failed to upgrade user' })
+        }
+      }
+    })
+  }
+
+  const handleDowngradeUser = async (email: string) => {
+    setConfirmDialog({
+      title: 'Downgrade User',
+      message: `Downgrade ${email} to free tier? This will remove their paid features.`,
+      confirmColor: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        try {
+          const { error: deleteTokenError } = await supabase
+            .from('user_tokens')
+            .delete()
+            .eq('email', email)
+
+          if (deleteTokenError) throw deleteTokenError
+
+          const { error: updateSubmissionsError } = await supabase
+            .from('software_submissions')
+            .update({ tier: 'free' })
+            .eq('email', email)
+
+          if (updateSubmissionsError) throw updateSubmissionsError
+
+          setAlertMessage({ type: 'success', message: 'User downgraded to free tier successfully!' })
+          fetchUsers()
+        } catch (error) {
+          console.error('Failed to downgrade user:', error)
+          setAlertMessage({ type: 'error', message: 'Failed to downgrade user' })
+        }
+      }
+    })
+  }
+
+  const handleDeleteUser = async (email: string) => {
+    setConfirmDialog({
+      title: 'Delete User Account',
+      message: `Are you sure you want to permanently delete all data for ${email}? This will remove:\n\n• All submissions\n• User tokens\n• Social links\n• Analytics data\n• Screenshots\n\nThis action cannot be undone!`,
+      confirmColor: 'danger',
+      onConfirm: async () => {
+        setConfirmDialog(null)
+        try {
+          const { data: userSubmissions } = await supabase
+            .from('software_submissions')
+            .select('id')
+            .eq('email', email)
+
+          if (userSubmissions && userSubmissions.length > 0) {
+            const submissionIds = userSubmissions.map(s => s.id)
+
+            await supabase
+              .from('social_links')
+              .delete()
+              .in('submission_id', submissionIds)
+
+            await supabase
+              .from('submission_clicks')
+              .delete()
+              .in('submission_id', submissionIds)
+
+            await supabase
+              .from('submission_analytics_daily')
+              .delete()
+              .in('submission_id', submissionIds)
+
+            await supabase
+              .from('submission_screenshots')
+              .delete()
+              .in('submission_id', submissionIds)
+
+            await supabase
+              .from('software_submissions')
+              .delete()
+              .in('id', submissionIds)
+          }
+
+          await supabase
+            .from('user_tokens')
+            .delete()
+            .eq('email', email)
+
+          setAlertMessage({ type: 'success', message: 'User account and all data deleted successfully!' })
+          fetchUsers()
+        } catch (error) {
+          console.error('Failed to delete user:', error)
+          setAlertMessage({ type: 'error', message: 'Failed to delete user account' })
+        }
+      }
+    })
   }
 
   const fetchSubscribers = async () => {
@@ -1220,11 +1402,22 @@ export default function AdminPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
-                      Paid Users ({users.length})
+                      All Users ({users.length})
                     </h2>
                     <p className="text-white/70 font-ubuntu">
-                      Manage users with Featured and Premium tiers
+                      Manage all users across Free, Featured, and Premium tiers
                     </p>
+                    <div className="flex gap-4 mt-3 text-sm">
+                      <span className="text-white/60 font-ubuntu">
+                        Free: {users.filter(u => u.tier === 'free').length}
+                      </span>
+                      <span className="text-white/60 font-ubuntu">
+                        Featured: {users.filter(u => u.tier === 'featured').length}
+                      </span>
+                      <span className="text-white/60 font-ubuntu">
+                        Premium: {users.filter(u => u.tier === 'premium').length}
+                      </span>
+                    </div>
                   </div>
                   <button
                     onClick={fetchUsers}
@@ -1240,7 +1433,7 @@ export default function AdminPage() {
                   </div>
                 ) : users.length === 0 ? (
                   <div className="text-center py-8">
-                    <p className="text-white/70 font-ubuntu text-lg">No paid users yet</p>
+                    <p className="text-white/70 font-ubuntu text-lg">No users yet</p>
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -1259,10 +1452,15 @@ export default function AdminPage() {
                                 className={`px-3 py-1 rounded-full text-sm font-ubuntu border ${
                                   user.tier === 'premium'
                                     ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
-                                    : 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                    : user.tier === 'featured'
+                                    ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                    : 'text-white/70 bg-white/10 border-white/30'
                                 }`}
                               >
                                 {user.tier.charAt(0).toUpperCase() + user.tier.slice(1)}
+                              </span>
+                              <span className="px-3 py-1 rounded-full text-xs font-ubuntu bg-white/5 text-white/60 border border-white/20">
+                                {user.submission_count} {user.submission_count === 1 ? 'submission' : 'submissions'}
                               </span>
                               {user.subscription_status && (
                                 <span
@@ -1285,12 +1483,14 @@ export default function AdminPage() {
                                   {new Date(user.created_at).toLocaleDateString()}
                                 </span>
                               </div>
-                              <div>
-                                <span className="text-white/50 font-ubuntu">Token Expires:</span>
-                                <span className="text-white/90 font-ubuntu ml-2">
-                                  {new Date(user.expires_at).toLocaleDateString()}
-                                </span>
-                              </div>
+                              {user.expires_at && (
+                                <div>
+                                  <span className="text-white/50 font-ubuntu">Token Expires:</span>
+                                  <span className="text-white/90 font-ubuntu ml-2">
+                                    {new Date(user.expires_at).toLocaleDateString()}
+                                  </span>
+                                </div>
+                              )}
                               <div>
                                 <span className="text-white/50 font-ubuntu">Last Used:</span>
                                 <span className="text-white/90 font-ubuntu ml-2">
@@ -1319,10 +1519,56 @@ export default function AdminPage() {
                           <div className="flex flex-col gap-2">
                             <a
                               href={`mailto:${user.email}`}
-                              className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center"
+                              className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center text-sm"
                             >
                               Email
                             </a>
+                            {user.tier === 'free' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpgradeUser(user.email, 'featured')}
+                                  className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm"
+                                >
+                                  → Featured
+                                </button>
+                                <button
+                                  onClick={() => handleUpgradeUser(user.email, 'premium')}
+                                  className="px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-sm"
+                                >
+                                  → Premium
+                                </button>
+                              </>
+                            )}
+                            {user.tier === 'featured' && (
+                              <>
+                                <button
+                                  onClick={() => handleUpgradeUser(user.email, 'premium')}
+                                  className="px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-sm"
+                                >
+                                  → Premium
+                                </button>
+                                <button
+                                  onClick={() => handleDowngradeUser(user.email)}
+                                  className="px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                                >
+                                  → Free
+                                </button>
+                              </>
+                            )}
+                            {user.tier === 'premium' && (
+                              <button
+                                onClick={() => handleDowngradeUser(user.email)}
+                                className="px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                              >
+                                → Free
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleDeleteUser(user.email)}
+                              className="px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors text-sm"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       </div>
