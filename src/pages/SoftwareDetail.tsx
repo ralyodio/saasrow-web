@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { Alert } from '../components/Alert'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -23,6 +24,7 @@ export default function SoftwareDetailPage() {
   const [submission, setSubmission] = useState<Submission | null>(null)
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
 
   useEffect(() => {
     fetchSubmission()
@@ -167,7 +169,7 @@ export default function SoftwareDetailPage() {
                   <button
                     onClick={() => {
                       navigator.clipboard.writeText(submission.url)
-                      alert('URL copied to clipboard!')
+                      setAlertMessage({ type: 'success', message: 'URL copied to clipboard!' })
                     }}
                     className="px-8 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-lg hover:bg-[#555555] transition-colors"
                   >
@@ -217,6 +219,14 @@ export default function SoftwareDetailPage() {
 
         <Footer />
       </div>
+
+      {alertMessage && (
+        <Alert
+          type={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
     </div>
   )
 }

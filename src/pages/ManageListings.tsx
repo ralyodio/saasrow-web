@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { Alert } from '../components/Alert'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 
 interface SocialLink {
   id?: string
@@ -73,6 +75,8 @@ export default function ManageListings() {
   const [subscriptionInfo, setSubscriptionInfo] = useState<SubscriptionInfo | null>(null)
   const [billingHistory, setBillingHistory] = useState<BillingHistoryItem[]>([])
   const [showBilling, setShowBilling] = useState(false)
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -232,7 +236,7 @@ export default function ManageListings() {
       setShowAddForm(false)
       setAddUrl('')
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to process URL')
+      setAlertMessage({ type: 'error', message: err instanceof Error ? err.message : 'Failed to process URL' })
     } finally {
       setProcessing(false)
     }
@@ -262,7 +266,7 @@ export default function ManageListings() {
       setEditingId(null)
       handleCancelEdit()
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to save submission')
+      setAlertMessage({ type: 'error', message: err instanceof Error ? err.message : 'Failed to save submission' })
     } finally {
       setSaving(false)
     }
@@ -290,11 +294,19 @@ export default function ManageListings() {
   const handleCancelSubscription = async () => {
     if (!token) return
 
-    const confirmed = window.confirm(
-      'Are you sure you want to cancel your subscription? Your listings will remain active until the end of your billing period, after which they will revert to the free tier.'
-    )
+    setConfirmDialog({
+      title: 'Cancel Subscription',
+      message: 'Are you sure you want to cancel your subscription? Your listings will remain active until the end of your billing period, after which they will revert to the free tier.',
+      confirmColor: 'danger',
+      onConfirm: () => {
+        setConfirmDialog(null)
+        performCancelSubscription()
+      }
+    })
+  }
 
-    if (!confirmed) return
+  const performCancelSubscription = async () => {
+    if (!token) return
 
     setCancelling(true)
     try {
@@ -314,10 +326,10 @@ export default function ManageListings() {
         throw new Error(result.error || 'Failed to cancel subscription')
       }
 
-      alert('Subscription cancelled successfully. Your listings will remain active until the end of your billing period.')
+      setAlertMessage({ type: 'success', message: 'Subscription cancelled successfully. Your listings will remain active until the end of your billing period.' })
       setHasActiveSubscription(false)
     } catch (err) {
-      alert(err instanceof Error ? err.message : 'Failed to cancel subscription')
+      setAlertMessage({ type: 'error', message: err instanceof Error ? err.message : 'Failed to cancel subscription' })
     } finally {
       setCancelling(false)
     }
@@ -820,6 +832,26 @@ export default function ManageListings() {
         </div>
       </div>
       <Footer />
+
+      {alertMessage && (
+        <Alert
+          type={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText="Confirm"
+          cancelText="Cancel"
+          confirmColor={confirmDialog.confirmColor || 'primary'}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   )
 }

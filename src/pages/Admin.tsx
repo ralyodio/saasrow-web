@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { Alert } from '../components/Alert'
+import { ConfirmDialog } from '../components/ConfirmDialog'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -68,6 +70,8 @@ export default function AdminPage() {
   const [newsletterHistory, setNewsletterHistory] = useState<NewsletterHistoryItem[]>([])
   const [loadingHistory, setLoadingHistory] = useState(false)
   const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -204,18 +208,27 @@ export default function AdminPage() {
         )
       } else {
         console.error('Failed to update submission:', await response.text())
-        alert('Failed to update submission status')
+        setAlertMessage({ type: 'error', message: 'Failed to update submission status' })
       }
     } catch (error) {
       console.error('Failed to update submission:', error)
-      alert('Failed to update submission status')
+      setAlertMessage({ type: 'error', message: 'Failed to update submission status' })
     }
   }
 
   const deleteSubmission = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"? This will permanently remove the submission and all associated data (logo, image, social links).`)) {
-      return
-    }
+    setConfirmDialog({
+      title: 'Delete Submission',
+      message: `Are you sure you want to delete "${title}"? This will permanently remove the submission and all associated data (logo, image, social links).`,
+      confirmColor: 'danger',
+      onConfirm: () => {
+        setConfirmDialog(null)
+        performDelete(id, title)
+      }
+    })
+  }
+
+  const performDelete = async (id: string, title: string) => {
 
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
@@ -230,14 +243,14 @@ export default function AdminPage() {
 
       if (response.ok) {
         setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
-        alert('Submission deleted successfully')
+        setAlertMessage({ type: 'success', message: 'Submission deleted successfully' })
       } else {
         console.error('Failed to delete submission:', await response.text())
-        alert('Failed to delete submission')
+        setAlertMessage({ type: 'error', message: 'Failed to delete submission' })
       }
     } catch (error) {
       console.error('Failed to delete submission:', error)
-      alert('Failed to delete submission')
+      setAlertMessage({ type: 'error', message: 'Failed to delete submission' })
     }
   }
 
@@ -282,7 +295,7 @@ export default function AdminPage() {
       }
     } catch (error) {
       console.error('Failed to fetch news posts:', error)
-      alert('Failed to load news posts')
+      setAlertMessage({ type: 'error', message: 'Failed to load news posts' })
     } finally {
       setLoadingPosts(false)
     }
@@ -354,7 +367,7 @@ export default function AdminPage() {
       .filter(email => email && email.includes('@'))
 
     if (emails.length === 0) {
-      alert('No valid emails found in CSV file')
+      setAlertMessage({ type: 'warning', message: 'No valid emails found in CSV file' })
       return
     }
 
@@ -383,7 +396,7 @@ export default function AdminPage() {
       }
     }
 
-    alert(`Import complete! ${successCount} subscribers added, ${errorCount} failed.`)
+    setAlertMessage({ type: 'success', message: `Import complete! ${successCount} subscribers added, ${errorCount} failed.` })
     fetchSubscribers()
     e.target.value = ''
   }
@@ -416,21 +429,28 @@ export default function AdminPage() {
     e.preventDefault()
 
     if (!newsletterSubject.trim() || !newsletterContent.trim()) {
-      alert('Please provide both subject and content')
+      setAlertMessage({ type: 'warning', message: 'Please provide both subject and content' })
       return
     }
 
     const activeSubscribers = subscribers.filter(sub => sub.is_active)
 
     if (activeSubscribers.length === 0) {
-      alert('No active subscribers to send to')
+      setAlertMessage({ type: 'warning', message: 'No active subscribers to send to' })
       return
     }
 
-    if (!confirm(`Send newsletter to ${activeSubscribers.length} active subscribers?`)) {
-      return
-    }
+    setConfirmDialog({
+      title: 'Send Newsletter',
+      message: `Send newsletter to ${activeSubscribers.length} active subscribers?`,
+      onConfirm: () => {
+        setConfirmDialog(null)
+        performSendNewsletter(newsletterSubject, newsletterContent, activeSubscribers.length)
+      }
+    })
+  }
 
+  const performSendNewsletter = async (subject: string, content: string, subscriberCount: number) => {
     setSendingNewsletter(true)
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-newsletter`
@@ -441,8 +461,8 @@ export default function AdminPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          subject: newsletterSubject,
-          content: newsletterContent,
+          subject: subject,
+          content: content,
           adminEmail: adminEmail
         }),
       })
@@ -450,16 +470,16 @@ export default function AdminPage() {
       const result = await response.json()
 
       if (response.ok) {
-        alert(`Newsletter sent successfully to ${result.recipientCount} subscribers!`)
+        setAlertMessage({ type: 'success', message: `Newsletter sent successfully to ${result.recipientCount} subscribers!` })
         setNewsletterSubject('')
         setNewsletterContent('')
         fetchNewsletterHistory()
       } else {
-        alert(`Failed to send newsletter: ${result.error}`)
+        setAlertMessage({ type: 'error', message: `Failed to send newsletter: ${result.error}` })
       }
     } catch (error) {
       console.error('Failed to send newsletter:', error)
-      alert('Failed to send newsletter')
+      setAlertMessage({ type: 'error', message: 'Failed to send newsletter' })
     } finally {
       setSendingNewsletter(false)
     }
@@ -472,7 +492,7 @@ export default function AdminPage() {
 
     try {
       if (!adminEmail) {
-        alert('You must be logged in to perform this action')
+        setAlertMessage({ type: 'error', message: 'You must be logged in to perform this action' })
         setIsGenerating(false)
         return
       }
@@ -491,15 +511,15 @@ export default function AdminPage() {
         const post = await response.json()
         setGeneratedPost(post)
         setNewsTopic('')
-        alert('Post generated successfully! Review and publish below.')
+        setAlertMessage({ type: 'success', message: 'Post generated successfully! Review and publish below.' })
         await fetchNewsPosts()
       } else {
         const error = await response.json()
-        alert(error.error || 'Failed to generate post')
+        setAlertMessage({ type: 'error', message: error.error || 'Failed to generate post' })
       }
     } catch (error) {
       console.error('Failed to generate post:', error)
-      alert('Failed to generate post')
+      setAlertMessage({ type: 'error', message: 'Failed to generate post' })
     } finally {
       setIsGenerating(false)
     }
@@ -508,7 +528,7 @@ export default function AdminPage() {
   const togglePublishStatus = async (id: string, currentStatus: boolean) => {
     try {
       if (!adminEmail) {
-        alert('You must be logged in to perform this action')
+        setAlertMessage({ type: 'error', message: 'You must be logged in to perform this action' })
         return
       }
 
@@ -530,21 +550,29 @@ export default function AdminPage() {
       setNewsPosts(prev =>
         prev.map(post => post.id === id ? { ...post, published: !currentStatus } : post)
       )
-      alert(`Post ${!currentStatus ? 'published' : 'unpublished'} successfully`)
+      setAlertMessage({ type: 'success', message: `Post ${!currentStatus ? 'published' : 'unpublished'} successfully` })
     } catch (error) {
       console.error('Failed to update post:', error)
-      alert('Failed to update post status')
+      setAlertMessage({ type: 'error', message: 'Failed to update post status' })
     }
   }
 
   const deleteNewsPost = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) {
-      return
-    }
+    setConfirmDialog({
+      title: 'Delete Post',
+      message: `Are you sure you want to delete "${title}"?`,
+      confirmColor: 'danger',
+      onConfirm: () => {
+        setConfirmDialog(null)
+        performDeletePost(id, title)
+      }
+    })
+  }
 
+  const performDeletePost = async (id: string, title: string) => {
     try {
       if (!adminEmail) {
-        alert('You must be logged in to perform this action')
+        setAlertMessage({ type: 'error', message: 'You must be logged in to perform this action' })
         return
       }
 
@@ -567,10 +595,10 @@ export default function AdminPage() {
       if (generatedPost?.id === id) {
         setGeneratedPost(null)
       }
-      alert('Post deleted successfully')
+      setAlertMessage({ type: 'success', message: 'Post deleted successfully' })
     } catch (error) {
       console.error('Failed to delete post:', error)
-      alert('Failed to delete post')
+      setAlertMessage({ type: 'error', message: 'Failed to delete post' })
     }
   }
 
@@ -1122,6 +1150,26 @@ export default function AdminPage() {
 
         <Footer />
       </div>
+
+      {alertMessage && (
+        <Alert
+          type={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmText="Confirm"
+          cancelText="Cancel"
+          confirmColor={confirmDialog.confirmColor || 'primary'}
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   )
 }

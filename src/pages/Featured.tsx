@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { DiscountPopup } from '../components/DiscountPopup'
+import { Alert } from '../components/Alert'
 import { supabase } from '../lib/supabase'
 
 export default function FeaturedPage() {
@@ -13,6 +14,7 @@ export default function FeaturedPage() {
   const [email, setEmail] = useState('')
   const [pendingPlan, setPendingPlan] = useState<typeof pricingPlans[0] | null>(null)
   const [pendingDiscount, setPendingDiscount] = useState<string | undefined>(undefined)
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem('userEmail')
@@ -172,11 +174,11 @@ export default function FeaturedPage() {
       if (response.ok && data.url) {
         window.location.href = data.url
       } else {
-        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`)
+        setAlertMessage({ type: 'error', message: `Failed to create checkout session: ${data.error || 'Unknown error'}` })
       }
     } catch (error) {
       console.error('Checkout error:', error)
-      alert('Something went wrong. Please try again.')
+      setAlertMessage({ type: 'error', message: 'Something went wrong. Please try again.' })
     } finally {
       setProcessingPlan(null)
       setPendingPlan(null)
@@ -373,6 +375,14 @@ export default function FeaturedPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {alertMessage && (
+        <Alert
+          type={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   )
