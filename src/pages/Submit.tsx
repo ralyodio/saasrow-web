@@ -40,6 +40,7 @@ export default function SubmitPage() {
   const [emailInput, setEmailInput] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [userTier, setUserTier] = useState<'free' | 'featured' | 'premium'>('free')
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(false)
 
   const checkUserTier = async (email: string) => {
     try {
@@ -333,6 +334,22 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
+      if (subscribeToNewsletter) {
+        try {
+          const newsletterUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+          await fetch(newsletterUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: emailInput }),
+          })
+        } catch (error) {
+          console.error('Error subscribing to newsletter:', error)
+        }
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
       let successCount = 0
 
@@ -454,14 +471,25 @@ export default function SubmitPage() {
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-4 py-3 bg-[#3a3a3a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu mb-6"
+              className="w-full px-4 py-3 bg-[#3a3a3a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu mb-4"
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && !subscribeToNewsletter) {
                   handleEmailSubmit()
                 }
               }}
             />
+            <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+              <input
+                type="checkbox"
+                checked={subscribeToNewsletter}
+                onChange={(e) => setSubscribeToNewsletter(e.target.checked)}
+                className="mt-1 w-5 h-5 rounded border-2 border-[#4FFFE3]/30 bg-[#3a3a3a] checked:bg-[#4FFFE3] checked:border-[#4FFFE3] focus:ring-2 focus:ring-[#4FFFE3] cursor-pointer transition-colors"
+              />
+              <span className="flex-1 text-white/90 font-ubuntu text-sm group-hover:text-white transition-colors">
+                Subscribe to our newsletter and get a <strong className="text-[#4FFFE3]">50% discount code</strong> for Featured/Premium listings!
+              </span>
+            </label>
             <div className="flex gap-3">
               <button
                 type="button"
