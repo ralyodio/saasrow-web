@@ -667,6 +667,7 @@ export default function SubmitPage() {
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
                     {userTier === 'free' && (
                       <>
+                        <li>• Free dofollow link</li>
                         <li>• 1 software listing</li>
                         <li>• Basic listing page</li>
                         <li>• Community visibility</li>
@@ -675,6 +676,7 @@ export default function SubmitPage() {
                     )}
                     {userTier === 'featured' && (
                       <>
+                        <li>• Free dofollow link</li>
                         <li>• Up to 5 software listings</li>
                         <li>• Featured badge on listings</li>
                         <li>• Priority review (2-3 days)</li>
@@ -685,6 +687,7 @@ export default function SubmitPage() {
                     )}
                     {userTier === 'premium' && (
                       <>
+                        <li>• Free dofollow link</li>
                         <li>• Unlimited software listings</li>
                         <li>• Homepage featured spot</li>
                         <li>• Same-day review</li>
