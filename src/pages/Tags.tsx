@@ -1,22 +1,38 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 
-interface CategoryCount {
+interface TagCount {
   name: string
   count: number
 }
 
+interface Submission {
+  id: string
+  title: string
+  description: string
+  url: string
+  logo?: string
+  category: string
+  tags: string[]
+}
+
 export default function TagsPage() {
-  const [categories, setCategories] = useState<CategoryCount[]>([])
+  const { tag } = useParams()
+  const [tags, setTags] = useState<TagCount[]>([])
+  const [software, setSoftware] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchCategories()
-  }, [])
+    if (tag) {
+      fetchSoftwareByTag(tag)
+    } else {
+      fetchTags()
+    }
+  }, [tag])
 
-  const fetchCategories = async () => {
+  const fetchTags = async () => {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
       const response = await fetch(apiUrl, {
@@ -30,20 +46,52 @@ export default function TagsPage() {
         const result = await response.json()
         const submissions = result.data || []
 
-        const categoryMap = new Map<string, number>()
-        submissions.forEach((sub: { category: string }) => {
-          const current = categoryMap.get(sub.category) || 0
-          categoryMap.set(sub.category, current + 1)
+        const tagMap = new Map<string, number>()
+        submissions.forEach((sub: Submission) => {
+          if (sub.tags && Array.isArray(sub.tags)) {
+            sub.tags.forEach((t: string) => {
+              const current = tagMap.get(t) || 0
+              tagMap.set(t, current + 1)
+            })
+          }
         })
 
-        const categoryCounts = Array.from(categoryMap.entries())
+        const tagCounts = Array.from(tagMap.entries())
           .map(([name, count]) => ({ name, count }))
           .sort((a, b) => b.count - a.count)
 
-        setCategories(categoryCounts)
+        setTags(tagCounts)
       }
     } catch (error) {
-      console.error('Failed to fetch categories:', error)
+      console.error('Failed to fetch tags:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchSoftwareByTag = async (tagName: string) => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        const submissions = result.data || []
+
+        const filtered = submissions.filter((sub: Submission) =>
+          sub.tags && Array.isArray(sub.tags) &&
+          sub.tags.some(t => t.toLowerCase() === tagName.toLowerCase())
+        )
+
+        setSoftware(filtered)
+      }
+    } catch (error) {
+      console.error('Failed to fetch software:', error)
     } finally {
       setLoading(false)
     }
@@ -51,6 +99,79 @@ export default function TagsPage() {
 
   const getGradientColor = (index: number) => {
     return index % 2 === 0 ? 'from-[#E0FF04] to-[#4FFFE3]' : 'from-[#4FFFE3] to-[#E0FF04]'
+  }
+
+  if (tag) {
+    return (
+      <div className="min-h-screen bg-neutral-800 relative">
+        <div className="absolute w-full h-1/2 top-[7.45%] left-0 pointer-events-none">
+          <div className="absolute w-4/5 h-40 top-1/3 left-[12.93%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
+          <div className="absolute w-4/5 h-40 top-1/4 left-[22.59%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
+          <div className="absolute w-4/5 h-40 top-1/2 left-[3.22%] bg-[#e0ff044c] rotate-[37.69deg] blur-[150px]" />
+          <div className="absolute w-4/5 h-40 bottom-0 left-[-3.60%] bg-[#e0ff044c] rotate-[37.69deg] blur-[150px]" />
+        </div>
+
+        <div className="relative z-10">
+          <Header />
+
+          <main className="w-full max-w-[1200px] mx-auto px-4 py-12">
+            <div className="text-center mb-12">
+              <Link to="/tags" className="inline-block mb-4 text-[#4FFFE3] hover:underline font-ubuntu">
+                ← Back to all tags
+              </Link>
+              <h1 className="text-white text-5xl font-bold font-ubuntu mb-4 capitalize">{tag}</h1>
+              <p className="text-white/70 text-xl font-ubuntu max-w-2xl mx-auto">
+                {software.length} {software.length === 1 ? 'app' : 'apps'} tagged with "{tag}"
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="text-center py-12">
+                <p className="text-white/70 font-ubuntu text-xl">Loading software...</p>
+              </div>
+            ) : software.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-white/70 font-ubuntu text-xl">No software found with this tag</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {software.map((app) => (
+                  <Link
+                    key={app.id}
+                    to={`/software/${app.id}`}
+                    className="group bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:scale-105 block"
+                  >
+                    {app.logo && (
+                      <img
+                        src={app.logo}
+                        alt={app.title}
+                        className="w-16 h-16 rounded-xl mb-4 object-cover"
+                      />
+                    )}
+                    <h3 className="text-white text-xl font-bold font-ubuntu mb-2">{app.title}</h3>
+                    <p className="text-white/70 font-ubuntu text-sm mb-4 line-clamp-2">
+                      {app.description}
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {app.tags && app.tags.slice(0, 3).map((t, idx) => (
+                        <span
+                          key={idx}
+                          className="px-3 py-1 bg-[#2a2a2a] rounded-full text-xs text-[#4FFFE3] font-ubuntu"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </main>
+
+          <Footer />
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -69,28 +190,28 @@ export default function TagsPage() {
           <div className="text-center mb-12">
             <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">Browse by Tags</h1>
             <p className="text-white/70 text-xl font-ubuntu max-w-2xl mx-auto">
-              Explore software by category and find exactly what you need
+              Explore software by tags and find exactly what you need
             </p>
           </div>
 
           {loading ? (
             <div className="text-center py-12">
-              <p className="text-white/70 font-ubuntu text-xl">Loading categories...</p>
+              <p className="text-white/70 font-ubuntu text-xl">Loading tags...</p>
             </div>
-          ) : categories.length === 0 ? (
+          ) : tags.length === 0 ? (
             <div className="text-center py-12">
-              <p className="text-white/70 font-ubuntu text-xl">No categories available yet</p>
+              <p className="text-white/70 font-ubuntu text-xl">No tags available yet</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categories.map((category, index) => (
+              {tags.map((tagItem, index) => (
                 <Link
-                  key={category.name}
-                  to={`/category/${category.name.toLowerCase()}`}
+                  key={tagItem.name}
+                  to={`/tags/${tagItem.name.toLowerCase()}`}
                   className="group bg-[#3a3a3a] rounded-2xl p-8 hover:bg-[#404040] transition-all hover:scale-105 block"
                 >
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-white text-2xl font-bold font-ubuntu">{category.name}</h3>
+                    <h3 className="text-white text-2xl font-bold font-ubuntu capitalize">{tagItem.name}</h3>
                     <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${getGradientColor(index)} flex items-center justify-center`}>
                       <svg className="w-6 h-6 text-neutral-800" fill="currentColor" viewBox="0 0 20 20">
                         <path
@@ -102,7 +223,7 @@ export default function TagsPage() {
                     </div>
                   </div>
                   <p className="text-white/70 font-ubuntu text-lg">
-                    {category.count} {category.count === 1 ? 'app' : 'apps'}
+                    {tagItem.count} {tagItem.count === 1 ? 'app' : 'apps'}
                   </p>
                 </Link>
               ))}

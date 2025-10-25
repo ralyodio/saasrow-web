@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Community from './pages/Community'
 import Submit from './pages/Submit'
@@ -15,17 +15,13 @@ import Admin from './pages/Admin'
 import Category from './pages/Category'
 import SoftwareDetail from './pages/SoftwareDetail'
 
-function TagRedirect() {
-  const { tag } = useParams()
-  return <Navigate to={`/category/${tag}`} replace />
-}
-
 export default function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/tags" element={<Tags />} />
+        <Route path="/tags/:tag" element={<Tags />} />
         <Route path="/community" element={<Community />} />
         <Route path="/submit" element={<Submit />} />
         <Route path="/featured" element={<Featured />} />
@@ -38,7 +34,6 @@ export default function App() {
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/category/:category" element={<Category />} />
-        <Route path="/tags/:tag" element={<TagRedirect />} />
         <Route path="/software/:id" element={<SoftwareDetail />} />
       </Routes>
     </BrowserRouter>
