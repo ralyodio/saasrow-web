@@ -214,21 +214,26 @@ Deno.serve(async (req: Request) => {
       const userTier = userToken?.tier || 'free'
 
       const tierLimits = {
-        free: 1,
-        basic: 5,
+        free: 10,
+        basic: 50,
         premium: 999999
       }
+
+      // Calculate timestamp for 24 hours ago
+      const oneDayAgo = new Date()
+      oneDayAgo.setHours(oneDayAgo.getHours() - 24)
 
       const { count } = await supabase
         .from('software_submissions')
         .select('*', { count: 'exact', head: true })
         .eq('email', email)
+        .gte('created_at', oneDayAgo.toISOString())
 
-      const limit = tierLimits[userTier as keyof typeof tierLimits] || 1
+      const limit = tierLimits[userTier as keyof typeof tierLimits] || 10
 
       if (count !== null && count >= limit) {
         return new Response(
-          JSON.stringify({ error: `Submission limit reached. You have ${count} of ${limit} submissions. ${userTier === 'free' ? 'Upgrade to submit more.' : ''}` }),
+          JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${limit}/day). ${userTier === 'free' ? 'Upgrade to submit more.' : 'Please try again later.'}` }),
           {
             status: 429,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
