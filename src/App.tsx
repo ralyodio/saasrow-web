@@ -10,6 +10,7 @@ import About from './pages/About'
 import Discover from './pages/Discover'
 import Explore from './pages/Explore'
 import News from './pages/News'
+import NewsPost from './pages/NewsPost'
 import Terms from './pages/Terms'
 import Privacy from './pages/Privacy'
 import Admin from './pages/Admin'
@@ -33,6 +34,7 @@ export default function App() {
         <Route path="/discover" element={<Discover />} />
         <Route path="/explore" element={<Explore />} />
         <Route path="/news" element={<News />} />
+        <Route path="/news/:id" element={<NewsPost />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="/admin" element={<Admin />} />

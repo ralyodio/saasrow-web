@@ -9,7 +9,6 @@ export function Footer() {
   const navigationLinks = [
     { label: 'About us', href: '/about' },
     { label: 'Discover', href: '/discover' },
-    { label: 'Explore', href: '/explore' },
     { label: 'News', href: '/news' },
   ]
 
