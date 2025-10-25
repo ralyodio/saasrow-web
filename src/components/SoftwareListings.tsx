@@ -18,6 +18,7 @@ interface SoftwareListingsProps {
   searchQuery: string
   selectedFilter: 'all' | 'featured' | 'premium'
   activeCategories: string[]
+  activeTags: string[]
   selectedSort: string
 }
 
@@ -25,6 +26,7 @@ export function SoftwareListings({
   searchQuery,
   selectedFilter,
   activeCategories,
+  activeTags,
   selectedSort,
 }: SoftwareListingsProps) {
   const [listings, setListings] = useState<Software[]>([])
@@ -89,7 +91,15 @@ export function SoftwareListings({
       const matchesCategory =
         activeCategories.length === 0 || activeCategories.includes(software.category)
 
-      return matchesSearch && matchesCategory
+      const matchesTags =
+        activeTags.length === 0 ||
+        (software.tags && activeTags.some((filterTag) =>
+          software.tags?.some((softwareTag) =>
+            softwareTag.toLowerCase() === filterTag.toLowerCase()
+          )
+        ))
+
+      return matchesSearch && matchesCategory && matchesTags
     })
     .sort((a, b) => {
       switch (selectedSort) {

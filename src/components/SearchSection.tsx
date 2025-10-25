@@ -7,6 +7,8 @@ interface SearchSectionProps {
   onFilterChange: (filter: 'all' | 'featured' | 'premium') => void
   activeCategories: string[]
   onCategoriesChange: (categories: string[]) => void
+  activeTags: string[]
+  onTagsChange: (tags: string[]) => void
   selectedSort: string
   onSortChange: (sort: string) => void
 }
@@ -18,6 +20,8 @@ export function SearchSection({
   onFilterChange,
   activeCategories,
   onCategoriesChange,
+  activeTags,
+  onTagsChange,
   selectedSort,
   onSortChange,
 }: SearchSectionProps) {
@@ -39,17 +43,35 @@ export function SearchSection({
     'Communication',
   ]
 
+  const tagOptions = [
+    'AI',
+    'Podcast',
+    'Automation',
+    'Cloud',
+    'Mobile',
+    'Web',
+    'Desktop',
+    'API',
+    'Open Source',
+    'Enterprise',
+  ]
+
   const sortOptions = ['Most Popular', 'Newest', 'Top Rated', 'A-Z', 'Z-A']
 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
+  const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
+  const tagDropdownRef = useRef<HTMLDivElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
         setShowCategoryDropdown(false)
+      }
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+        setShowTagDropdown(false)
       }
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setShowSortDropdown(false)
@@ -64,6 +86,13 @@ export function SearchSection({
       ? activeCategories.filter((c) => c !== category)
       : [...activeCategories, category]
     onCategoriesChange(newCategories)
+  }
+
+  const handleTagToggle = (tag: string) => {
+    const newTags = activeTags.includes(tag)
+      ? activeTags.filter((t) => t !== tag)
+      : [...activeTags, tag]
+    onTagsChange(newTags)
   }
 
   return (
@@ -138,6 +167,44 @@ export function SearchSection({
             )}
           </div>
 
+          <div ref={tagDropdownRef} className="relative">
+            <button
+              onClick={() => setShowTagDropdown(!showTagDropdown)}
+              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+            >
+              Tags
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {showTagDropdown && (
+              <div className="absolute top-full mt-2 bg-[#3a3a3a] rounded-xl shadow-xl overflow-hidden z-50 min-w-[200px]">
+                {tagOptions.map((tag) => {
+                  const isActive = activeTags.includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      onClick={() => {
+                        handleTagToggle(tag)
+                        setShowTagDropdown(false)
+                      }}
+                      className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors flex items-center gap-2 ${
+                        isActive ? 'bg-[#4a4a4a]' : ''
+                      }`}
+                    >
+                      {isActive && (
+                        <svg className="w-4 h-4 text-[#4FFFE3]" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {tag}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+
           <div ref={sortDropdownRef} className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
@@ -168,12 +235,12 @@ export function SearchSection({
             )}
           </div>
 
-          {activeCategories.length > 0 && (
+          {(activeCategories.length > 0 || activeTags.length > 0) && (
             <>
               <div className="flex flex-wrap gap-2">
                 {activeCategories.map((category) => (
                   <span
-                    key={category}
+                    key={`cat-${category}`}
                     className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#E0FF04]/20 to-[#4FFFE3]/20 rounded-full text-white font-roboto border border-[#4FFFE3]/30"
                   >
                     {category}
@@ -187,9 +254,28 @@ export function SearchSection({
                     </button>
                   </span>
                 ))}
+                {activeTags.map((tag) => (
+                  <span
+                    key={`tag-${tag}`}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#4FFFE3]/20 to-[#E0FF04]/20 rounded-full text-white font-roboto border border-[#E0FF04]/30"
+                  >
+                    #{tag}
+                    <button
+                      onClick={() => handleTagToggle(tag)}
+                      className="hover:text-[#4FFFE3] transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </span>
+                ))}
               </div>
               <button
-                onClick={() => onCategoriesChange([])}
+                onClick={() => {
+                  onCategoriesChange([])
+                  onTagsChange([])
+                }}
                 className="px-6 py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-xl hover:opacity-80 transition-opacity"
               >
                 Clear All

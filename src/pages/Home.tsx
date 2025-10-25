@@ -8,6 +8,7 @@ export default function HomePage() {
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedFilter, setSelectedFilter] = useState<'all' | 'featured' | 'premium'>('all')
   const [activeCategories, setActiveCategories] = useState<string[]>([])
+  const [activeTags, setActiveTags] = useState<string[]>([])
   const [selectedSort, setSelectedSort] = useState('Most Popular')
 
   return (
@@ -28,6 +29,8 @@ export default function HomePage() {
           onFilterChange={setSelectedFilter}
           activeCategories={activeCategories}
           onCategoriesChange={setActiveCategories}
+          activeTags={activeTags}
+          onTagsChange={setActiveTags}
           selectedSort={selectedSort}
           onSortChange={setSelectedSort}
         />
@@ -35,6 +38,7 @@ export default function HomePage() {
           searchQuery={searchQuery}
           selectedFilter={selectedFilter}
           activeCategories={activeCategories}
+          activeTags={activeTags}
           selectedSort={selectedSort}
         />
         <Footer />
