@@ -486,7 +486,7 @@ export default function SubmitPage() {
           </h1>
           <p className="text-white/70 text-center font-ubuntu mb-8">
             {step === 'url'
-              ? 'Enter your software URLs (up to 5) and we\'ll automatically fetch the details'
+              ? 'Enter your software URL and we\'ll automatically fetch the details'
               : step === 'review'
               ? 'Review your submissions and edit if needed'
               : 'Review and edit the information before submitting'}
@@ -496,7 +496,7 @@ export default function SubmitPage() {
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
                 <label htmlFor="urls" className="block text-white font-ubuntu text-lg mb-4">
-                  Software URLs (Free Tier - Up to 5)
+                  Software URL (Free Tier - 1 URL)
                 </label>
                 <textarea
                   id="urls"
@@ -509,19 +509,17 @@ export default function SubmitPage() {
                   className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg resize-none"
                 />
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI
+                  Enter 1 URL for free tier. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!
                 </p>
                 <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
                   <p className="text-white font-ubuntu text-sm mb-2">
                     <strong className="text-[#4FFFE3]">Free Tier Includes:</strong>
                   </p>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
-                    <li>• Up to 5 software listings</li>
-                    <li>• Featured badge on listings</li>
-                    <li>• Priority review (2-3 days)</li>
-                    <li>• Monthly performance analytics</li>
-                    <li>• Logo in category pages</li>
-                    <li>• Social media mentions</li>
+                    <li>• 1 software listing</li>
+                    <li>• Basic listing page</li>
+                    <li>• Community visibility</li>
+                    <li>• Standard review time (7-10 days)</li>
                   </ul>
                 </div>
                 <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
