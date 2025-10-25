@@ -234,13 +234,26 @@ export default function AdminPage() {
   const fetchNewsPosts = async () => {
     setLoadingPosts(true)
     try {
-      const { data, error } = await supabase
-        .from('news_posts')
-        .select('*')
-        .order('created_at', { ascending: false })
+      if (!adminEmail) {
+        setLoadingPosts(false)
+        return
+      }
 
-      if (error) throw error
-      setNewsPosts(data || [])
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts?email=${encodeURIComponent(adminEmail)}`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setNewsPosts(data || [])
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to load news posts')
+      }
     } catch (error) {
       console.error('Failed to fetch news posts:', error)
       alert('Failed to load news posts')

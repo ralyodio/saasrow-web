@@ -22,6 +22,53 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      const email = url.searchParams.get('email');
+
+      if (!email || email !== adminEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
+          {
+            status: 403,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      const { data, error } = await supabase
+        .from('news_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch posts:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch posts' }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify(data),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
     if (req.method === 'PATCH') {
       const { id, published, email } = await req.json();
 
