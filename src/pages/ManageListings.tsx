@@ -177,10 +177,10 @@ export default function ManageListings() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-neutral-800">
         <Header />
         <div className="flex items-center justify-center py-20">
-          <div className="text-lg text-gray-600">Loading your listings...</div>
+          <div className="text-lg text-white/70">Loading your listings...</div>
         </div>
         <Footer />
       </div>
@@ -189,15 +189,15 @@ export default function ManageListings() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-neutral-800">
         <Header />
         <div className="container mx-auto px-6 py-20">
-          <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-sm p-8 text-center">
-            <h1 className="text-2xl font-bold text-red-600 mb-4">Error</h1>
-            <p className="text-gray-700 mb-6">{error}</p>
+          <div className="max-w-2xl mx-auto bg-[#2a2a2a] rounded-2xl border border-white/10 p-8 text-center">
+            <h1 className="text-2xl font-bold text-red-400 mb-4">Error</h1>
+            <p className="text-white/70 mb-6">{error}</p>
             <button
               onClick={() => navigate('/')}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+              className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
             >
               Go Home
             </button>
@@ -209,14 +209,14 @@ export default function ManageListings() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-neutral-800">
       <Header />
       <div className="container mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Manage Your Listings</h1>
-              <p className="text-gray-600 mt-2">
+              <h1 className="text-3xl font-bold text-white font-ubuntu">Manage Your Listings</h1>
+              <p className="text-white/70 mt-2 font-ubuntu">
                 {submissions.length === 0
                   ? 'No listings found. Add your first listing below.'
                   : `You have ${submissions.length} listing${submissions.length === 1 ? '' : 's'}`}
@@ -224,15 +224,15 @@ export default function ManageListings() {
             </div>
             <button
               onClick={handleAddNew}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
             >
               Add New Listing
             </button>
           </div>
 
           {showAddForm && (
-            <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
-              <h2 className="text-xl font-bold mb-4">Add New Listing</h2>
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6 mb-6">
+              <h2 className="text-xl font-bold mb-4 text-white font-ubuntu">Add New Listing</h2>
               <form
                 onSubmit={(e) => {
                   e.preventDefault()
@@ -241,44 +241,44 @@ export default function ManageListings() {
                 className="space-y-4"
               >
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Title</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">URL</label>
+                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">URL</label>
                   <input
                     type="url"
                     value={formData.url}
                     onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Description</label>
                   <textarea
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Category</label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                     required
                   >
                     <option value="Software">Software</option>
@@ -289,7 +289,7 @@ export default function ManageListings() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
                     Tags (comma-separated)
                   </label>
                   <input
@@ -301,18 +301,18 @@ export default function ManageListings() {
                         tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean)
                       })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                     placeholder="productivity, automation, saas"
                   />
                 </div>
 
                 <div>
                   <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-medium text-gray-700">Social Links</label>
+                    <label className="block text-sm font-medium text-white/90 font-ubuntu">Social Links</label>
                     <button
                       type="button"
                       onClick={addSocialLink}
-                      className="text-sm text-blue-600 hover:text-blue-700"
+                      className="text-sm text-[#4FFFE3] hover:text-[#E0FF04] font-ubuntu"
                     >
                       + Add Link
                     </button>
@@ -324,19 +324,19 @@ export default function ManageListings() {
                         placeholder="Platform (e.g., Twitter)"
                         value={link.platform}
                         onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                       />
                       <input
                         type="url"
                         placeholder="URL"
                         value={link.url}
                         onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                       />
                       <button
                         type="button"
                         onClick={() => removeSocialLink(index)}
-                        className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                        className="px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg font-ubuntu"
                       >
                         Remove
                       </button>
@@ -348,14 +348,14 @@ export default function ManageListings() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                    className="flex-1 px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
                   >
                     {saving ? 'Saving...' : 'Add Listing'}
                   </button>
                   <button
                     type="button"
                     onClick={() => setShowAddForm(false)}
-                    className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                    className="px-8 py-3 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
                   >
                     Cancel
                   </button>
@@ -366,7 +366,7 @@ export default function ManageListings() {
 
           <div className="space-y-6">
             {submissions.map((submission) => (
-              <div key={submission.id} className="bg-white rounded-xl shadow-sm p-6">
+              <div key={submission.id} className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6">
                 {editingId === submission.id ? (
                   <form
                     onSubmit={(e) => {
@@ -376,46 +376,46 @@ export default function ManageListings() {
                     className="space-y-4"
                   >
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Title</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Title</label>
                       <input
                         type="text"
                         value={formData.title}
                         onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">URL</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">URL</label>
                       <input
                         type="url"
                         value={formData.url}
                         onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
                         Description
                       </label>
                       <textarea
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         rows={4}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                         required
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                      <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">Category</label>
                       <select
                         value={formData.category}
                         onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                         required
                       >
                         <option value="Software">Software</option>
@@ -426,7 +426,7 @@ export default function ManageListings() {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
                         Tags (comma-separated)
                       </label>
                       <input
@@ -438,18 +438,18 @@ export default function ManageListings() {
                             tags: e.target.value.split(',').map((t) => t.trim()).filter(Boolean)
                           })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                         placeholder="productivity, automation, saas"
                       />
                     </div>
 
                     <div>
                       <div className="flex justify-between items-center mb-2">
-                        <label className="block text-sm font-medium text-gray-700">Social Links</label>
+                        <label className="block text-sm font-medium text-white/90 font-ubuntu">Social Links</label>
                         <button
                           type="button"
                           onClick={addSocialLink}
-                          className="text-sm text-blue-600 hover:text-blue-700"
+                          className="text-sm text-[#4FFFE3] hover:text-[#E0FF04] font-ubuntu"
                         >
                           + Add Link
                         </button>
@@ -461,19 +461,19 @@ export default function ManageListings() {
                             placeholder="Platform (e.g., Twitter)"
                             value={link.platform}
                             onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                           />
                           <input
                             type="url"
                             placeholder="URL"
                             value={link.url}
                             onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
                           />
                           <button
                             type="button"
                             onClick={() => removeSocialLink(index)}
-                            className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
+                            className="px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg font-ubuntu"
                           >
                             Remove
                           </button>
@@ -485,14 +485,14 @@ export default function ManageListings() {
                       <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+                        className="flex-1 px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
                       >
                         {saving ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+                        className="px-8 py-3 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
                       >
                         Cancel
                       </button>
@@ -502,12 +502,12 @@ export default function ManageListings() {
                   <>
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <h2 className="text-xl font-bold text-gray-900 mb-2">{submission.title}</h2>
+                        <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">{submission.title}</h2>
                         <a
                           href={submission.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-blue-600 hover:underline text-sm"
+                          className="text-[#4FFFE3] hover:underline text-sm font-ubuntu"
                         >
                           {submission.url}
                         </a>
@@ -541,32 +541,32 @@ export default function ManageListings() {
                         </span>
                         <button
                           onClick={() => handleEdit(submission)}
-                          className="px-4 py-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                          className="px-6 py-2 text-[#4FFFE3] hover:bg-[#4FFFE3]/10 rounded-full transition font-ubuntu font-bold"
                         >
                           Edit
                         </button>
                       </div>
                     </div>
 
-                    <p className="text-gray-700 mb-4">{submission.description}</p>
+                    <p className="text-white/70 mb-4 font-ubuntu">{submission.description}</p>
 
                     <div className="flex flex-wrap gap-2 mb-4">
-                      <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm">
+                      <span className="px-3 py-1 bg-white/10 text-white rounded-full text-sm font-ubuntu">
                         {submission.category}
                       </span>
                       {submission.tags?.map((tag, i) => (
-                        <span key={i} className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm">
+                        <span key={i} className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-sm font-ubuntu">
                           {tag}
                         </span>
                       ))}
                     </div>
 
                     {(!submission.tier || submission.tier === 'basic') && (
-                      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 mb-4">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <span className="text-cyan-600">⭐</span> Free Tier Features
+                      <div className="bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 border border-[#4FFFE3]/20 rounded-xl p-4 mb-4">
+                        <h3 className="font-bold text-white mb-2 flex items-center gap-2 font-ubuntu">
+                          <span className="text-[#4FFFE3]">⭐</span> Free Tier Features
                         </h3>
-                        <ul className="text-sm text-gray-700 space-y-1">
+                        <ul className="text-sm text-white/80 space-y-1 font-ubuntu">
                           <li>✓ Up to 5 software listings</li>
                           <li>✓ Featured badge on listings</li>
                           <li>✓ Priority review (2-3 days)</li>
@@ -578,11 +578,11 @@ export default function ManageListings() {
                     )}
 
                     {submission.tier === 'featured' && (
-                      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 mb-4">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <span className="text-cyan-600">⭐</span> Featured Tier
+                      <div className="bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 border border-[#4FFFE3]/20 rounded-xl p-4 mb-4">
+                        <h3 className="font-bold text-white mb-2 flex items-center gap-2 font-ubuntu">
+                          <span className="text-[#4FFFE3]">⭐</span> Featured Tier
                         </h3>
-                        <ul className="text-sm text-gray-700 space-y-1">
+                        <ul className="text-sm text-white/80 space-y-1 font-ubuntu">
                           <li>✓ Unlimited software listings</li>
                           <li>✓ Featured badge with priority placement</li>
                           <li>✓ Same-day review</li>
@@ -595,11 +595,11 @@ export default function ManageListings() {
                     )}
 
                     {submission.tier === 'premium' && (
-                      <div className="bg-gradient-to-r from-yellow-50 to-cyan-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <span className="text-yellow-600">⭐</span> Premium Features
+                      <div className="bg-gradient-to-r from-[#E0FF04]/10 to-[#4FFFE3]/10 border border-[#E0FF04]/20 rounded-xl p-4 mb-4">
+                        <h3 className="font-bold text-white mb-2 flex items-center gap-2 font-ubuntu">
+                          <span className="text-[#E0FF04]">⭐</span> Premium Features
                         </h3>
-                        <ul className="text-sm text-gray-700 space-y-1">
+                        <ul className="text-sm text-white/80 space-y-1 font-ubuntu">
                           <li>✓ Unlimited software listings</li>
                           {submission.homepage_featured && <li>✓ Homepage featured spot (ACTIVE)</li>}
                           <li>✓ Same-day review</li>
@@ -612,8 +612,8 @@ export default function ManageListings() {
                     )}
 
                     {submission.social_links && submission.social_links.length > 0 && (
-                      <div className="border-t pt-4">
-                        <h3 className="text-sm font-medium text-gray-700 mb-2">Social Links:</h3>
+                      <div className="border-t border-white/10 pt-4">
+                        <h3 className="text-sm font-medium text-white/90 mb-2 font-ubuntu">Social Links:</h3>
                         <div className="flex flex-wrap gap-2">
                           {submission.social_links.map((link, i) => (
                             <a
@@ -621,7 +621,7 @@ export default function ManageListings() {
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-sm text-blue-600 hover:underline"
+                              className="text-sm text-[#4FFFE3] hover:underline font-ubuntu"
                             >
                               {link.platform}
                             </a>
@@ -630,7 +630,7 @@ export default function ManageListings() {
                       </div>
                     )}
 
-                    <div className="text-sm text-gray-500 mt-4">
+                    <div className="text-sm text-white/50 mt-4 font-ubuntu">
                       Submitted: {new Date(submission.created_at).toLocaleDateString()}
                     </div>
                   </>
