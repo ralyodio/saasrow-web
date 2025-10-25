@@ -116,9 +116,35 @@ Deno.serve(async (req: Request) => {
           )
         : supabase
 
+      const publicFields = `
+        id,
+        title,
+        url,
+        description,
+        category,
+        tags,
+        logo,
+        image,
+        status,
+        tier,
+        featured,
+        is_featured,
+        featured_until,
+        analytics_enabled,
+        homepage_featured,
+        custom_profile_url,
+        newsletter_featured,
+        monthly_analytics_enabled,
+        social_media_mentions,
+        category_logo_enabled,
+        submitted_at,
+        created_at,
+        view_count
+      `
+
       let query = client
         .from('software_submissions')
-        .select('*')
+        .select(includeAll ? '*' : publicFields)
         .order('created_at', { ascending: false })
         .limit(50)
 

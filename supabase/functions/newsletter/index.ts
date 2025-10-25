@@ -24,17 +24,40 @@ Deno.serve(async (req: Request) => {
       const url = new URL(req.url)
       const showAll = url.searchParams.get('all') === 'true'
 
-      let query = supabase
-        .from('newsletter_subscriptions')
-        .select('*')
+      if (showAll) {
+        const supabaseAdmin = createClient(
+          Deno.env.get('SUPABASE_URL') ?? '',
+          Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        )
 
-      if (!showAll) {
-        query = query.eq('is_active', true).limit(100)
+        const { data, error } = await supabaseAdmin
+          .from('newsletter_subscriptions')
+          .select('*')
+          .order('subscribed_at', { ascending: false })
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
       }
 
-      query = query.order('subscribed_at', { ascending: false })
-
-      const { data, error } = await query
+      const { count, error } = await supabase
+        .from('newsletter_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('is_active', true)
 
       if (error) {
         return new Response(
@@ -47,7 +70,7 @@ Deno.serve(async (req: Request) => {
       }
 
       return new Response(
-        JSON.stringify({ data }),
+        JSON.stringify({ count }),
         {
           status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
