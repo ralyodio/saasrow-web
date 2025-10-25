@@ -220,12 +220,12 @@ export default function ManageListings() {
         body: JSON.stringify({
           url: addUrl,
           email: email,
-          title: result.metadata.title,
-          description: result.metadata.description,
-          category: 'Software',
-          tags: [],
-          logo: result.metadata.logo,
-          image: result.metadata.image,
+          title: result.title,
+          description: result.description,
+          category: result.category || 'Software',
+          tags: result.tags || [],
+          logo: result.logo,
+          image: result.image,
         }),
       })
 
