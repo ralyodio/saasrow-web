@@ -517,28 +517,34 @@ export default function ManageListings() {
                 </div>
               </div>
 
-              {showBilling && billingHistory.length > 0 && (
+              {showBilling && (
                 <div className="border-t border-white/10 pt-6">
                   <h3 className="text-lg font-bold text-white mb-4 font-ubuntu">Billing History</h3>
-                  <div className="space-y-3">
-                    {billingHistory.map((item) => (
-                      <div key={item.id} className="flex justify-between items-center p-4 bg-[#1a1a1a] rounded-lg">
-                        <div>
-                          <div className="text-white font-ubuntu">
-                            ${(item.amount / 100).toFixed(2)} {item.currency.toUpperCase()}
+                  {billingHistory.length > 0 ? (
+                    <div className="space-y-3">
+                      {billingHistory.map((item) => (
+                        <div key={item.id} className="flex justify-between items-center p-4 bg-[#1a1a1a] rounded-lg">
+                          <div>
+                            <div className="text-white font-ubuntu">
+                              ${(item.amount / 100).toFixed(2)} {item.currency.toUpperCase()}
+                            </div>
+                            <div className="text-white/50 text-sm font-ubuntu">
+                              {new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString()}
+                            </div>
                           </div>
-                          <div className="text-white/50 text-sm font-ubuntu">
-                            {new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString()}
+                          <div className={`px-3 py-1 rounded-full text-sm font-ubuntu ${
+                            item.status === 'paid' ? 'bg-green-400/20 text-green-400' : 'bg-yellow-400/20 text-yellow-400'
+                          }`}>
+                            {item.status}
                           </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-sm font-ubuntu ${
-                          item.status === 'paid' ? 'bg-green-400/20 text-green-400' : 'bg-yellow-400/20 text-yellow-400'
-                        }`}>
-                          {item.status}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-[#1a1a1a] rounded-lg text-center">
+                      <p className="text-white/50 font-ubuntu">No billing history available yet</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
