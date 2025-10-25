@@ -576,6 +576,52 @@ export default function ManageListings() {
                       />
                     </div>
 
+                    {formData.logo && (
+                      <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
+                          Logo/Favicon
+                        </label>
+                        <div className="flex items-center gap-4 p-4 bg-[#1a1a1a] border border-white/10 rounded-xl">
+                          <div className="w-16 h-16 rounded-lg bg-white p-2 flex items-center justify-center flex-shrink-0">
+                            <img
+                              src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/software-logos/${formData.logo}`}
+                              alt="Logo"
+                              className="max-w-full max-h-full object-contain"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-white/70 text-sm font-ubuntu">Current logo uploaded</p>
+                            <p className="text-white/50 text-xs font-ubuntu mt-1">Contact support to change images</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {formData.image && (
+                      <div>
+                        <label className="block text-sm font-medium text-white/90 mb-2 font-ubuntu">
+                          Banner Image
+                        </label>
+                        <div className="p-4 bg-[#1a1a1a] border border-white/10 rounded-xl">
+                          <div className="rounded-lg overflow-hidden mb-2">
+                            <img
+                              src={`${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/public/software-images/${formData.image}`}
+                              alt="Banner"
+                              className="w-full h-48 object-cover"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                          <p className="text-white/70 text-sm font-ubuntu">Current banner uploaded</p>
+                          <p className="text-white/50 text-xs font-ubuntu mt-1">Contact support to change images</p>
+                        </div>
+                      </div>
+                    )}
+
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <label className="block text-sm font-medium text-white/90 font-ubuntu">Social Links</label>
