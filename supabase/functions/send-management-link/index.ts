@@ -61,7 +61,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${submissions.management_token}`
+    const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${encodeURIComponent(submissions.management_token)}`
 
     const supabaseServiceRole = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',

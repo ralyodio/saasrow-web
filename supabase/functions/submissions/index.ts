@@ -276,7 +276,7 @@ Deno.serve(async (req: Request) => {
 
       // Send management link email
       if (data?.management_token) {
-        const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${data.management_token}`
+        const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${encodeURIComponent(data.management_token)}`
 
         // TODO: Implement email sending
         console.log('Management URL:', managementUrl)

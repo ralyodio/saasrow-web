@@ -64,7 +64,8 @@ export default function ManageListings() {
 
   const fetchSubmissions = async () => {
     try {
-      const response = await fetch(`${apiUrl}/functions/v1/submissions?token=${token}`)
+      const decodedToken = token ? decodeURIComponent(token) : ''
+      const response = await fetch(`${apiUrl}/functions/v1/submissions?token=${encodeURIComponent(decodedToken)}`)
       const result = await response.json()
 
       if (!response.ok) {
