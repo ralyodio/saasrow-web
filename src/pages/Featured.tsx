@@ -19,8 +19,14 @@ export default function FeaturedPage() {
     const success = urlParams.get('success')
     const cancelled = urlParams.get('cancelled')
     const plan = urlParams.get('plan')
+    const tier = urlParams.get('tier')
+    const userEmail = urlParams.get('email')
 
     if (success === 'true') {
+      if (tier && userEmail) {
+        localStorage.setItem('pendingTier', tier)
+        sessionStorage.setItem('userEmail', userEmail)
+      }
       window.location.href = '/submit'
       return
     }
@@ -133,9 +139,10 @@ export default function FeaturedPage() {
 
     try {
       const priceId = billingPeriod === 'yearly' ? pendingPlan.yearlyPriceId : pendingPlan.monthlyPriceId
+      const tier = pendingPlan.name.toLowerCase()
       const currentUrl = window.location.origin + '/featured'
-      const successUrl = `${currentUrl}?success=true`
-      const cancelUrl = `${currentUrl}?cancelled=true&plan=${pendingPlan.name.toLowerCase()}`
+      const successUrl = `${currentUrl}?success=true&tier=${tier}&email=${encodeURIComponent(email)}`
+      const cancelUrl = `${currentUrl}?cancelled=true&plan=${tier}&period=${billingPeriod}`
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
       const response = await fetch(apiUrl, {

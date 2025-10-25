@@ -57,7 +57,13 @@ export default function SubmitPage() {
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem('userEmail')
-    if (storedEmail) {
+    const pendingTier = localStorage.getItem('pendingTier')
+
+    if (pendingTier) {
+      setUserTier(pendingTier as 'free' | 'basic' | 'premium')
+      setUserEmail(storedEmail)
+      localStorage.removeItem('pendingTier')
+    } else if (storedEmail) {
       checkUserTier(storedEmail).then(tier => {
         setUserTier(tier as 'free' | 'basic' | 'premium')
         setUserEmail(storedEmail)
