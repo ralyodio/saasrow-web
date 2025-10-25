@@ -37,9 +37,20 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
     }
   }
 
-  const trackClick = async (submissionId: string) => {
+  const handleOutboundClick = async (e: React.MouseEvent<HTMLAnchorElement>, submissionId: string, url: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const targetUrl = url
+    const openInNewTab = () => {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer')
+    }
+
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300)
+
       await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -51,9 +62,15 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           referrer: document.referrer || null,
           userAgent: navigator.userAgent,
         }),
+        signal: controller.signal,
+        keepalive: true
       })
+
+      clearTimeout(timeoutId)
     } catch (error) {
       console.error('Failed to track click:', error)
+    } finally {
+      openInNewTab()
     }
   }
 
@@ -156,10 +173,7 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
-          onClick={(e) => {
-            e.stopPropagation()
-            trackClick(software.id)
-          }}
+          onClick={(e) => handleOutboundClick(e, software.id, addReferralParam(software.url))}
         >
           Visit Website
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

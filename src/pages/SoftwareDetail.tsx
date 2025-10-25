@@ -72,9 +72,19 @@ export default function SoftwareDetailPage() {
     }
   }
 
-  const trackClick = async (submissionId: string) => {
+  const handleOutboundClick = async (e: React.MouseEvent<HTMLAnchorElement>, submissionId: string, url: string) => {
+    e.preventDefault()
+
+    const targetUrl = url
+    const openInNewTab = () => {
+      window.open(targetUrl, '_blank', 'noopener,noreferrer')
+    }
+
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 300)
+
       await fetch(apiUrl, {
         method: 'POST',
         headers: {
@@ -86,9 +96,15 @@ export default function SoftwareDetailPage() {
           referrer: document.referrer || null,
           userAgent: navigator.userAgent,
         }),
+        signal: controller.signal,
+        keepalive: true
       })
+
+      clearTimeout(timeoutId)
     } catch (error) {
       console.error('Failed to track click:', error)
+    } finally {
+      openInNewTab()
     }
   }
 
@@ -235,7 +251,7 @@ export default function SoftwareDetailPage() {
                     href={addReferralParam(submission.url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => trackClick(submission.id)}
+                    onClick={(e) => handleOutboundClick(e, submission.id, addReferralParam(submission.url))}
                     className="flex-1 text-center px-8 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity"
                   >
                     Visit Website
