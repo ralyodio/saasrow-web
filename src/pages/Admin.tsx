@@ -42,6 +42,7 @@ export default function AdminPage() {
   const [newsPosts, setNewsPosts] = useState<NewsPost[]>([])
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [adminEmail, setAdminEmail] = useState<string | null>(null)
+  const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -688,6 +689,12 @@ export default function AdminPage() {
                           </div>
                           <div className="flex flex-col gap-2">
                             <button
+                              onClick={() => setExpandedPostId(expandedPostId === post.id ? null : post.id)}
+                              className="px-4 py-2 rounded-lg bg-[#4a4a4a] text-white border border-white/20 font-ubuntu font-bold hover:bg-[#505050] transition-colors"
+                            >
+                              {expandedPostId === post.id ? 'Hide' : 'Preview'}
+                            </button>
+                            <button
                               onClick={() => togglePublishStatus(post.id, post.published)}
                               className={`px-4 py-2 rounded-lg font-ubuntu font-bold border transition-colors ${
                                 post.published
@@ -705,6 +712,15 @@ export default function AdminPage() {
                             </button>
                           </div>
                         </div>
+                        {expandedPostId === post.id && (
+                          <div className="mt-6 pt-6 border-t border-white/10">
+                            <h4 className="text-white text-lg font-bold font-ubuntu mb-4">Full Content Preview:</h4>
+                            <div
+                              className="text-white/80 font-ubuntu max-w-none [&_h2]:text-white [&_h2]:text-2xl [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-4 [&_p]:mb-4 [&_p]:leading-relaxed [&_ul]:mb-4 [&_ul]:ml-6 [&_ul]:list-disc [&_li]:mb-2 [&_strong]:text-white [&_strong]:font-bold"
+                              dangerouslySetInnerHTML={{ __html: post.content }}
+                            />
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
