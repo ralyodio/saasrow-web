@@ -243,12 +243,19 @@ export default function AdminPage() {
 
   const togglePublishStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from('news_posts')
-        .update({ published: !currentStatus })
-        .eq('id', id)
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts`
+      const response = await fetch(apiUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id, published: !currentStatus }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to update post')
+      }
 
       setNewsPosts(prev =>
         prev.map(post => post.id === id ? { ...post, published: !currentStatus } : post)
@@ -266,12 +273,19 @@ export default function AdminPage() {
     }
 
     try {
-      const { error } = await supabase
-        .from('news_posts')
-        .delete()
-        .eq('id', id)
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts`
+      const response = await fetch(apiUrl, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        throw new Error('Failed to delete post')
+      }
 
       setNewsPosts(prev => prev.filter(post => post.id !== id))
       if (generatedPost?.id === id) {
