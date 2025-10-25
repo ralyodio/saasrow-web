@@ -37,6 +37,8 @@ export default function SubmitPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [managementToken, setManagementToken] = useState<string | null>(null)
+  const [showEmailDialog, setShowEmailDialog] = useState(false)
+  const [emailInput, setEmailInput] = useState('')
 
   const handleFetchMetadata = async (e: FormEvent) => {
     e.preventDefault()
@@ -280,17 +282,21 @@ export default function SubmitPage() {
     setSubmissions(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleSubmitAll = async () => {
+  const handleSubmitAll = () => {
+    setShowEmailDialog(true)
+  }
+
+  const handleEmailSubmit = async () => {
+    if (!emailInput || !emailInput.includes('@')) {
+      setMessage({ type: 'error', text: 'Please enter a valid email address' })
+      return
+    }
+
+    setShowEmailDialog(false)
     setIsSubmitting(true)
     setMessage(null)
 
     try {
-      const email = prompt('Enter your email address for all submissions:')
-      if (!email) {
-        setIsSubmitting(false)
-        return
-      }
-
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
       let successCount = 0
 
@@ -306,7 +312,7 @@ export default function SubmitPage() {
               title: submission.title,
               url: submission.url,
               description: submission.description,
-              email,
+              email: emailInput,
               category: submission.category,
               tags: submission.tags,
               logo: submission.logo,
@@ -333,7 +339,7 @@ export default function SubmitPage() {
             title: submissions[submissions.length - 1].title,
             url: submissions[submissions.length - 1].url,
             description: submissions[submissions.length - 1].description,
-            email,
+            email: emailInput,
             category: submissions[submissions.length - 1].category,
             tags: submissions[submissions.length - 1].tags,
             logo: submissions[submissions.length - 1].logo,
@@ -395,6 +401,51 @@ export default function SubmitPage() {
 
   return (
     <div className="min-h-screen bg-neutral-800">
+      {showEmailDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 px-4">
+          <div className="bg-[#2a2a2a] rounded-2xl p-8 max-w-md w-full">
+            <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">
+              Enter Your Email
+            </h2>
+            <p className="text-white/70 font-ubuntu mb-6">
+              We'll send you a management link so you can edit your listings later.
+            </p>
+            <input
+              type="email"
+              value={emailInput}
+              onChange={(e) => setEmailInput(e.target.value)}
+              placeholder="your@email.com"
+              className="w-full px-4 py-3 bg-[#3a3a3a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu mb-6"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleEmailSubmit()
+                }
+              }}
+            />
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEmailDialog(false)
+                  setIsSubmitting(false)
+                }}
+                className="flex-1 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu font-bold hover:bg-[#555555] transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleEmailSubmit}
+                className="flex-1 py-3 rounded-lg bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="absolute w-full h-1/2 top-0 left-0 pointer-events-none">
         <div className="absolute w-4/5 h-40 top-1/3 left-[12.93%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
         <div className="absolute w-4/5 h-40 top-1/4 left-[22.59%] bg-[#4fffe34c] rotate-[37.69deg] blur-[150px]" />
