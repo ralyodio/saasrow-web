@@ -554,10 +554,6 @@ export default function SubmitPage() {
                   <ul className="text-white/70 text-sm font-ubuntu space-y-2">
                     <li className="flex items-start gap-2">
                       <span className="text-[#4FFFE3] mt-0.5">✓</span>
-                      <span>Free dofollow link</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
                       <span>Up to 5 listings</span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -589,10 +585,6 @@ export default function SubmitPage() {
                     </div>
                   </div>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-2">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Free dofollow link</span>
-                    </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#E0FF04] mt-0.5">✓</span>
                       <span>Unlimited listings</span>

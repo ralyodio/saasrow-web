@@ -246,15 +246,6 @@ export default function SoftwareDetailPage() {
                   </div>
                 )}
 
-                <div className="mb-6">
-                  <div className="flex items-center gap-1.5 px-3 py-2 bg-green-500/10 border border-green-500/30 rounded-full inline-flex">
-                    <svg className="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                    <span className="text-green-400 font-ubuntu text-sm font-medium">Free dofollow link</span>
-                  </div>
-                </div>
-
                 <div className="flex flex-col sm:flex-row gap-4">
                   <a
                     href={addReferralParam(submission.url)}
