@@ -12,6 +12,9 @@ interface Software {
   image?: string
   tags?: string[]
   submitted_at?: string
+  tier?: string
+  featured?: boolean
+  homepage_featured?: boolean
 }
 
 interface SoftwareListingsProps {
@@ -99,7 +102,12 @@ export function SoftwareListings({
           )
         ))
 
-      return matchesSearch && matchesCategory && matchesTags
+      const matchesFilter =
+        selectedFilter === 'all' ||
+        (selectedFilter === 'featured' && (software.featured || software.tier === 'featured')) ||
+        (selectedFilter === 'premium' && software.tier === 'premium')
+
+      return matchesSearch && matchesCategory && matchesTags && matchesFilter
     })
     .sort((a, b) => {
       switch (selectedSort) {
