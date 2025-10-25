@@ -9,6 +9,10 @@ export default function FeaturedPage() {
   const [showDiscountPopup, setShowDiscountPopup] = useState(false)
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
   const [processingPlan, setProcessingPlan] = useState<string | null>(null)
+  const [showEmailModal, setShowEmailModal] = useState(false)
+  const [email, setEmail] = useState('')
+  const [pendingPlan, setPendingPlan] = useState<typeof pricingPlans[0] | null>(null)
+  const [pendingDiscount, setPendingDiscount] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -116,13 +120,22 @@ export default function FeaturedPage() {
       return
     }
 
-    setProcessingPlan(plan.name)
+    setPendingPlan(plan)
+    setPendingDiscount(discountCode)
+    setShowEmailModal(true)
+  }
+
+  const proceedToCheckout = async () => {
+    if (!pendingPlan || !email) return
+
+    setProcessingPlan(pendingPlan.name)
+    setShowEmailModal(false)
 
     try {
-      const priceId = billingPeriod === 'yearly' ? plan.yearlyPriceId : plan.monthlyPriceId
+      const priceId = billingPeriod === 'yearly' ? pendingPlan.yearlyPriceId : pendingPlan.monthlyPriceId
       const currentUrl = window.location.origin + '/featured'
       const successUrl = `${currentUrl}?success=true`
-      const cancelUrl = `${currentUrl}?cancelled=true&plan=${plan.name.toLowerCase()}`
+      const cancelUrl = `${currentUrl}?cancelled=true&plan=${pendingPlan.name.toLowerCase()}`
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
       const response = await fetch(apiUrl, {
@@ -136,7 +149,8 @@ export default function FeaturedPage() {
           success_url: successUrl,
           cancel_url: cancelUrl,
           mode: 'subscription',
-          discount_code: discountCode,
+          discount_code: pendingDiscount,
+          customer_email: email,
         }),
       })
 
@@ -152,6 +166,9 @@ export default function FeaturedPage() {
       alert('Something went wrong. Please try again.')
     } finally {
       setProcessingPlan(null)
+      setPendingPlan(null)
+      setPendingDiscount(undefined)
+      setEmail('')
     }
   }
 
@@ -295,6 +312,52 @@ export default function FeaturedPage() {
             }
           }}
         />
+      )}
+
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#3a3a3a] rounded-3xl p-8 max-w-md w-full">
+            <h3 className="text-white text-2xl font-bold font-ubuntu mb-4">
+              Enter Your Email
+            </h3>
+            <p className="text-white/70 font-ubuntu mb-6">
+              We'll send your management link to this email so you can track and edit your listings.
+            </p>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="your@email.com"
+              className="w-full bg-neutral-800 text-white font-ubuntu px-4 py-3 rounded-xl outline-none focus:ring-2 focus:ring-[#4FFFE3] mb-6"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && email) {
+                  proceedToCheckout()
+                }
+              }}
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowEmailModal(false)
+                  setPendingPlan(null)
+                  setPendingDiscount(undefined)
+                  setEmail('')
+                }}
+                className="flex-1 py-3 rounded-full bg-neutral-700 text-white font-ubuntu font-bold hover:bg-neutral-600 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={proceedToCheckout}
+                disabled={!email || processingPlan !== null}
+                className="flex-1 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {processingPlan ? 'Processing...' : 'Continue'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )
