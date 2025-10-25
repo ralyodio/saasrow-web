@@ -191,6 +191,25 @@ async function syncCustomerFromStripe(customerId: string) {
 
           // Only update if tier changed
           if (oldTier !== tier) {
+            // Cancel old subscriptions before updating tier
+            try {
+              const oldSubscriptions = await stripe.subscriptions.list({
+                customer: customerId,
+                status: 'active',
+                limit: 100,
+              });
+
+              // Cancel all subscriptions except the current one
+              for (const oldSub of oldSubscriptions.data) {
+                if (oldSub.id !== subscription.id) {
+                  await stripe.subscriptions.cancel(oldSub.id);
+                  console.info(`Cancelled old subscription ${oldSub.id} for customer ${customerId}`);
+                }
+              }
+            } catch (cancelError) {
+              console.error(`Error cancelling old subscriptions for ${customer.email}:`, cancelError);
+            }
+
             await supabase
               .from('user_tokens')
               .update({ tier })

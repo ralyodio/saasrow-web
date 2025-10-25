@@ -49,6 +49,9 @@ export default function ManageListings() {
   })
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
+  const [hasActiveSubscription, setHasActiveSubscription] = useState(false)
+  const [userTier, setUserTier] = useState<string | null>(null)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -77,6 +80,14 @@ export default function ManageListings() {
       // Store email for later use
       if (result.email) {
         sessionStorage.setItem('userEmail', result.email)
+      }
+
+      // Check if this is a paid user with active subscription
+      if (result.data && result.data.length > 0) {
+        const firstSubmission = result.data[0]
+        const tier = firstSubmission.tier || 'free'
+        setUserTier(tier)
+        setHasActiveSubscription(tier === 'featured' || tier === 'premium')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -228,6 +239,42 @@ export default function ManageListings() {
     setFormData({ ...formData, socialLinks: links })
   }
 
+  const handleCancelSubscription = async () => {
+    if (!token) return
+
+    const confirmed = window.confirm(
+      'Are you sure you want to cancel your subscription? Your listings will remain active until the end of your billing period, after which they will revert to the free tier.'
+    )
+
+    if (!confirmed) return
+
+    setCancelling(true)
+    try {
+      const decodedToken = decodeURIComponent(token)
+      const response = await fetch(`${apiUrl}/functions/v1/cancel-subscription`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ token: decodedToken })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to cancel subscription')
+      }
+
+      alert('Subscription cancelled successfully. Your listings will remain active until the end of your billing period.')
+      setHasActiveSubscription(false)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to cancel subscription')
+    } finally {
+      setCancelling(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-800">
@@ -282,6 +329,28 @@ export default function ManageListings() {
               Add New Listing
             </button>
           </div>
+
+          {hasActiveSubscription && (
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6 mb-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">
+                    Subscription Management
+                  </h2>
+                  <p className="text-white/70 mb-4 font-ubuntu">
+                    You're currently on the <span className="font-bold text-[#4FFFE3]">{userTier === 'premium' ? 'Premium' : 'Featured'}</span> tier
+                  </p>
+                </div>
+                <button
+                  onClick={handleCancelSubscription}
+                  disabled={cancelling}
+                  className="px-6 py-3 border border-red-400/30 rounded-full hover:bg-red-400/10 transition text-red-400 font-ubuntu font-bold disabled:opacity-50"
+                >
+                  {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {showAddForm && (
             <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-8 mb-6">
