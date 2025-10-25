@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
 
 interface SearchSectionProps {
   searchQuery: string
@@ -43,27 +44,20 @@ export function SearchSection({
     'Communication',
   ]
 
-  const tagOptions = [
-    'AI',
-    'Podcast',
-    'Automation',
-    'Cloud',
-    'Mobile',
-    'Web',
-    'Desktop',
-    'API',
-    'Open Source',
-    'Enterprise',
-  ]
-
   const sortOptions = ['Most Popular', 'Newest', 'Top Rated', 'A-Z', 'Z-A']
 
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false)
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const [showSortDropdown, setShowSortDropdown] = useState(false)
+  const [tagOptions, setTagOptions] = useState<string[]>([])
+  const [tagSearchQuery, setTagSearchQuery] = useState('')
   const categoryDropdownRef = useRef<HTMLDivElement>(null)
   const tagDropdownRef = useRef<HTMLDivElement>(null)
   const sortDropdownRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    fetchTags()
+  }, [])
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -72,6 +66,7 @@ export function SearchSection({
       }
       if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
         setShowTagDropdown(false)
+        setTagSearchQuery('')
       }
       if (sortDropdownRef.current && !sortDropdownRef.current.contains(event.target as Node)) {
         setShowSortDropdown(false)
@@ -80,6 +75,33 @@ export function SearchSection({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  const fetchTags = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('software_submissions')
+        .select('tags')
+        .eq('status', 'approved')
+        .not('tags', 'is', null)
+
+      if (error) throw error
+
+      const allTags = new Set<string>()
+      data?.forEach(submission => {
+        if (submission.tags && Array.isArray(submission.tags)) {
+          submission.tags.forEach(tag => {
+            if (tag && tag.trim()) {
+              allTags.add(tag.trim())
+            }
+          })
+        }
+      })
+
+      setTagOptions(Array.from(allTags).sort())
+    } catch (error) {
+      console.error('Error fetching tags:', error)
+    }
+  }
 
   const handleCategoryToggle = (category: string) => {
     const newCategories = activeCategories.includes(category)
@@ -180,29 +202,51 @@ export function SearchSection({
               </svg>
             </button>
             {showTagDropdown && (
-              <div className="absolute top-full mt-2 bg-[#3a3a3a] rounded-xl shadow-xl overflow-hidden z-50 min-w-[200px]">
-                {tagOptions.map((tag) => {
-                  const isActive = activeTags.includes(tag)
-                  return (
-                    <button
-                      key={tag}
-                      onClick={() => {
-                        handleTagToggle(tag)
-                        setShowTagDropdown(false)
-                      }}
-                      className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors flex items-center gap-2 ${
-                        isActive ? 'bg-[#4a4a4a]' : ''
-                      }`}
-                    >
-                      {isActive && (
-                        <svg className="w-4 h-4 text-[#4FFFE3]" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                        </svg>
-                      )}
-                      {tag}
-                    </button>
-                  )
-                })}
+              <div className="absolute top-full mt-2 bg-[#3a3a3a] rounded-xl shadow-xl overflow-hidden z-50 min-w-[200px] max-w-[300px]">
+                <div className="sticky top-0 bg-[#3a3a3a] p-3 border-b border-white/10">
+                  <input
+                    type="text"
+                    value={tagSearchQuery}
+                    onChange={(e) => setTagSearchQuery(e.target.value)}
+                    placeholder="Search tags..."
+                    className="w-full px-3 py-2 bg-[#2a2a2a] text-white font-roboto text-sm rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] placeholder:text-white/50"
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
+                <div className="max-h-[300px] overflow-y-auto">
+                  {tagOptions
+                    .filter(tag =>
+                      tag.toLowerCase().includes(tagSearchQuery.toLowerCase())
+                    )
+                    .map((tag) => {
+                      const isActive = activeTags.includes(tag)
+                      return (
+                        <button
+                          key={tag}
+                          onClick={() => {
+                            handleTagToggle(tag)
+                          }}
+                          className={`w-full text-left px-6 py-3 text-white font-roboto hover:bg-[#4a4a4a] transition-colors flex items-center gap-2 ${
+                            isActive ? 'bg-[#4a4a4a]' : ''
+                          }`}
+                        >
+                          {isActive && (
+                            <svg className="w-4 h-4 text-[#4FFFE3]" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                          {tag}
+                        </button>
+                      )
+                    })}
+                  {tagOptions.filter(tag =>
+                    tag.toLowerCase().includes(tagSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div className="px-6 py-4 text-white/50 font-roboto text-sm text-center">
+                      No tags found
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
