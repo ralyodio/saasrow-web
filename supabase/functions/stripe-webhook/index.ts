@@ -120,6 +120,21 @@ async function handleEvent(event: Stripe.Event) {
 
         // Create a user token for the paid user if email is available
         if (customer_email) {
+          // Get the full session to retrieve line items with price info
+          const session = await stripe.checkout.sessions.retrieve(checkout_session_id, {
+            expand: ['line_items.data.price']
+          });
+
+          // Determine tier based on price_id
+          let tier = 'basic';
+          if (session.line_items?.data?.[0]?.price?.id) {
+            const priceId = session.line_items.data[0].price.id;
+            // Premium tier price IDs typically contain 'premium' or are the higher price
+            if (priceId.toLowerCase().includes('premium')) {
+              tier = 'premium';
+            }
+          }
+
           const { data: existingToken } = await supabase
             .from('user_tokens')
             .select('token')
@@ -129,18 +144,25 @@ async function handleEvent(event: Stripe.Event) {
           if (!existingToken) {
             const { data: newToken, error: tokenError } = await supabase
               .from('user_tokens')
-              .insert({ email: customer_email })
+              .insert({ email: customer_email, tier })
               .select()
               .maybeSingle();
 
             if (tokenError) {
               console.error('Error creating user token:', tokenError);
             } else if (newToken) {
-              console.info(`Created user token for ${customer_email}`);
+              console.info(`Created user token for ${customer_email} with tier: ${tier}`);
               // TODO: Send management link email with token
               const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
               console.log('Management URL:', managementUrl);
             }
+          } else {
+            // Update tier if token already exists
+            await supabase
+              .from('user_tokens')
+              .update({ tier })
+              .eq('email', customer_email);
+            console.info(`Updated tier for ${customer_email} to: ${tier}`);
           }
         }
 

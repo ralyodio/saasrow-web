@@ -44,11 +44,11 @@ export default function SubmitPage() {
     try {
       const { data } = await supabase
         .from('user_tokens')
-        .select('email')
+        .select('tier')
         .eq('email', email)
         .maybeSingle()
 
-      return data ? 'paid' : 'free'
+      return data?.tier || 'free'
     } catch {
       return 'free'
     }
@@ -74,8 +74,14 @@ export default function SubmitPage() {
       const storedEmail = sessionStorage.getItem('userEmail')
       const tier = storedEmail ? await checkUserTier(storedEmail) : 'free'
 
-      if (tier === 'free' && urlList.length > 5) {
-        setMessage({ type: 'error', text: 'Free tier allows up to 5 URLs. Please upgrade to Basic tier for unlimited submissions.' })
+      if (tier === 'free' && urlList.length > 1) {
+        setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Basic (5 URLs) or Premium (unlimited).' })
+        setIsFetching(false)
+        return
+      }
+
+      if (tier === 'basic' && urlList.length > 5) {
+        setMessage({ type: 'error', text: 'Basic tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
         setIsFetching(false)
         return
       }
