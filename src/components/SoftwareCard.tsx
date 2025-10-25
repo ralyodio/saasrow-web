@@ -27,29 +27,29 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   return (
     <Link
       to={`/software/${software.id}`}
-      className={`bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-all hover:transform hover:scale-105 block relative ${
+      className={`bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 hover:bg-[#404040] transition-all sm:hover:transform sm:hover:scale-105 block relative ${
         isPremium ? 'ring-2 ring-[#E0FF04]' : ''
       }`}
     >
       {isPremium && (
-        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           PREMIUM
         </div>
       )}
       {isFeatured && (
-        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           FEATURED
         </div>
       )}
       {isBasic && (
-        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           FEATURED
         </div>
       )}
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-2">
+      <div className="mb-3 sm:mb-4">
+        <div className="flex items-center gap-2 sm:gap-3 mb-2">
           {software.logo && (
-            <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-white p-2 flex items-center justify-center">
+            <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-white p-1.5 sm:p-2 flex items-center justify-center">
               <img
                 src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
                 alt={`${software.title} logo`}
@@ -61,7 +61,7 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <h3 className="text-white text-xl font-bold font-ubuntu truncate">
+            <h3 className="text-white text-lg sm:text-xl font-bold font-ubuntu truncate">
               {software.title}
             </h3>
           </div>

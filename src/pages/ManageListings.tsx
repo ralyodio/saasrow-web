@@ -359,12 +359,12 @@ export default function ManageListings() {
   return (
     <div className="min-h-screen bg-neutral-800">
       <Header />
-      <div className="container mx-auto px-6 py-12">
+      <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="max-w-5xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-white font-ubuntu">Manage Your Listings</h1>
-              <p className="text-white/70 mt-2 font-ubuntu">
+              <h1 className="text-2xl sm:text-3xl font-bold text-white font-ubuntu">Manage Your Listings</h1>
+              <p className="text-white/70 mt-2 font-ubuntu text-sm sm:text-base">
                 {submissions.length === 0
                   ? 'No listings found. Add your first listing below.'
                   : `You have ${submissions.length} listing${submissions.length === 1 ? '' : 's'}`}
@@ -372,15 +372,15 @@ export default function ManageListings() {
             </div>
             <button
               onClick={handleAddNew}
-              className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
+              className="w-full sm:w-auto px-6 sm:px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity whitespace-nowrap"
             >
               Add New Listing
             </button>
           </div>
 
           {hasActiveSubscription && (
-            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6 mb-6">
-              <div className="flex justify-between items-start mb-6">
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6 mb-6">
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
                 <div className="flex-1">
                   <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">
                     Subscription Management
@@ -419,19 +419,19 @@ export default function ManageListings() {
                     </div>
                   )}
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full lg:w-auto">
                   <button
                     onClick={() => setShowBilling(!showBilling)}
-                    className="px-6 py-3 border border-white/10 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
+                    className="px-6 py-3 border border-white/10 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold text-sm sm:text-base"
                   >
-                    {showBilling ? 'Hide' : 'View'} Billing History
+                    {showBilling ? 'Hide' : 'View'} Billing
                   </button>
                   <button
                     onClick={handleCancelSubscription}
                     disabled={cancelling}
-                    className="px-6 py-3 border border-red-400/30 rounded-full hover:bg-red-400/10 transition text-red-400 font-ubuntu font-bold disabled:opacity-50"
+                    className="px-6 py-3 border border-red-400/30 rounded-full hover:bg-red-400/10 transition text-red-400 font-ubuntu font-bold disabled:opacity-50 text-sm sm:text-base"
                   >
-                    {cancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                    {cancelling ? 'Cancelling...' : 'Cancel'}
                   </button>
                 </div>
               </div>

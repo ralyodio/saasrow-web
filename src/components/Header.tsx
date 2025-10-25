@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
+import { Menu, X } from 'lucide-react'
 
 export function Header() {
   const [activeNav, setActiveNav] = useState('apps')
   const [showSignIn, setShowSignIn] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -58,17 +60,25 @@ export function Header() {
   ]
 
   return (
-    <header className="w-full max-w-[1335px] mx-auto px-4 py-9">
+    <header className="w-full max-w-[1335px] mx-auto px-4 py-6 md:py-9">
       <div className="flex items-center justify-between">
-        <Link to="/">
+        <Link to="/" onClick={() => setMobileMenuOpen(false)}>
           <img
-            className="h-16 w-auto object-contain"
+            className="h-12 md:h-16 w-auto object-contain"
             alt="SaaSRow logo"
             src="/wiresniff-logo-1-1.png"
           />
         </Link>
 
-        <nav className="flex items-center gap-8">
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="lg:hidden text-white p-2"
+          aria-label="Toggle menu"
+        >
+          {mobileMenuOpen ? <X size={28} /> : <Menu size={28} />}
+        </button>
+
+        <nav className="hidden lg:flex items-center gap-8">
           {navigationItems.map((item) => (
             <Link
               key={item.id}
@@ -99,6 +109,46 @@ export function Header() {
           </button>
         </nav>
       </div>
+
+      {mobileMenuOpen && (
+        <nav className="lg:hidden mt-6 pb-4 border-t border-white/10 pt-4 space-y-4">
+          {navigationItems.map((item) => (
+            <Link
+              key={item.id}
+              to={item.href}
+              onClick={() => {
+                setActiveNav(item.id)
+                setMobileMenuOpen(false)
+              }}
+              className={`block font-roboto text-xl transition-all ${
+                activeNav === item.id
+                  ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text text-transparent'
+                  : 'text-white hover:opacity-80'
+              }`}
+            >
+              {item.label}
+            </Link>
+          ))}
+
+          <Link
+            to="/featured"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block w-full text-center px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-roboto text-xl hover:opacity-90 transition-opacity"
+          >
+            Get Featured
+          </Link>
+
+          <button
+            onClick={() => {
+              setShowSignIn(true)
+              setMobileMenuOpen(false)
+            }}
+            className="block w-full px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
+          >
+            Sign In
+          </button>
+        </nav>
+      )}
 
       {showSignIn && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowSignIn(false)}>

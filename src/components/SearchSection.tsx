@@ -98,24 +98,26 @@ export function SearchSection({
   return (
     <section className="w-full max-w-[1318px] mx-auto px-4 py-8">
       <div className="relative">
-        <div className="relative flex items-center bg-[#4a4a4a] rounded-full px-8 py-4">
-          <img className="w-8 h-8 mr-4" alt="" src="/vector.svg" />
-          <input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search keywords..."
-            className="flex-1 bg-transparent border-none outline-none text-white text-2xl placeholder:text-white/70 font-inter"
-          />
+        <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-[#4a4a4a] rounded-2xl sm:rounded-full px-4 sm:px-8 py-4 gap-4">
+          <div className="flex items-center flex-1">
+            <img className="w-6 h-6 sm:w-8 sm:h-8 mr-3 sm:mr-4 flex-shrink-0" alt="" src="/vector.svg" />
+            <input
+              type="search"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 bg-transparent border-none outline-none text-white text-lg sm:text-2xl placeholder:text-white/70 font-inter"
+            />
+          </div>
 
-          <div className="flex gap-3 ml-8">
+          <div className="flex gap-2 sm:gap-3 sm:ml-4 justify-between sm:justify-start">
             {filterButtons.map((filter) => {
               const isActive = selectedFilter === filter.id
               return (
                 <button
                   key={filter.id}
                   onClick={() => onFilterChange(filter.id)}
-                  className={`px-6 py-2 rounded-full font-roboto text-xl transition-all ${
+                  className={`px-4 sm:px-6 py-2 rounded-full font-roboto text-sm sm:text-xl transition-all whitespace-nowrap ${
                     isActive
                       ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                       : 'bg-transparent text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text border border-[#4FFFE3]'
@@ -128,14 +130,14 @@ export function SearchSection({
           </div>
         </div>
 
-        <div className="flex items-center gap-4 mt-6">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-4 sm:mt-6">
           <div ref={categoryDropdownRef} className="relative">
             <button
               onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+              className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-base sm:text-xl hover:bg-[#555555] transition-colors"
             >
               Category
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -170,10 +172,10 @@ export function SearchSection({
           <div ref={tagDropdownRef} className="relative">
             <button
               onClick={() => setShowTagDropdown(!showTagDropdown)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+              className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-base sm:text-xl hover:bg-[#555555] transition-colors"
             >
               Tags
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -208,10 +210,11 @@ export function SearchSection({
           <div ref={sortDropdownRef} className="relative">
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-2 px-6 py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-xl hover:bg-[#555555] transition-colors"
+              className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#4a4a4a] rounded-full text-white font-roboto text-base sm:text-xl hover:bg-[#555555] transition-colors"
             >
-              {selectedSort}
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <span className="hidden sm:inline">{selectedSort}</span>
+              <span className="sm:hidden">Sort</span>
+              <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
@@ -276,7 +279,7 @@ export function SearchSection({
                   onCategoriesChange([])
                   onTagsChange([])
                 }}
-                className="px-6 py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-xl hover:opacity-80 transition-opacity"
+                className="px-4 sm:px-6 py-2 sm:py-3 text-transparent bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] bg-clip-text font-roboto text-base sm:text-xl hover:opacity-80 transition-opacity"
               >
                 Clear All
               </button>
