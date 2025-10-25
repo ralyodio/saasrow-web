@@ -1,14 +1,24 @@
-import { Link } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useState } from 'react'
 import { Menu, X } from 'lucide-react'
 
-export function Header() {
+interface HeaderProps {
+  isManagementPage?: boolean
+}
+
+export function Header({ isManagementPage = false }: HeaderProps) {
+  const location = useLocation()
+  const navigate = useNavigate()
   const [activeNav, setActiveNav] = useState('apps')
   const [showSignIn, setShowSignIn] = useState(false)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const handleLogout = () => {
+    navigate('/')
+  }
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -101,12 +111,21 @@ export function Header() {
             Get Featured
           </Link>
 
-          <button
-            onClick={() => setShowSignIn(true)}
-            className="px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
-          >
-            Sign In
-          </button>
+          {isManagementPage ? (
+            <button
+              onClick={handleLogout}
+              className="px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowSignIn(true)}
+              className="px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
+            >
+              Sign In
+            </button>
+          )}
         </nav>
       </div>
 
@@ -138,15 +157,27 @@ export function Header() {
             Get Featured
           </Link>
 
-          <button
-            onClick={() => {
-              setShowSignIn(true)
-              setMobileMenuOpen(false)
-            }}
-            className="block w-full px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
-          >
-            Sign In
-          </button>
+          {isManagementPage ? (
+            <button
+              onClick={() => {
+                handleLogout()
+                setMobileMenuOpen(false)
+              }}
+              className="block w-full px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
+            >
+              Logout
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setShowSignIn(true)
+                setMobileMenuOpen(false)
+              }}
+              className="block w-full px-6 py-3 rounded-full border-2 border-white text-white font-roboto text-xl hover:bg-white hover:text-neutral-800 transition-all"
+            >
+              Sign In
+            </button>
+          )}
         </nav>
       )}
 

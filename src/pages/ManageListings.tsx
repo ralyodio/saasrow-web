@@ -397,7 +397,7 @@ export default function ManageListings() {
 
   return (
     <div className="min-h-screen bg-neutral-800">
-      <Header />
+      <Header isManagementPage={true} />
       <div className="container mx-auto px-4 sm:px-6 py-8 sm:py-12">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6 sm:mb-8">
@@ -432,7 +432,34 @@ export default function ManageListings() {
             </button>
           </div>
 
-          {userTier && userTier !== 'free' && (
+          {userTier === 'free' ? (
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6 mb-6">
+              <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
+                <div className="flex-1">
+                  <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">
+                    Upgrade Your Listings
+                  </h2>
+                  <p className="text-white/70 font-ubuntu">
+                    Unlock premium features: homepage placement, analytics, newsletter featuring, and more!
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                  <a
+                    href="/submit#pricing"
+                    className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center text-sm sm:text-base"
+                  >
+                    Upgrade to Featured
+                  </a>
+                  <a
+                    href="/submit#pricing"
+                    className="px-6 py-3 rounded-full bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-center text-sm sm:text-base"
+                  >
+                    Upgrade to Premium
+                  </a>
+                </div>
+              </div>
+            </div>
+          ) : (
             <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6 mb-6">
               <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
                 <div className="flex-1">
