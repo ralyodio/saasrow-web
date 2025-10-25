@@ -44,33 +44,27 @@ Deno.serve(async (req: Request) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { data: userToken, error: tokenError } = await supabase
-      .from('user_tokens')
-      .select('email, tier')
-      .eq('token', token)
+    const { data: submission, error: submissionError } = await supabase
+      .from('software_submissions')
+      .select('id, email, tier, view_count, management_token')
+      .eq('id', submissionId)
       .maybeSingle()
 
-    if (tokenError || !userToken) {
+    if (submissionError || !submission) {
       return new Response(
-        JSON.stringify({ error: 'Invalid token' }),
+        JSON.stringify({ error: 'Submission not found' }),
         {
-          status: 401,
+          status: 404,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
     }
 
-    const { data: submission, error: submissionError } = await supabase
-      .from('software_submissions')
-      .select('id, email, tier, view_count')
-      .eq('id', submissionId)
-      .maybeSingle()
-
-    if (submissionError || !submission || submission.email !== userToken.email) {
+    if (submission.management_token !== token) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized or submission not found' }),
+        JSON.stringify({ error: 'Invalid token' }),
         {
-          status: 403,
+          status: 401,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )
@@ -108,7 +102,7 @@ Deno.serve(async (req: Request) => {
     const clickThroughRate = totalViews > 0 ? (totalClicks / totalViews) * 100 : 0
 
     const response = {
-      tier: userToken.tier || submission.tier || 'basic',
+      tier: submission.tier || 'free',
       totalViews,
       totalClicks,
       clickThroughRate: parseFloat(clickThroughRate.toFixed(2)),
