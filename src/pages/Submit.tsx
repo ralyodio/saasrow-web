@@ -744,47 +744,58 @@ export default function SubmitPage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 {submissions.map((submission, index) => (
-                  <div key={index} className="bg-[#3a3a3a] rounded-2xl p-6 flex items-start gap-4">
-                    {submission.logo && (
-                      <div className="w-16 h-16 rounded-lg bg-white p-2 flex-shrink-0">
+                  <div key={index} className="bg-[#3a3a3a] rounded-2xl p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      {submission.logo && (
+                        <div className="w-16 h-16 rounded-lg bg-white p-2 flex-shrink-0">
+                          <img
+                            src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
+                            alt={submission.title}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-ubuntu text-xl font-bold mb-2">{submission.title}</h3>
+                        <p className="text-white/70 font-ubuntu text-sm mb-2">{submission.url}</p>
+                        <p className="text-white/60 font-ubuntu text-sm line-clamp-2">{submission.description}</p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <span className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu">
+                            {submission.category}
+                          </span>
+                          {submission.tags.slice(0, 3).map((tag, tagIndex) => (
+                            <span key={tagIndex} className="px-3 py-1 bg-white/10 text-white/70 rounded-full text-xs font-ubuntu">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleEditSubmission(index)}
+                          className="px-4 py-2 bg-[#4a4a4a] text-white rounded-lg hover:bg-[#555555] transition-colors font-ubuntu text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubmission(index)}
+                          className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-ubuntu text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    {submission.image && (
+                      <div className="rounded-lg overflow-hidden">
                         <img
-                          src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
-                          alt={submission.title}
-                          className="w-full h-full object-contain"
+                          src={supabase.storage.from('software-images').getPublicUrl(submission.image).data.publicUrl}
+                          alt={`${submission.title} preview`}
+                          className="w-full h-48 object-cover"
                         />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-ubuntu text-xl font-bold mb-2">{submission.title}</h3>
-                      <p className="text-white/70 font-ubuntu text-sm mb-2">{submission.url}</p>
-                      <p className="text-white/60 font-ubuntu text-sm line-clamp-2">{submission.description}</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu">
-                          {submission.category}
-                        </span>
-                        {submission.tags.slice(0, 3).map((tag, tagIndex) => (
-                          <span key={tagIndex} className="px-3 py-1 bg-white/10 text-white/70 rounded-full text-xs font-ubuntu">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleEditSubmission(index)}
-                        className="px-4 py-2 bg-[#4a4a4a] text-white rounded-lg hover:bg-[#555555] transition-colors font-ubuntu text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSubmission(index)}
-                        className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-ubuntu text-sm"
-                      >
-                        Remove
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
