@@ -200,6 +200,20 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    const { error: historyError } = await supabase
+      .from('newsletter_history')
+      .insert({
+        subject,
+        content,
+        recipient_count: emailList.length,
+        sent_by: adminEmail,
+        mailgun_id: mailgunResult.id
+      })
+
+    if (historyError) {
+      console.error('Failed to save newsletter history:', historyError)
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

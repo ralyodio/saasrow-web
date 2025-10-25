@@ -34,6 +34,16 @@ interface Subscriber {
   is_active: boolean
 }
 
+interface NewsletterHistoryItem {
+  id: string
+  subject: string
+  content: string
+  recipient_count: number
+  sent_by: string
+  mailgun_id: string
+  sent_at: string
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
@@ -55,6 +65,9 @@ export default function AdminPage() {
   const [newsletterSubject, setNewsletterSubject] = useState('')
   const [newsletterContent, setNewsletterContent] = useState('')
   const [sendingNewsletter, setSendingNewsletter] = useState(false)
+  const [newsletterHistory, setNewsletterHistory] = useState<NewsletterHistoryItem[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+  const [expandedHistoryId, setExpandedHistoryId] = useState<string | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -281,6 +294,7 @@ export default function AdminPage() {
     }
     if (isAuthenticated && activeTab === 'newsletter') {
       fetchSubscribers()
+      fetchNewsletterHistory()
     }
   }, [isAuthenticated, activeTab])
 
@@ -374,6 +388,30 @@ export default function AdminPage() {
     e.target.value = ''
   }
 
+  const fetchNewsletterHistory = async () => {
+    setLoadingHistory(true)
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter-history`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setNewsletterHistory(result.data || [])
+      } else {
+        console.error('Failed to fetch newsletter history:', await response.text())
+      }
+    } catch (error) {
+      console.error('Failed to fetch newsletter history:', error)
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
+
   const sendNewsletter = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -415,6 +453,7 @@ export default function AdminPage() {
         alert(`Newsletter sent successfully to ${result.recipientCount} subscribers!`)
         setNewsletterSubject('')
         setNewsletterContent('')
+        fetchNewsletterHistory()
       } else {
         alert(`Failed to send newsletter: ${result.error}`)
       }
@@ -896,6 +935,63 @@ export default function AdminPage() {
                     {sendingNewsletter ? 'Sending...' : `Send to ${subscribers.filter(s => s.is_active).length} Subscribers`}
                   </button>
                 </form>
+              </div>
+
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <h2 className="text-white text-3xl font-bold font-ubuntu mb-4">
+                  Newsletter History ({newsletterHistory.length})
+                </h2>
+                <p className="text-white/70 font-ubuntu mb-6">
+                  View all previously sent newsletters
+                </p>
+
+                {loadingHistory ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">Loading history...</p>
+                  </div>
+                ) : newsletterHistory.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">No newsletters sent yet</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {newsletterHistory.map((item) => (
+                      <div
+                        key={item.id}
+                        className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <h3 className="text-white text-xl font-bold font-ubuntu mb-2">
+                              {item.subject}
+                            </h3>
+                            <div className="flex items-center gap-4 text-white/50 font-ubuntu text-sm mb-3">
+                              <span>Sent to: {item.recipient_count} subscribers</span>
+                              <span>By: {item.sent_by}</span>
+                              <span>
+                                {new Date(item.sent_at).toLocaleDateString()} at{' '}
+                                {new Date(item.sent_at).toLocaleTimeString()}
+                              </span>
+                            </div>
+                            {expandedHistoryId === item.id && (
+                              <div className="mt-4 pt-4 border-t border-white/10">
+                                <p className="text-white/80 font-ubuntu whitespace-pre-wrap">
+                                  {item.content}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => setExpandedHistoryId(expandedHistoryId === item.id ? null : item.id)}
+                            className="px-4 py-2 rounded-lg bg-[#4a4a4a] text-white border border-white/20 font-ubuntu font-bold hover:bg-[#505050] transition-colors"
+                          >
+                            {expandedHistoryId === item.id ? 'Hide' : 'View'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
