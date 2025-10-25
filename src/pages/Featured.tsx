@@ -1,9 +1,26 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { DiscountPopup } from '../components/DiscountPopup'
+import { supabase } from '../lib/supabase'
 
 export default function FeaturedPage() {
   const [billingPeriod, setBillingPeriod] = useState<'yearly' | 'monthly'>('yearly')
+  const [showDiscountPopup, setShowDiscountPopup] = useState(false)
+  const [selectedPlan, setSelectedPlan] = useState<string | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const cancelled = urlParams.get('cancelled')
+    const plan = urlParams.get('plan')
+
+    if (cancelled === 'true' && plan) {
+      setSelectedPlan(plan)
+      setShowDiscountPopup(true)
+      window.history.replaceState({}, '', '/featured')
+    }
+  }, [])
 
   const pricingPlans = [
     {
@@ -11,6 +28,8 @@ export default function FeaturedPage() {
       description: 'Perfect for trying us out',
       monthlyPrice: 0,
       yearlyPrice: 0,
+      monthlyPriceId: null,
+      yearlyPriceId: null,
       features: [
         'Submit 1 software listing',
         'Basic listing page',
@@ -23,6 +42,8 @@ export default function FeaturedPage() {
       description: 'For growing companies',
       monthlyPrice: 2,
       yearlyPrice: 19.2,
+      monthlyPriceId: 'price_basic_monthly',
+      yearlyPriceId: 'price_basic_yearly',
       features: [
         'Up to 5 software listings',
         'Featured badge on listings',
@@ -37,6 +58,8 @@ export default function FeaturedPage() {
       description: 'For established brands',
       monthlyPrice: 4,
       yearlyPrice: 38.4,
+      monthlyPriceId: 'price_premium_monthly',
+      yearlyPriceId: 'price_premium_yearly',
       features: [
         'Unlimited software listings',
         'Homepage featured spot',
@@ -80,6 +103,59 @@ export default function FeaturedPage() {
     if (plan.monthlyPrice === 0) return null
     const yearlySavings = (plan.monthlyPrice * 12) - plan.yearlyPrice
     return yearlySavings > 0 ? `Save $${yearlySavings.toFixed(2)}/year` : null
+  }
+
+  const handleCheckout = async (plan: typeof pricingPlans[0], discountCode?: string) => {
+    if (plan.name === 'Free') {
+      window.location.href = '/submit'
+      return
+    }
+
+    setIsProcessing(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (!session) {
+        alert('Please sign in to continue with checkout')
+        setIsProcessing(false)
+        return
+      }
+
+      const priceId = billingPeriod === 'yearly' ? plan.yearlyPriceId : plan.monthlyPriceId
+      const currentUrl = window.location.origin + '/featured'
+      const successUrl = `${currentUrl}?success=true`
+      const cancelUrl = `${currentUrl}?cancelled=true&plan=${plan.name.toLowerCase()}`
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          price_id: priceId,
+          success_url: successUrl,
+          cancel_url: cancelUrl,
+          mode: 'subscription',
+          discount_code: discountCode,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.url) {
+        window.location.href = data.url
+      } else {
+        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Checkout error:', error)
+      alert('Something went wrong. Please try again.')
+    } finally {
+      setIsProcessing(false)
+    }
   }
 
   return (
@@ -159,16 +235,11 @@ export default function FeaturedPage() {
                   </p>
                 )}
                 <button
-                  onClick={() => {
-                    if (plan.name === 'Free') {
-                      window.location.href = '/submit'
-                    } else {
-                      alert(`Checkout for ${plan.name} plan - Payment processing will be integrated here`)
-                    }
-                  }}
-                  className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6"
+                  onClick={() => handleCheckout(plan)}
+                  disabled={isProcessing}
+                  className="w-full py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity mb-6 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {plan.name === 'Free' ? 'Submit Now' : 'Get Started'}
+                  {isProcessing ? 'Processing...' : plan.name === 'Free' ? 'Submit Now' : 'Get Started'}
                 </button>
                 <ul className="space-y-3 text-left">
                   {plan.features.map((feature, idx) => (
@@ -215,6 +286,19 @@ export default function FeaturedPage() {
 
         <Footer />
       </div>
+
+      {showDiscountPopup && (
+        <DiscountPopup
+          onClose={() => setShowDiscountPopup(false)}
+          onApplyDiscount={() => {
+            setShowDiscountPopup(false)
+            const plan = pricingPlans.find(p => p.name.toLowerCase() === selectedPlan)
+            if (plan) {
+              handleCheckout(plan, '50OFF')
+            }
+          }}
+        />
+      )}
     </div>
   )
 }
