@@ -12,8 +12,14 @@ export default function FeaturedPage() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
+    const success = urlParams.get('success')
     const cancelled = urlParams.get('cancelled')
     const plan = urlParams.get('plan')
+
+    if (success === 'true') {
+      window.location.href = '/submit'
+      return
+    }
 
     if (cancelled === 'true' && plan) {
       setSelectedPlan(plan)
