@@ -21,7 +21,8 @@ interface SoftwareCardProps {
 
 export function SoftwareCard({ software }: SoftwareCardProps) {
   const isPremium = software.tier === 'premium'
-  const isFeatured = software.tier === 'featured' || isPremium
+  const isFeatured = software.tier === 'featured'
+  const isBasic = !software.tier || software.tier === 'basic'
 
   return (
     <Link
@@ -35,7 +36,12 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           PREMIUM
         </div>
       )}
-      {isFeatured && !isPremium && (
+      {isFeatured && (
+        <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
+          FEATURED
+        </div>
+      )}
+      {isBasic && (
         <div className="absolute -top-3 -right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-4 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           FEATURED
         </div>

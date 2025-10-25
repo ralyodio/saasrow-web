@@ -523,6 +523,11 @@ export default function ManageListings() {
                             FEATURED
                           </span>
                         )}
+                        {(!submission.tier || submission.tier === 'basic') && (
+                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
+                            FREE TIER
+                          </span>
+                        )}
                         <span
                           className={`px-3 py-1 rounded-full text-xs font-medium ${
                             submission.status === 'approved'
@@ -556,6 +561,39 @@ export default function ManageListings() {
                       ))}
                     </div>
 
+                    {(!submission.tier || submission.tier === 'basic') && (
+                      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 mb-4">
+                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <span className="text-cyan-600">⭐</span> Free Tier Features
+                        </h3>
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          <li>✓ Up to 5 software listings</li>
+                          <li>✓ Featured badge on listings</li>
+                          <li>✓ Priority review (2-3 days)</li>
+                          <li>✓ Monthly performance analytics</li>
+                          <li>✓ Logo in category pages</li>
+                          <li>✓ Social media mentions</li>
+                        </ul>
+                      </div>
+                    )}
+
+                    {submission.tier === 'featured' && (
+                      <div className="bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg p-4 mb-4">
+                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                          <span className="text-cyan-600">⭐</span> Featured Tier
+                        </h3>
+                        <ul className="text-sm text-gray-700 space-y-1">
+                          <li>✓ Unlimited software listings</li>
+                          <li>✓ Featured badge with priority placement</li>
+                          <li>✓ Same-day review</li>
+                          <li>✓ Advanced analytics dashboard</li>
+                          <li>✓ Premium search positioning</li>
+                          <li>✓ Logo in category pages</li>
+                          <li>✓ Social media mentions</li>
+                        </ul>
+                      </div>
+                    )}
+
                     {submission.tier === 'premium' && (
                       <div className="bg-gradient-to-r from-yellow-50 to-cyan-50 border border-yellow-200 rounded-lg p-4 mb-4">
                         <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
@@ -570,17 +608,6 @@ export default function ManageListings() {
                           <li>✓ Dedicated account manager</li>
                           <li>✓ SEO optimization support</li>
                         </ul>
-                      </div>
-                    )}
-
-                    {submission.tier === 'featured' && (
-                      <div className="bg-cyan-50 border border-cyan-200 rounded-lg p-4 mb-4">
-                        <h3 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
-                          <span className="text-cyan-600">⭐</span> Featured Listing
-                        </h3>
-                        <p className="text-sm text-gray-700">
-                          Your listing is featured with a special badge and priority placement in search results.
-                        </p>
                       </div>
                     )}
 

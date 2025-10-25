@@ -44,50 +44,60 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
-      const urlInput = urls.trim()
+      const urlList = urls
+        .split('\n')
+        .map(u => u.trim())
+        .filter(u => u.length > 0)
 
-      if (!urlInput) {
-        setMessage({ type: 'error', text: 'Please enter a URL' })
+      if (urlList.length === 0) {
+        setMessage({ type: 'error', text: 'Please enter at least one URL' })
+        setIsFetching(false)
+        return
+      }
+
+      if (urlList.length > 5) {
+        setMessage({ type: 'error', text: 'Free tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
         setIsFetching(false)
         return
       }
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/fetch-metadata`
+      const fetchedData: FetchedData[] = []
 
-      try {
-        const response = await fetch(apiUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ url: urlInput }),
-        })
+      for (const url of urlList) {
+        try {
+          const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            },
+            body: JSON.stringify({ url }),
+          })
 
-        const data = await response.json()
+          const data = await response.json()
 
-        if (response.ok) {
-          const fetchedData: FetchedData = {
-            url: data.url,
-            title: data.title,
-            description: data.description,
-            category: data.category,
-            tags: data.tags || [],
-            image: data.image,
-            logo: data.logo,
+          if (response.ok) {
+            fetchedData.push({
+              url: data.url,
+              title: data.title,
+              description: data.description,
+              category: data.category,
+              tags: data.tags || [],
+              image: data.image,
+              logo: data.logo,
+            })
           }
-
-          setSubmissions([fetchedData])
-          setStep('review')
-        } else {
-          setMessage({ type: 'error', text: data.error || 'Failed to fetch metadata' })
+        } catch (error) {
+          console.error('Error fetching', url, error)
         }
-      } catch (error) {
-        console.error('Error fetching metadata:', error)
-        setMessage({
-          type: 'error',
-          text: 'Failed to fetch metadata. Please try again.'
-        })
+      }
+
+      if (fetchedData.length === 0) {
+        setMessage({ type: 'error', text: 'Failed to fetch metadata for any URLs' })
+      } else {
+        setSubmissions(fetchedData)
+        setStep('review')
       }
     } catch (error) {
       console.error('Fetch error:', error)
@@ -399,9 +409,9 @@ export default function SubmitPage() {
           </h1>
           <p className="text-white/70 text-center font-ubuntu mb-8">
             {step === 'url'
-              ? 'Enter your software URL and we\'ll automatically fetch the details'
+              ? 'Enter your software URLs (up to 5) and we\'ll automatically fetch the details'
               : step === 'review'
-              ? 'Review your submission and edit if needed'
+              ? 'Review your submissions and edit if needed'
               : 'Review and edit the information before submitting'}
           </p>
 
@@ -409,28 +419,41 @@ export default function SubmitPage() {
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
                 <label htmlFor="urls" className="block text-white font-ubuntu text-lg mb-4">
-                  Software URL
+                  Software URLs (Free Tier - Up to 5)
                 </label>
-                <input
+                <textarea
                   id="urls"
                   name="urls"
-                  type="url"
                   value={urls}
                   onChange={(e) => setUrls(e.target.value)}
-                  placeholder="https://example.com"
+                  placeholder="https://example.com&#10;https://another-site.com&#10;https://third-site.com"
                   required
-                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg"
+                  rows={5}
+                  className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu text-lg resize-none"
                 />
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  We'll fetch the title, description, and other details automatically using AI
+                  Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI
                 </p>
-                <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#4FFFE3]/20">
+                <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
+                  <p className="text-white font-ubuntu text-sm mb-2">
+                    <strong className="text-[#4FFFE3]">Free Tier Includes:</strong>
+                  </p>
+                  <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
+                    <li>• Up to 5 software listings</li>
+                    <li>• Featured badge on listings</li>
+                    <li>• Priority review (2-3 days)</li>
+                    <li>• Monthly performance analytics</li>
+                    <li>• Logo in category pages</li>
+                    <li>• Social media mentions</li>
+                  </ul>
+                </div>
+                <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
                   <p className="text-white/70 text-sm font-ubuntu flex items-start gap-2">
-                    <span className="text-[#4FFFE3] text-lg">✨</span>
+                    <span className="text-[#E0FF04] text-lg">⭐</span>
                     <span>
-                      <strong className="text-white">Want to submit multiple URLs at once?</strong>
+                      <strong className="text-white">Need more?</strong>
                       <br />
-                      Upgrade to <span className="text-[#4FFFE3]">Featured</span> or <span className="text-[#E0FF04]">Premium</span> tier for bulk submissions and additional benefits!
+                      Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!
                     </span>
                   </p>
                 </div>
@@ -561,7 +584,7 @@ export default function SubmitPage() {
                   disabled={isSubmitting || submissions.length === 0}
                   className="flex-1 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-xl hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                  {isSubmitting ? 'Submitting...' : `Submit All (${submissions.length})`}
                 </button>
               </div>
             </div>
