@@ -6,6 +6,7 @@ export function Header() {
 
   const navigationItems = [
     { id: 'apps', label: 'Apps', href: '/' },
+    { id: 'categories', label: 'Categories', href: '/categories' },
     { id: 'tags', label: 'Tags', href: '/tags' },
     { id: 'community', label: 'Community', href: '/community' },
   ]

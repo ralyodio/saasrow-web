@@ -5,6 +5,7 @@ import Submit from './pages/Submit'
 import Featured from './pages/Featured'
 import Detailed from './pages/Detailed'
 import Tags from './pages/Tags'
+import Categories from './pages/Categories'
 import About from './pages/About'
 import Discover from './pages/Discover'
 import Explore from './pages/Explore'
@@ -20,6 +21,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/categories" element={<Categories />} />
         <Route path="/tags" element={<Tags />} />
         <Route path="/tags/:tag" element={<Tags />} />
         <Route path="/community" element={<Community />} />
