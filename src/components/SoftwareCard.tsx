@@ -27,6 +27,9 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   const addReferralParam = (url: string): string => {
     try {
       const urlObj = new URL(url)
+      if (urlObj.search === '' && !urlObj.pathname.endsWith('/')) {
+        urlObj.pathname += '/'
+      }
       urlObj.searchParams.set('ref', 'SaasRow')
       return urlObj.toString()
     } catch {
