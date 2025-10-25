@@ -58,9 +58,12 @@ export function Footer() {
               <h2 className="font-ubuntu font-bold text-black text-3xl sm:text-4xl lg:text-5xl mb-3 sm:mb-4">
                 Subscribe Newsletter
               </h2>
-              <p className="font-ubuntu text-black text-base sm:text-lg lg:text-xl max-w-md mx-auto lg:mx-0">
+              <p className="font-ubuntu text-black text-base sm:text-lg lg:text-xl max-w-md mx-auto lg:mx-0 mb-2">
                 For the latest in self-hosted news, software, and content delivered straight to your
                 inbox every Friday
+              </p>
+              <p className="font-ubuntu font-bold text-black text-sm sm:text-base">
+                🎁 Get a free 50% discount code when you subscribe!
               </p>
             </div>
 
