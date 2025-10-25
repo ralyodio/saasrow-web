@@ -215,7 +215,7 @@ Deno.serve(async (req: Request) => {
 
       const tierLimits = {
         free: 1,
-        basic: 10,
+        basic: 5,
         premium: 999999
       }
 
@@ -223,13 +223,12 @@ Deno.serve(async (req: Request) => {
         .from('software_submissions')
         .select('*', { count: 'exact', head: true })
         .eq('email', email)
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
 
       const limit = tierLimits[userTier as keyof typeof tierLimits] || 1
 
-      if (count && count >= limit) {
+      if (count !== null && count >= limit) {
         return new Response(
-          JSON.stringify({ error: `Submission limit reached. ${userTier === 'free' ? 'Upgrade to submit more' : 'Please try again in 24 hours'}` }),
+          JSON.stringify({ error: `Submission limit reached. You have ${count} of ${limit} submissions. ${userTier === 'free' ? 'Upgrade to submit more.' : ''}` }),
           {
             status: 429,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
