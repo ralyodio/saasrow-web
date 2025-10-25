@@ -618,6 +618,14 @@ export default function AdminPage() {
       const pending = submissions?.filter(s => s.status === 'pending') || []
       const rejected = submissions?.filter(s => s.status === 'rejected') || []
 
+      console.log('Analytics Debug:', {
+        totalSubmissions: submissions?.length,
+        approved: approved.length,
+        pending: pending.length,
+        rejected: rejected.length,
+        rejectedItems: rejected.map(r => ({ id: r.id, title: r.title, status: r.status }))
+      })
+
       const totalViews = submissions?.reduce((sum, s) => sum + (s.view_count || 0), 0) || 0
       const totalClicks = Object.values(clicksBySubmission).reduce((sum, count) => sum + count, 0)
 
