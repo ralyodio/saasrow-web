@@ -15,6 +15,7 @@ import Privacy from './pages/Privacy'
 import Admin from './pages/Admin'
 import Category from './pages/Category'
 import SoftwareDetail from './pages/SoftwareDetail'
+import ManageListings from './pages/ManageListings'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
         <Route path="/admin" element={<Admin />} />
         <Route path="/category/:category" element={<Category />} />
         <Route path="/software/:id" element={<SoftwareDetail />} />
+        <Route path="/manage/:token" element={<ManageListings />} />
       </Routes>
     </BrowserRouter>
   )

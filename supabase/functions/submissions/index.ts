@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, PUT, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 }
 
@@ -23,6 +23,41 @@ Deno.serve(async (req: Request) => {
     if (req.method === 'GET') {
       const url = new URL(req.url)
       const includeAll = url.searchParams.get('all') === 'true'
+      const token = url.searchParams.get('token')
+
+      // If token is provided, fetch submissions for that token
+      if (token) {
+        const { data, error } = await supabase
+          .from('software_submissions')
+          .select(`
+            *,
+            social_links (
+              id,
+              platform,
+              url
+            )
+          `)
+          .eq('management_token', token)
+          .order('created_at', { ascending: false })
+
+        if (error) {
+          return new Response(
+            JSON.stringify({ error: error.message }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        return new Response(
+          JSON.stringify({ data }),
+          {
+            status: 200,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
 
       const client = includeAll
         ? createClient(
@@ -184,10 +219,110 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      // Send management link email
+      if (data?.management_token) {
+        const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${data.management_token}`
+
+        // TODO: Implement email sending
+        console.log('Management URL:', managementUrl)
+      }
+
       return new Response(
-        JSON.stringify({ data, message: 'Submission created successfully' }),
+        JSON.stringify({
+          data,
+          message: 'Submission created successfully',
+          managementToken: data?.management_token
+        }),
         {
           status: 201,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
+    if (req.method === 'PUT') {
+      const body = await req.json()
+      const { token, submission } = body
+
+      if (!token || !submission) {
+        return new Response(
+          JSON.stringify({ error: 'Missing required fields: token, submission' }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Verify token exists
+      const { data: existing } = await supabase
+        .from('software_submissions')
+        .select('id, email')
+        .eq('management_token', token)
+        .maybeSingle()
+
+      if (!existing) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid management token' }),
+          {
+            status: 403,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      const updateData: any = {}
+      if (submission.title) updateData.title = submission.title
+      if (submission.url) updateData.url = submission.url
+      if (submission.description) updateData.description = submission.description
+      if (submission.category) updateData.category = submission.category
+      if (submission.tags) updateData.tags = submission.tags
+      if (submission.logo !== undefined) updateData.logo = submission.logo
+      if (submission.image !== undefined) updateData.image = submission.image
+
+      const { data, error } = await supabase
+        .from('software_submissions')
+        .update(updateData)
+        .eq('management_token', token)
+        .select()
+        .maybeSingle()
+
+      if (error) {
+        return new Response(
+          JSON.stringify({ error: error.message }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Update social links if provided
+      if (submission.socialLinks && Array.isArray(submission.socialLinks) && data) {
+        // Delete existing social links
+        await supabase
+          .from('social_links')
+          .delete()
+          .eq('submission_id', data.id)
+
+        // Insert new social links
+        if (submission.socialLinks.length > 0) {
+          const socialLinkInserts = submission.socialLinks.map((link: { platform: string; url: string }) => ({
+            submission_id: data.id,
+            platform: link.platform,
+            url: link.url,
+          }))
+
+          await supabase
+            .from('social_links')
+            .insert(socialLinkInserts)
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ data, message: 'Submission updated successfully' }),
+        {
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         }
       )

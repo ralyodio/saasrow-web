@@ -36,6 +36,7 @@ export default function SubmitPage() {
   const [fetchedImagePath, setFetchedImagePath] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [managementToken, setManagementToken] = useState<string | null>(null)
 
   const handleFetchMetadata = async (e: FormEvent) => {
     e.preventDefault()
@@ -211,16 +212,10 @@ export default function SubmitPage() {
           setStep('review')
           setMessage({ type: 'success', text: 'Changes saved!' })
         } else {
-          setMessage({ type: 'success', text: 'Software submitted successfully! We\'ll contact you at the provided email.' })
-          setFormData({ title: '', url: '', description: '', email: '', category: '', tags: [] })
-          setUrls('')
-          setPreviewImage(null)
-          setLogoUrl(null)
-          setLogoFile(null)
-          setImageFile(null)
-          setFetchedLogoPath(null)
-          setFetchedImagePath(null)
-          setStep('url')
+          if (data.managementToken) {
+            setManagementToken(data.managementToken)
+          }
+          setMessage({ type: 'success', text: 'Software submitted successfully!' })
         }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to submit' })
@@ -322,6 +317,28 @@ export default function SubmitPage() {
       }
 
       if (successCount > 0) {
+        const lastResponseData = await fetch(`${apiUrl}`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            title: submissions[submissions.length - 1].title,
+            url: submissions[submissions.length - 1].url,
+            description: submissions[submissions.length - 1].description,
+            email,
+            category: submissions[submissions.length - 1].category,
+            tags: submissions[submissions.length - 1].tags,
+            logo: submissions[submissions.length - 1].logo,
+            image: submissions[submissions.length - 1].image,
+          }),
+        }).then(r => r.json())
+
+        if (lastResponseData.managementToken) {
+          setManagementToken(lastResponseData.managementToken)
+        }
+
         setMessage({
           type: 'success',
           text: `Successfully submitted ${successCount} of ${submissions.length} software entries!`
@@ -428,6 +445,24 @@ export default function SubmitPage() {
                   >
                     {message.text}
                   </p>
+                  {managementToken && message.type === 'success' && (
+                    <div className="mt-4 space-y-2">
+                      <p className="text-white text-center font-ubuntu text-sm">
+                        Save this link to manage your listings:
+                      </p>
+                      <div className="bg-[#4a4a4a] rounded-lg p-3">
+                        <p className="text-[#4FFFE3] text-sm font-mono break-all text-center">
+                          {window.location.origin}/manage/{managementToken}
+                        </p>
+                      </div>
+                      <a
+                        href={`/manage/${managementToken}`}
+                        className="block text-center text-[#4FFFE3] hover:underline text-sm font-ubuntu"
+                      >
+                        Go to Management Page
+                      </a>
+                    </div>
+                  )}
                 </div>
               )}
 
