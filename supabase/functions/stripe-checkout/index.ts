@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       return corsResponse({ error: 'Method not allowed' }, 405);
     }
 
-    const { price_id, success_url, cancel_url, mode, discount_code } = await req.json();
+    const { price_id, success_url, cancel_url, mode, discount_code, customer_email } = await req.json();
 
     const error = validateParameters(
       { price_id, success_url, cancel_url, mode },
@@ -68,6 +68,10 @@ Deno.serve(async (req) => {
       cancel_url,
     };
 
+    if (customer_email) {
+      sessionParams.customer_email = customer_email;
+    }
+
     if (discount_code === '50OFF') {
       try {
         let couponId = null;
@@ -83,7 +87,7 @@ Deno.serve(async (req) => {
           const newCoupon = await stripe.coupons.create({
             id: '50OFF',
             percent_off: 50,
-            duration: 'once',
+            duration: 'forever',
             name: '50% Off Discount',
           });
           couponId = newCoupon.id;

@@ -38,6 +38,21 @@ export default function SubmitPage() {
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [emailInput, setEmailInput] = useState('')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+
+  const checkUserTier = async (email: string) => {
+    try {
+      const { data } = await supabase
+        .from('user_tokens')
+        .select('email')
+        .eq('email', email)
+        .maybeSingle()
+
+      return data ? 'paid' : 'free'
+    } catch {
+      return 'free'
+    }
+  }
 
   const handleFetchMetadata = async (e: FormEvent) => {
     e.preventDefault()
@@ -56,8 +71,11 @@ export default function SubmitPage() {
         return
       }
 
-      if (urlList.length > 5) {
-        setMessage({ type: 'error', text: 'Free tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
+      const storedEmail = sessionStorage.getItem('userEmail')
+      const tier = storedEmail ? await checkUserTier(storedEmail) : 'free'
+
+      if (tier === 'free' && urlList.length > 5) {
+        setMessage({ type: 'error', text: 'Free tier allows up to 5 URLs. Please upgrade to Basic tier for unlimited submissions.' })
         setIsFetching(false)
         return
       }

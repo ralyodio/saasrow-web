@@ -98,6 +98,7 @@ async function handleEvent(event: Stripe.Event) {
           amount_subtotal,
           amount_total,
           currency,
+          customer_email,
         } = stripeData as Stripe.Checkout.Session;
 
         // Insert the order into the stripe_orders table
@@ -109,13 +110,40 @@ async function handleEvent(event: Stripe.Event) {
           amount_total,
           currency,
           payment_status,
-          status: 'completed', // assuming we want to mark it as completed since payment is successful
+          status: 'completed',
         });
 
         if (orderError) {
           console.error('Error inserting order:', orderError);
           return;
         }
+
+        // Create a user token for the paid user if email is available
+        if (customer_email) {
+          const { data: existingToken } = await supabase
+            .from('user_tokens')
+            .select('token')
+            .eq('email', customer_email)
+            .maybeSingle();
+
+          if (!existingToken) {
+            const { data: newToken, error: tokenError } = await supabase
+              .from('user_tokens')
+              .insert({ email: customer_email })
+              .select()
+              .maybeSingle();
+
+            if (tokenError) {
+              console.error('Error creating user token:', tokenError);
+            } else if (newToken) {
+              console.info(`Created user token for ${customer_email}`);
+              // TODO: Send management link email with token
+              const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
+              console.log('Management URL:', managementUrl);
+            }
+          }
+        }
+
         console.info(`Successfully processed one-time payment for session: ${checkout_session_id}`);
       } catch (error) {
         console.error('Error processing one-time payment:', error);
