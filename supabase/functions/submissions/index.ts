@@ -27,6 +27,48 @@ Deno.serve(async (req: Request) => {
 
       // If token is provided, fetch submissions for that token
       if (token) {
+        // First, check if this is a user token (for paid users)
+        const { data: userToken } = await supabase
+          .from('user_tokens')
+          .select('email')
+          .eq('token', token)
+          .maybeSingle()
+
+        if (userToken) {
+          // Paid user - fetch all their submissions by email
+          const { data, error } = await supabase
+            .from('software_submissions')
+            .select(`
+              *,
+              social_links (
+                id,
+                platform,
+                url
+              )
+            `)
+            .eq('email', userToken.email)
+            .order('created_at', { ascending: false })
+
+          if (error) {
+            return new Response(
+              JSON.stringify({ error: error.message }),
+              {
+                status: 400,
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+              }
+            )
+          }
+
+          return new Response(
+            JSON.stringify({ data, email: userToken.email }),
+            {
+              status: 200,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
+
+        // Not a user token, check if it's a management token (for free users)
         const { data, error } = await supabase
           .from('software_submissions')
           .select(`
@@ -50,19 +92,18 @@ Deno.serve(async (req: Request) => {
           )
         }
 
-        // Get email from the first submission or from the token lookup
-        let email = data && data.length > 0 ? data[0].email : null
-
-        // If no submissions exist but token is valid, look up the email
-        if (!email) {
-          const { data: tokenData } = await supabase
-            .from('software_submissions')
-            .select('email')
-            .eq('management_token', token)
-            .maybeSingle()
-
-          email = tokenData?.email || null
+        // Must have at least one submission with this token
+        if (!data || data.length === 0) {
+          return new Response(
+            JSON.stringify({ error: 'Invalid management token' }),
+            {
+              status: 403,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
         }
+
+        const email = data[0].email
 
         return new Response(
           JSON.stringify({ data, email }),
