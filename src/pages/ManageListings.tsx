@@ -189,7 +189,11 @@ export default function ManageListings() {
     if (!addUrl || !token) return
 
     setProcessing(true)
+    setAlertMessage(null)
+
     try {
+      console.log('[ADD LISTING] Fetching metadata for:', addUrl)
+
       const response = await fetch(`${apiUrl}/functions/v1/fetch-metadata`, {
         method: 'POST',
         headers: {
@@ -200,6 +204,7 @@ export default function ManageListings() {
       })
 
       const result = await response.json()
+      console.log('[ADD LISTING] Metadata result:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to fetch metadata')
@@ -207,9 +212,22 @@ export default function ManageListings() {
 
       // Get email from submissions or session storage
       const email = submissions[0]?.email || sessionStorage.getItem('userEmail')
+      console.log('[ADD LISTING] Using email:', email)
+
       if (!email) {
         throw new Error('No email found. Please submit your first listing through the main submission form.')
       }
+
+      console.log('[ADD LISTING] Creating submission with data:', {
+        url: addUrl,
+        email: email,
+        title: result.title,
+        description: result.description,
+        category: result.category || 'Software',
+        tags: result.tags || [],
+        logo: result.logo,
+        image: result.image,
+      })
 
       const createResponse = await fetch(`${apiUrl}/functions/v1/submissions`, {
         method: 'POST',
@@ -224,21 +242,27 @@ export default function ManageListings() {
           description: result.description,
           category: result.category || 'Software',
           tags: result.tags || [],
-          logo: result.logo,
-          image: result.image,
+          logo: result.logo || null,
+          image: result.image || null,
+          socialLinks: result.socialLinks || [],
         }),
       })
 
+      const createResult = await createResponse.json()
+      console.log('[ADD LISTING] Create response:', createResult)
+
       if (!createResponse.ok) {
-        const createResult = await createResponse.json()
         throw new Error(createResult.error || 'Failed to create submission')
       }
 
       // Refresh submissions list
+      console.log('[ADD LISTING] Refreshing submissions list')
       await fetchSubmissions()
       setShowAddForm(false)
       setAddUrl('')
+      setAlertMessage({ type: 'success', message: 'Listing added successfully!' })
     } catch (err) {
+      console.error('[ADD LISTING] Error:', err)
       setAlertMessage({ type: 'error', message: err instanceof Error ? err.message : 'Failed to process URL' })
     } finally {
       setProcessing(false)
