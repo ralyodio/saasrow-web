@@ -39,7 +39,7 @@ export default function SubmitPage() {
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [userTier, setUserTier] = useState<'free' | 'basic' | 'premium'>('free')
+  const [userTier, setUserTier] = useState<'free' | 'featured' | 'premium'>('free')
 
   const checkUserTier = async (email: string) => {
     try {
@@ -60,12 +60,12 @@ export default function SubmitPage() {
     const pendingTier = localStorage.getItem('pendingTier')
 
     if (pendingTier) {
-      setUserTier(pendingTier as 'free' | 'basic' | 'premium')
+      setUserTier(pendingTier as 'free' | 'featured' | 'premium')
       setUserEmail(storedEmail)
       localStorage.removeItem('pendingTier')
     } else if (storedEmail) {
       checkUserTier(storedEmail).then(tier => {
-        setUserTier(tier as 'free' | 'basic' | 'premium')
+        setUserTier(tier as 'free' | 'featured' | 'premium')
         setUserEmail(storedEmail)
       })
     }
@@ -93,8 +93,8 @@ export default function SubmitPage() {
         return
       }
 
-      if (userTier === 'basic' && urlList.length > 5) {
-        setMessage({ type: 'error', text: 'Basic tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
+      if (userTier === 'featured' && urlList.length > 5) {
+        setMessage({ type: 'error', text: 'Featured tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
         setIsFetching(false)
         return
       }
@@ -512,7 +512,7 @@ export default function SubmitPage() {
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
                 <label htmlFor={userTier === 'free' ? 'url' : 'urls'} className="block text-white font-ubuntu text-lg mb-4">
                   {userTier === 'free' && 'Software URL (Free Tier - 1 URL)'}
-                  {userTier === 'basic' && 'Software URLs (Basic Tier - Up to 5 URLs)'}
+                  {userTier === 'featured' && 'Software URLs (Featured Tier - Up to 5 URLs)'}
                   {userTier === 'premium' && 'Software URLs (Premium Tier - Unlimited)'}
                 </label>
                 {userTier === 'free' ? (
@@ -540,12 +540,12 @@ export default function SubmitPage() {
                 )}
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
                   {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!"}
-                  {userTier === 'basic' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
+                  {userTier === 'featured' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                   {userTier === 'premium' && "Enter unlimited URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                 </p>
                 <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
                   <p className="text-white font-ubuntu text-sm mb-2">
-                    <strong className="text-[#4FFFE3]">{userTier === 'free' ? 'Free' : userTier === 'basic' ? 'Basic' : 'Premium'} Tier Includes:</strong>
+                    <strong className="text-[#4FFFE3]">{userTier === 'free' ? 'Free' : userTier === 'featured' ? 'Featured' : 'Premium'} Tier Includes:</strong>
                   </p>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
                     {userTier === 'free' && (
@@ -556,7 +556,7 @@ export default function SubmitPage() {
                         <li>• Standard review time (7-10 days)</li>
                       </>
                     )}
-                    {userTier === 'basic' && (
+                    {userTier === 'featured' && (
                       <>
                         <li>• Up to 5 software listings</li>
                         <li>• Featured badge on listings</li>
@@ -587,9 +587,9 @@ export default function SubmitPage() {
                         <strong className="text-white">Need more?</strong>
                         <br />
                         {userTier === 'free' && (
-                          <>Upgrade to <span className="text-[#E0FF04]">Basic</span> for 5 URLs and priority review, or <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
+                          <>Upgrade to <span className="text-[#E0FF04]">Featured</span> for 5 URLs and priority review, or <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
                         )}
-                        {userTier === 'basic' && (
+                        {userTier === 'featured' && (
                           <>Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
                         )}
                       </span>

@@ -116,7 +116,7 @@ export default function ManageListings() {
         const firstSubmission = result.data[0]
         const tier = firstSubmission.tier || 'free'
         setUserTier(tier)
-        setHasActiveSubscription(tier === 'basic' || tier === 'premium')
+        setHasActiveSubscription(tier === 'featured' || tier === 'premium')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
@@ -717,7 +717,7 @@ export default function ManageListings() {
                             FEATURED
                           </span>
                         )}
-                        {(!submission.tier || submission.tier === 'basic') && (
+                        {(!submission.tier || submission.tier === 'free') && (
                           <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
                             FREE TIER
                           </span>
@@ -755,7 +755,7 @@ export default function ManageListings() {
                       ))}
                     </div>
 
-                    {(!submission.tier || submission.tier === 'basic') && (
+                    {(!submission.tier || submission.tier === 'free') && (
                       <div className="bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 border border-[#4FFFE3]/20 rounded-xl p-4 mb-4">
                         <h3 className="font-bold text-white mb-2 flex items-center gap-2 font-ubuntu">
                           <span className="text-[#4FFFE3]">⭐</span> Free Tier Features
@@ -828,7 +828,7 @@ export default function ManageListings() {
                       Submitted: {new Date(submission.created_at).toLocaleDateString()}
                     </div>
 
-                    {submission.tier && submission.tier !== 'basic' && (
+                    {submission.tier && submission.tier !== 'free' && (
                       <div className="mt-4">
                         <button
                           onClick={() => setShowAnalytics(showAnalytics === submission.id ? null : submission.id)}

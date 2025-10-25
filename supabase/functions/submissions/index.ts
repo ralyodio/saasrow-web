@@ -25,9 +25,7 @@ Deno.serve(async (req: Request) => {
       const includeAll = url.searchParams.get('all') === 'true'
       const token = url.searchParams.get('token')
 
-      // If token is provided, fetch submissions for that token
       if (token) {
-        // First, check if this is a user token (for paid users)
         const { data: userToken } = await supabase
           .from('user_tokens')
           .select('email')
@@ -35,7 +33,6 @@ Deno.serve(async (req: Request) => {
           .maybeSingle()
 
         if (userToken) {
-          // Paid user - fetch all their submissions by email
           const { data, error } = await supabase
             .from('software_submissions')
             .select(`
@@ -68,7 +65,6 @@ Deno.serve(async (req: Request) => {
           )
         }
 
-        // Not a user token, check if it's a management token (for free users)
         const { data, error } = await supabase
           .from('software_submissions')
           .select(`
@@ -92,7 +88,6 @@ Deno.serve(async (req: Request) => {
           )
         }
 
-        // Must have at least one submission with this token
         if (!data || data.length === 0) {
           return new Response(
             JSON.stringify({ error: 'Invalid management token' }),
@@ -213,15 +208,8 @@ Deno.serve(async (req: Request) => {
 
       const userTier = userToken?.tier || 'free'
 
-      // Map tier names: 'basic' -> 'featured' for database compatibility
-      const dbTier = userTier === 'basic' ? 'featured' : userTier
-
-      // Apply limits based on tier
       if (userTier === 'free') {
-        // Free tier: 10 submissions per day
         const dailyLimit = 10
-
-        // Calculate timestamp for 24 hours ago
         const oneDayAgo = new Date()
         oneDayAgo.setHours(oneDayAgo.getHours() - 24)
 
@@ -233,15 +221,14 @@ Deno.serve(async (req: Request) => {
 
         if (count !== null && count >= dailyLimit) {
           return new Response(
-            JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${dailyLimit}/day). Upgrade to basic for 5 total listings or premium for unlimited.` }),
+            JSON.stringify({ error: `Daily submission limit reached. You have submitted ${count} times in the last 24 hours (limit: ${dailyLimit}/day). Upgrade to featured for 5 total listings or premium for unlimited.` }),
             {
               status: 429,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             }
           )
         }
-      } else if (userTier === 'basic') {
-        // Basic tier: 5 total submissions
+      } else if (userTier === 'featured') {
         const totalLimit = 5
 
         const { count } = await supabase
@@ -259,7 +246,6 @@ Deno.serve(async (req: Request) => {
           )
         }
       }
-      // Premium tier: unlimited (no check needed)
 
       const submissionData: any = {
         title,
@@ -268,7 +254,7 @@ Deno.serve(async (req: Request) => {
         email,
         category,
         status: 'pending',
-        tier: dbTier
+        tier: userTier
       }
 
       if (tags && Array.isArray(tags)) {
@@ -315,11 +301,8 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      // Send management link email
       if (data?.management_token) {
         const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${encodeURIComponent(data.management_token)}`
-
-        // TODO: Implement email sending
         console.log('Management URL:', managementUrl)
       }
 
@@ -350,7 +333,6 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      // Verify token exists
       const { data: existing } = await supabase
         .from('software_submissions')
         .select('id, email')
@@ -393,15 +375,12 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      // Update social links if provided
       if (submission.socialLinks && Array.isArray(submission.socialLinks) && data) {
-        // Delete existing social links
         await supabase
           .from('social_links')
           .delete()
           .eq('submission_id', data.id)
 
-        // Insert new social links
         if (submission.socialLinks.length > 0) {
           const socialLinkInserts = submission.socialLinks.map((link: { platform: string; url: string }) => ({
             submission_id: data.id,

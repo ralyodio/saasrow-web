@@ -23,7 +23,7 @@ interface SoftwareCardProps {
 export function SoftwareCard({ software }: SoftwareCardProps) {
   const isPremium = software.tier === 'premium'
   const isFeatured = software.tier === 'featured'
-  const isBasic = !software.tier || software.tier === 'basic'
+  const isBasic = !software.tier || software.tier === 'free'
 
   const trackClick = async (submissionId: string) => {
     try {

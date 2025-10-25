@@ -15,7 +15,6 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 
 Deno.serve(async (req) => {
   try {
-    // Handle OPTIONS request for CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204 });
     }
@@ -24,17 +23,14 @@ Deno.serve(async (req) => {
       return new Response('Method not allowed', { status: 405 });
     }
 
-    // get the signature from the header
     const signature = req.headers.get('stripe-signature');
 
     if (!signature) {
       return new Response('No signature found', { status: 400 });
     }
 
-    // get the raw body
     const body = await req.text();
 
-    // verify the webhook signature
     let event: Stripe.Event;
 
     try {
@@ -64,7 +60,6 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
-  // for one time payments, we only listen for the checkout.session.completed event
   if (event.type === 'payment_intent.succeeded' && event.data.object.invoice === null) {
     return;
   }
@@ -91,10 +86,8 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-// based on the excellent https://github.com/t3dotgg/stripe-recommendations
 async function syncCustomerFromStripe(customerId: string) {
   try {
-    // fetch latest subscription data from Stripe
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       limit: 1,
@@ -102,7 +95,6 @@ async function syncCustomerFromStripe(customerId: string) {
       expand: ['data.default_payment_method'],
     });
 
-    // TODO verify if needed
     if (subscriptions.data.length === 0) {
       console.info(`No active subscriptions found for customer: ${customerId}`);
       const { error: noSubError } = await supabase.from('stripe_subscriptions').upsert(
@@ -122,11 +114,9 @@ async function syncCustomerFromStripe(customerId: string) {
       return;
     }
 
-    // assumes that a customer can only have a single subscription
     const subscription = subscriptions.data[0];
     const priceId = subscription.items.data[0].price.id;
 
-    // store subscription state
     const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
       {
         customer_id: customerId,
@@ -153,16 +143,13 @@ async function syncCustomerFromStripe(customerId: string) {
       throw new Error('Failed to sync subscription in database');
     }
 
-    // Get customer email and create/update user token
     const customer = await stripe.customers.retrieve(customerId);
     if (customer && !customer.deleted && customer.email) {
-      // Determine tier based on price_id
-      let tier = 'basic';
+      let tier = 'featured';
       if (priceId.toLowerCase().includes('premium')) {
         tier = 'premium';
       }
 
-      // Only create/update token if subscription is active
       const isActiveSubscription = ['active', 'trialing'].includes(subscription.status);
 
       if (isActiveSubscription) {
@@ -189,9 +176,7 @@ async function syncCustomerFromStripe(customerId: string) {
         } else {
           const oldTier = existingToken.tier;
 
-          // Only update if tier changed
           if (oldTier !== tier) {
-            // Cancel old subscriptions before updating tier
             try {
               const oldSubscriptions = await stripe.subscriptions.list({
                 customer: customerId,
@@ -199,7 +184,6 @@ async function syncCustomerFromStripe(customerId: string) {
                 limit: 100,
               });
 
-              // Cancel all subscriptions except the current one
               for (const oldSub of oldSubscriptions.data) {
                 if (oldSub.id !== subscription.id) {
                   await stripe.subscriptions.cancel(oldSub.id);
@@ -216,9 +200,8 @@ async function syncCustomerFromStripe(customerId: string) {
               .eq('email', customer.email);
             console.info(`Updated tier for ${customer.email} from ${oldTier} to: ${tier}`);
 
-            // Upgrade all existing submissions to the new tier (only if upgrading)
-            const tierLevels = { basic: 1, premium: 2 };
-            const isUpgrade = tierLevels[tier as 'basic' | 'premium'] > tierLevels[oldTier as 'basic' | 'premium'];
+            const tierLevels = { featured: 1, premium: 2 };
+            const isUpgrade = tierLevels[tier as 'featured' | 'premium'] > tierLevels[oldTier as 'featured' | 'premium'];
 
             if (isUpgrade) {
               const { error: upgradeError } = await supabase
@@ -235,9 +218,6 @@ async function syncCustomerFromStripe(customerId: string) {
           }
         }
       } else if (['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
-        // Handle cancelled/inactive subscriptions - revert to free tier
-
-        // Revert all submissions to free tier
         const { error: revertError } = await supabase
           .from('software_submissions')
           .update({
@@ -257,7 +237,6 @@ async function syncCustomerFromStripe(customerId: string) {
           console.info(`Reverted all submissions to free tier for ${customer.email}`);
         }
 
-        // Remove user token
         const { error: deleteError } = await supabase
           .from('user_tokens')
           .delete()
