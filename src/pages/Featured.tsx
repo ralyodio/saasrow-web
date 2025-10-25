@@ -304,7 +304,9 @@ export default function FeaturedPage() {
       {showDiscountPopup && (
         <DiscountPopup
           onClose={() => setShowDiscountPopup(false)}
-          onApplyDiscount={() => {
+          currentBillingPeriod={billingPeriod}
+          onApplyDiscount={(selectedBillingPeriod) => {
+            setBillingPeriod(selectedBillingPeriod)
             setShowDiscountPopup(false)
             const plan = pricingPlans.find(p => p.name.toLowerCase() === selectedPlan)
             if (plan) {
