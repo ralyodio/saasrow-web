@@ -25,6 +25,26 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   const isFeatured = software.tier === 'featured'
   const isBasic = !software.tier || software.tier === 'basic'
 
+  const trackClick = async (submissionId: string) => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
+      await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          referrer: document.referrer || null,
+          userAgent: navigator.userAgent,
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to track click:', error)
+    }
+  }
+
   return (
     <Link
       to={`/software/${software.id}`}
@@ -129,7 +149,10 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
-          onClick={(e) => e.stopPropagation()}
+          onClick={(e) => {
+            e.stopPropagation()
+            trackClick(software.id)
+          }}
         >
           Visit Website
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

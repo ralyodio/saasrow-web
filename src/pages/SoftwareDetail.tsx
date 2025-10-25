@@ -57,6 +57,26 @@ export default function SoftwareDetailPage() {
     }
   }
 
+  const trackClick = async (submissionId: string) => {
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
+      await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId,
+          referrer: document.referrer || null,
+          userAgent: navigator.userAgent,
+        }),
+      })
+    } catch (error) {
+      console.error('Failed to track click:', error)
+    }
+  }
+
   const fetchSubmission = async () => {
     setLoading(true)
     try {
@@ -200,6 +220,7 @@ export default function SoftwareDetailPage() {
                     href={submission.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => trackClick(submission.id)}
                     className="flex-1 text-center px-8 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity"
                   >
                     Visit Website

@@ -4,6 +4,8 @@ import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { Alert } from '../components/Alert'
 import { ConfirmDialog } from '../components/ConfirmDialog'
+import { BasicAnalytics } from '../components/BasicAnalytics'
+import { PremiumAnalytics } from '../components/PremiumAnalytics'
 
 interface SocialLink {
   id?: string
@@ -77,6 +79,7 @@ export default function ManageListings() {
   const [showBilling, setShowBilling] = useState(false)
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
+  const [showAnalytics, setShowAnalytics] = useState<string | null>(null)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -824,6 +827,30 @@ export default function ManageListings() {
                     <div className="text-sm text-white/50 mt-4 font-ubuntu">
                       Submitted: {new Date(submission.created_at).toLocaleDateString()}
                     </div>
+
+                    {submission.tier && submission.tier !== 'basic' && (
+                      <div className="mt-4">
+                        <button
+                          onClick={() => setShowAnalytics(showAnalytics === submission.id ? null : submission.id)}
+                          className="w-full px-4 py-3 bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 rounded-xl font-ubuntu font-bold hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                          </svg>
+                          {showAnalytics === submission.id ? 'Hide Analytics' : 'View Analytics'}
+                        </button>
+
+                        {showAnalytics === submission.id && token && (
+                          <div className="mt-4">
+                            {submission.tier === 'premium' ? (
+                              <PremiumAnalytics submissionId={submission.id} token={token} />
+                            ) : (
+                              <BasicAnalytics submissionId={submission.id} token={token} />
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
