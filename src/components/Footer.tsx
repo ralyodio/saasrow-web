@@ -37,7 +37,7 @@ export function Footer() {
       const data = await response.json()
 
       if (response.ok) {
-        setMessage({ type: 'success', text: 'Successfully subscribed!' })
+        setMessage({ type: 'success', text: data.message || 'Successfully subscribed! Check your email for your discount code.' })
         setEmail('')
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to subscribe' })
@@ -87,11 +87,16 @@ export function Footer() {
                 </button>
               </div>
               {message && (
-                <p className={`mt-2 text-sm font-ubuntu text-center sm:text-left ${
-                  message.type === 'success' ? 'text-[#4FFFE3]' : 'text-red-400'
+                <div className={`mt-3 p-4 rounded-lg font-ubuntu text-sm ${
+                  message.type === 'success'
+                    ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]/30 text-[#4FFFE3]'
+                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
                 }`}>
-                  {message.text}
-                </p>
+                  <p className="font-semibold mb-1">
+                    {message.type === 'success' ? '✓ Success!' : '✗ Error'}
+                  </p>
+                  <p>{message.text}</p>
+                </div>
               )}
             </form>
           </div>
