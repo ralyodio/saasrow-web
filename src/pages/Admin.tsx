@@ -253,6 +253,7 @@ export default function AdminPage() {
         setSubmissions((prev) =>
           prev.map((sub) => (sub.id === id ? { ...sub, status } : sub))
         )
+        fetchAnalytics()
       } else {
         console.error('Failed to update submission:', await response.text())
         setAlertMessage({ type: 'error', message: 'Failed to update submission status' })
