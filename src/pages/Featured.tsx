@@ -114,14 +114,6 @@ export default function FeaturedPage() {
     setIsProcessing(true)
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (!session) {
-        alert('Please sign in to continue with checkout')
-        setIsProcessing(false)
-        return
-      }
-
       const priceId = billingPeriod === 'yearly' ? plan.yearlyPriceId : plan.monthlyPriceId
       const currentUrl = window.location.origin + '/featured'
       const successUrl = `${currentUrl}?success=true`
@@ -131,8 +123,8 @@ export default function FeaturedPage() {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
         body: JSON.stringify({
           price_id: priceId,
