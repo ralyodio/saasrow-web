@@ -125,28 +125,36 @@ This is an automated email from SaaSRow. Please keep this email safe as it conta
     })
 
     try {
-      const resendApiKey = Deno.env.get('RESEND_API_KEY')
-      if (resendApiKey) {
-        const resendResponse = await fetch('https://api.resend.com/emails', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${resendApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            from: 'SaaSRow <noreply@saasrow.com>',
-            to: [email],
-            subject: 'Manage Your SaaSRow Listings',
-            html: emailHtml,
-            text: emailText,
-          }),
-        })
+      const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
+      const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
+      
+      if (mailgunApiKey && mailgunDomain) {
+        const formData = new FormData()
+        formData.append('from', 'SaaSRow <noreply@saasrow.com>')
+        formData.append('to', email)
+        formData.append('subject', 'Manage Your SaaSRow Listings')
+        formData.append('html', emailHtml)
+        formData.append('text', emailText)
 
-        if (!resendResponse.ok) {
-          console.error('Resend API error:', await resendResponse.text())
+        const mailgunResponse = await fetch(
+          `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+            },
+            body: formData,
+          }
+        )
+
+        if (!mailgunResponse.ok) {
+          console.error('Mailgun API error:', await mailgunResponse.text())
+        } else {
+          console.log('Email sent successfully via Mailgun to:', email)
         }
       } else {
-        console.log('RESEND_API_KEY not configured, would send email to:', email)
+        console.log('MAILGUN_API_KEY or MAILGUN_DOMAIN not configured')
+        console.log('Would send email to:', email)
         console.log('Management URL:', managementUrl)
       }
     } catch (emailErr) {
