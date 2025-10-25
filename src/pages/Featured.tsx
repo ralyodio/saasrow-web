@@ -71,7 +71,6 @@ export default function FeaturedPage() {
         'Homepage featured spot',
         'Same-day review',
         'Advanced analytics dashboard',
-        'Custom company profile page',
         'Newsletter feature (200K+ subscribers)',
         'Dedicated account manager',
         'SEO optimization support',
