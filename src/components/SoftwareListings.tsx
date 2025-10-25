@@ -110,6 +110,16 @@ export function SoftwareListings({
       return matchesSearch && matchesCategory && matchesTags && matchesFilter
     })
     .sort((a, b) => {
+      // First sort by tier (premium > featured > free)
+      const tierPriority = { premium: 3, featured: 2, free: 1 }
+      const aTierPriority = tierPriority[a.tier as keyof typeof tierPriority] || 1
+      const bTierPriority = tierPriority[b.tier as keyof typeof tierPriority] || 1
+
+      if (aTierPriority !== bTierPriority) {
+        return bTierPriority - aTierPriority
+      }
+
+      // Then apply user-selected sort
       switch (selectedSort) {
         case 'Newest':
           return new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()

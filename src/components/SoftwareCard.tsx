@@ -23,7 +23,6 @@ interface SoftwareCardProps {
 export function SoftwareCard({ software }: SoftwareCardProps) {
   const isPremium = software.tier === 'premium'
   const isFeatured = software.tier === 'featured'
-  const isBasic = !software.tier || software.tier === 'free'
 
   const trackClick = async (submissionId: string) => {
     try {
@@ -58,11 +57,6 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
         </div>
       )}
       {isFeatured && (
-        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
-          FEATURED
-        </div>
-      )}
-      {isBasic && (
         <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           FEATURED
         </div>
