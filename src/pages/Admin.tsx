@@ -27,6 +27,13 @@ interface NewsPost {
   created_at: string
 }
 
+interface Subscriber {
+  id: string
+  email: string
+  subscribed_at: string
+  is_active: boolean
+}
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [email, setEmail] = useState('')
@@ -35,7 +42,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [activeTab, setActiveTab] = useState<'submissions' | 'news'>('submissions')
+  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter'>('submissions')
   const [newsTopic, setNewsTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
@@ -43,6 +50,11 @@ export default function AdminPage() {
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [adminEmail, setAdminEmail] = useState<string | null>(null)
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null)
+  const [subscribers, setSubscribers] = useState<Subscriber[]>([])
+  const [loadingSubscribers, setLoadingSubscribers] = useState(false)
+  const [newsletterSubject, setNewsletterSubject] = useState('')
+  const [newsletterContent, setNewsletterContent] = useState('')
+  const [sendingNewsletter, setSendingNewsletter] = useState(false)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -267,7 +279,132 @@ export default function AdminPage() {
     if (isAuthenticated && activeTab === 'news') {
       fetchNewsPosts()
     }
+    if (isAuthenticated && activeTab === 'newsletter') {
+      fetchSubscribers()
+    }
   }, [isAuthenticated, activeTab])
+
+  const fetchSubscribers = async () => {
+    setLoadingSubscribers(true)
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter?all=true`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setSubscribers(result.data || [])
+      } else {
+        console.error('Failed to fetch subscribers:', await response.text())
+      }
+    } catch (error) {
+      console.error('Failed to fetch subscribers:', error)
+    } finally {
+      setLoadingSubscribers(false)
+    }
+  }
+
+  const exportSubscribers = () => {
+    const csv = [
+      ['Email', 'Subscribed At', 'Active'],
+      ...subscribers.map(sub => [
+        sub.email,
+        new Date(sub.subscribed_at).toISOString(),
+        sub.is_active ? 'Yes' : 'No'
+      ])
+    ].map(row => row.join(',')).join('\n')
+
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `newsletter-subscribers-${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+  }
+
+  const importSubscribers = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    const text = await file.text()
+    const lines = text.split('\n').slice(1)
+    const emails = lines
+      .map(line => line.split(',')[0].trim())
+      .filter(email => email && email.includes('@'))
+
+    if (emails.length === 0) {
+      alert('No valid emails found in CSV file')
+      return
+    }
+
+    let successCount = 0
+    let errorCount = 0
+
+    for (const email of emails) {
+      try {
+        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+        const response = await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email }),
+        })
+
+        if (response.ok) {
+          successCount++
+        } else {
+          errorCount++
+        }
+      } catch (error) {
+        errorCount++
+      }
+    }
+
+    alert(`Import complete! ${successCount} subscribers added, ${errorCount} failed.`)
+    fetchSubscribers()
+    e.target.value = ''
+  }
+
+  const sendNewsletter = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    if (!newsletterSubject.trim() || !newsletterContent.trim()) {
+      alert('Please provide both subject and content')
+      return
+    }
+
+    const activeSubscribers = subscribers.filter(sub => sub.is_active)
+
+    if (activeSubscribers.length === 0) {
+      alert('No active subscribers to send to')
+      return
+    }
+
+    if (!confirm(`Send newsletter to ${activeSubscribers.length} active subscribers?`)) {
+      return
+    }
+
+    setSendingNewsletter(true)
+    try {
+      alert(`Newsletter functionality coming soon! Would send to ${activeSubscribers.length} subscribers.\n\nSubject: ${newsletterSubject}\n\nThis would require email service integration (e.g., SendGrid, Resend).`)
+      setNewsletterSubject('')
+      setNewsletterContent('')
+    } catch (error) {
+      console.error('Failed to send newsletter:', error)
+      alert('Failed to send newsletter')
+    } finally {
+      setSendingNewsletter(false)
+    }
+  }
 
   const handleGeneratePost = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -480,6 +617,16 @@ export default function AdminPage() {
             >
               News Posts
             </button>
+            <button
+              onClick={() => setActiveTab('newsletter')}
+              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+                activeTab === 'newsletter'
+                  ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+              }`}
+            >
+              Newsletter
+            </button>
           </div>
 
           {activeTab === 'submissions' && (
@@ -604,6 +751,133 @@ export default function AdminPage() {
             </div>
           )}
             </>
+          )}
+
+          {activeTab === 'newsletter' && (
+            <div className="space-y-8">
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                      Newsletter Subscribers ({subscribers.filter(s => s.is_active).length} active)
+                    </h2>
+                    <p className="text-white/70 font-ubuntu">
+                      Manage your newsletter subscriber list
+                    </p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={exportSubscribers}
+                      disabled={subscribers.length === 0}
+                      className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Export CSV
+                    </button>
+                    <label className="px-6 py-3 rounded-full bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors cursor-pointer">
+                      Import CSV
+                      <input
+                        type="file"
+                        accept=".csv"
+                        onChange={importSubscribers}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {loadingSubscribers ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">Loading subscribers...</p>
+                  </div>
+                ) : subscribers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">No subscribers yet</p>
+                  </div>
+                ) : (
+                  <div className="max-h-96 overflow-y-auto">
+                    <table className="w-full">
+                      <thead className="sticky top-0 bg-[#3a3a3a] border-b border-white/10">
+                        <tr className="text-left">
+                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Email</th>
+                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Subscribed At</th>
+                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {subscribers.map((subscriber) => (
+                          <tr key={subscriber.id} className="border-b border-white/5 hover:bg-white/5">
+                            <td className="py-3 px-4 text-white/90 font-ubuntu">{subscriber.email}</td>
+                            <td className="py-3 px-4 text-white/70 font-ubuntu">
+                              {new Date(subscriber.subscribed_at).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-4">
+                              <span className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                                subscriber.is_active
+                                  ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
+                                  : 'text-red-400 bg-red-400/10 border-red-400'
+                              }`}>
+                                {subscriber.is_active ? 'Active' : 'Inactive'}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <h2 className="text-white text-3xl font-bold font-ubuntu mb-4">
+                  Send Newsletter
+                </h2>
+                <p className="text-white/70 font-ubuntu mb-6">
+                  Compose and send a newsletter to all active subscribers
+                </p>
+
+                <form onSubmit={sendNewsletter} className="space-y-4">
+                  <div>
+                    <label htmlFor="subject" className="block text-white font-ubuntu mb-2">
+                      Subject
+                    </label>
+                    <input
+                      id="subject"
+                      type="text"
+                      value={newsletterSubject}
+                      onChange={(e) => setNewsletterSubject(e.target.value)}
+                      placeholder="Your newsletter subject..."
+                      required
+                      disabled={sendingNewsletter}
+                      className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu disabled:opacity-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="content" className="block text-white font-ubuntu mb-2">
+                      Content
+                    </label>
+                    <textarea
+                      id="content"
+                      value={newsletterContent}
+                      onChange={(e) => setNewsletterContent(e.target.value)}
+                      placeholder="Write your newsletter content here..."
+                      required
+                      disabled={sendingNewsletter}
+                      rows={10}
+                      className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu disabled:opacity-50 resize-y"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={sendingNewsletter || subscribers.filter(s => s.is_active).length === 0}
+                    className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {sendingNewsletter ? 'Sending...' : `Send to ${subscribers.filter(s => s.is_active).length} Subscribers`}
+                  </button>
+                </form>
+              </div>
+            </div>
           )}
 
           {activeTab === 'news' && (

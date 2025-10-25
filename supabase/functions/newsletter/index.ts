@@ -21,12 +21,20 @@ Deno.serve(async (req: Request) => {
     )
 
     if (req.method === 'GET') {
-      const { data, error } = await supabase
+      const url = new URL(req.url)
+      const showAll = url.searchParams.get('all') === 'true'
+
+      let query = supabase
         .from('newsletter_subscriptions')
         .select('*')
-        .eq('is_active', true)
-        .order('subscribed_at', { ascending: false })
-        .limit(100)
+
+      if (!showAll) {
+        query = query.eq('is_active', true).limit(100)
+      }
+
+      query = query.order('subscribed_at', { ascending: false })
+
+      const { data, error } = await query
 
       if (error) {
         return new Response(
