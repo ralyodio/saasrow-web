@@ -597,63 +597,19 @@ export default function AdminPage() {
   const fetchAnalytics = async () => {
     setLoadingAnalytics(true)
     try {
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('software_submissions')
-        .select('id, title, url, view_count, tier, status, submitted_at')
-
-      if (submissionsError) throw submissionsError
-
-      const { data: clicks, error: clicksError } = await supabase
-        .from('submission_clicks')
-        .select('submission_id')
-
-      if (clicksError) throw clicksError
-
-      const clicksBySubmission = clicks.reduce((acc, click) => {
-        acc[click.submission_id] = (acc[click.submission_id] || 0) + 1
-        return acc
-      }, {} as Record<string, number>)
-
-      const approved = submissions?.filter(s => s.status === 'approved') || []
-      const pending = submissions?.filter(s => s.status === 'pending') || []
-      const rejected = submissions?.filter(s => s.status === 'rejected') || []
-
-      console.log('Analytics Debug:', {
-        totalSubmissions: submissions?.length,
-        approved: approved.length,
-        pending: pending.length,
-        rejected: rejected.length,
-        rejectedItems: rejected.map(r => ({ id: r.id, title: r.title, status: r.status }))
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-admin-analytics`
+      const response = await fetch(apiUrl, {
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
       })
 
-      const totalViews = submissions?.reduce((sum, s) => sum + (s.view_count || 0), 0) || 0
-      const totalClicks = Object.values(clicksBySubmission).reduce((sum, count) => sum + count, 0)
-
-      const topPerformers = approved
-        .map(s => ({
-          ...s,
-          total_clicks: clicksBySubmission[s.id] || 0
-        }))
-        .sort((a, b) => (b.view_count || 0) - (a.view_count || 0))
-        .slice(0, 10)
-
-      const tierBreakdown = {
-        free: approved.filter(s => s.tier === 'free').length,
-        featured: approved.filter(s => s.tier === 'featured').length,
-        premium: approved.filter(s => s.tier === 'premium').length,
+      if (!response.ok) {
+        throw new Error('Failed to fetch analytics')
       }
 
-      setAnalyticsData({
-        totalSubmissions: submissions?.length || 0,
-        approvedSubmissions: approved.length,
-        pendingSubmissions: pending.length,
-        rejectedSubmissions: rejected.length,
-        totalViews,
-        totalClicks,
-        topPerformers,
-        tierBreakdown,
-        recentActivity: []
-      })
+      const data = await response.json()
+      setAnalyticsData(data)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
       setAlertMessage({ type: 'error', message: 'Failed to load analytics data' })
