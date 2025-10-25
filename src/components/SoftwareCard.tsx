@@ -13,6 +13,7 @@ interface Software {
   tier?: string
   homepage_featured?: boolean
   newsletter_featured?: boolean
+  view_count?: number
 }
 
 interface SoftwareCardProps {
@@ -122,18 +123,29 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
         </div>
       )}
 
-      <a
-        href={software.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
-        onClick={(e) => e.stopPropagation()}
-      >
-        Visit Website
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-        </svg>
-      </a>
+      <div className="flex items-center justify-between">
+        <a
+          href={software.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          Visit Website
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
+        {software.view_count !== undefined && software.view_count > 0 && (
+          <div className="flex items-center gap-1.5 text-white/40 font-ubuntu text-xs">
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            <span>{software.view_count.toLocaleString()}</span>
+          </div>
+        )}
+      </div>
     </Link>
   )
 }

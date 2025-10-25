@@ -17,6 +17,7 @@ interface Submission {
   logo?: string
   image?: string
   tags?: string[]
+  view_count?: number
 }
 
 export default function SoftwareDetailPage() {
@@ -28,7 +29,33 @@ export default function SoftwareDetailPage() {
 
   useEffect(() => {
     fetchSubmission()
+    if (id) {
+      incrementViewCount(id)
+    }
   }, [id])
+
+  const incrementViewCount = async (submissionId: string) => {
+    try {
+      const viewKey = `viewed_${submissionId}`
+      const hasViewed = sessionStorage.getItem(viewKey)
+
+      if (!hasViewed) {
+        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/increment-view`
+        await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ submissionId }),
+        })
+
+        sessionStorage.setItem(viewKey, 'true')
+      }
+    } catch (error) {
+      console.error('Failed to increment view count:', error)
+    }
+  }
 
   const fetchSubmission = async () => {
     setLoading(true)
@@ -117,12 +144,23 @@ export default function SoftwareDetailPage() {
                     <h1 className="text-white text-4xl font-bold font-ubuntu mb-3">
                       {submission.title}
                     </h1>
-                    <Link
-                      to={`/category/${submission.category.toLowerCase()}`}
-                      className="inline-block px-4 py-2 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] hover:bg-[#4FFFE3]/30 transition-colors"
-                    >
-                      {submission.category}
-                    </Link>
+                    <div className="flex items-center gap-4 mb-3">
+                      <Link
+                        to={`/category/${submission.category.toLowerCase()}`}
+                        className="inline-block px-4 py-2 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] hover:bg-[#4FFFE3]/30 transition-colors"
+                      >
+                        {submission.category}
+                      </Link>
+                      {submission.view_count !== undefined && (
+                        <div className="flex items-center gap-2 text-white/60 font-ubuntu text-sm">
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                          <span>{submission.view_count.toLocaleString()} views</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
