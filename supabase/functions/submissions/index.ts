@@ -485,6 +485,93 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      // Send email notification when approved
+      if (status === 'approved' && data.email) {
+        try {
+          const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173'
+          const listingUrl = `${siteUrl}/software/${data.id}`
+          const managementUrl = `${siteUrl}/manage/${data.management_token}`
+
+          const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
+          const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
+
+          if (mailgunApiKey && mailgunDomain) {
+            const formData = new FormData()
+            formData.append('from', `SaaSRow <noreply@${mailgunDomain}>`)
+            formData.append('to', data.email)
+            formData.append('subject', `🎉 Your listing "${data.title}" has been approved!`)
+            formData.append('html', `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                  .header h1 { margin: 0; color: #1a1a1a; font-size: 28px; }
+                  .content { background: #ffffff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; }
+                  .button { display: inline-block; padding: 12px 30px; background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); color: #1a1a1a; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 10px 5px; }
+                  .listing-info { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                  .footer { text-align: center; padding: 20px; color: #666; font-size: 14px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>🎉 Listing Approved!</h1>
+                  </div>
+                  <div class="content">
+                    <p>Great news! Your software listing has been approved and is now live on SaaSRow.</p>
+
+                    <div class="listing-info">
+                      <strong>${data.title}</strong><br>
+                      <span style="color: #666;">${data.description}</span>
+                    </div>
+
+                    <p>Your listing is now visible to our community and can be discovered by potential users.</p>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${listingUrl}" class="button">View Your Listing</a>
+                      <a href="${managementUrl}" class="button">Manage Listing</a>
+                    </div>
+
+                    <p style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; color: #666; font-size: 14px;">
+                      <strong>Pro tip:</strong> Want to boost your listing's visibility? Upgrade to Featured or Premium tier for homepage placement, advanced analytics, and priority support.
+                    </p>
+                  </div>
+                  <div class="footer">
+                    <p>© ${new Date().getFullYear()} SaaSRow. All rights reserved.</p>
+                    <p>Questions? Reply to this email or visit our support page.</p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `)
+
+            const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`
+            const mailgunResponse = await fetch(mailgunUrl, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+              },
+              body: formData,
+            })
+
+            if (!mailgunResponse.ok) {
+              const errorText = await mailgunResponse.text()
+              console.error('Failed to send approval email:', errorText)
+            } else {
+              console.log(`Approval email sent to ${data.email} for listing: ${data.title}`)
+            }
+          } else {
+            console.warn('Mailgun credentials not configured. Skipping approval email.')
+          }
+        } catch (emailError) {
+          console.error('Error sending approval email:', emailError)
+          // Don't fail the request if email fails
+        }
+      }
+
       return new Response(
         JSON.stringify({ data, message: 'Status updated successfully' }),
         {
