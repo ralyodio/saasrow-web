@@ -534,12 +534,19 @@ Deno.serve(async (req: Request) => {
                     .logo {
                       font-size: 36px;
                       font-weight: 800;
+                      color: #4FFFE3;
                       background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%);
                       -webkit-background-clip: text;
                       -webkit-text-fill-color: transparent;
                       background-clip: text;
                       margin-bottom: 12px;
                       letter-spacing: -0.5px;
+                    }
+                    @supports not (-webkit-background-clip: text) {
+                      .logo {
+                        color: #4FFFE3;
+                        background: none;
+                      }
                     }
                     .subtitle {
                       color: #4FFFE3;
