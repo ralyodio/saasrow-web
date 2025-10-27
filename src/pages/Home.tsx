@@ -11,6 +11,13 @@ export default function HomePage() {
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [selectedSort, setSelectedSort] = useState('Most Popular')
 
+  const handleClearAll = () => {
+    setSearchQuery('')
+    setSelectedFilter('all')
+    setActiveCategories([])
+    setActiveTags([])
+  }
+
   return (
     <div className="min-h-screen bg-neutral-800 relative">
       <div className="absolute w-full h-1/2 top-[7.45%] left-0 pointer-events-none">
@@ -33,6 +40,7 @@ export default function HomePage() {
           onTagsChange={setActiveTags}
           selectedSort={selectedSort}
           onSortChange={setSelectedSort}
+          onClearAll={handleClearAll}
         />
         <SoftwareListings
           searchQuery={searchQuery}

@@ -12,6 +12,7 @@ interface SearchSectionProps {
   onTagsChange: (tags: string[]) => void
   selectedSort: string
   onSortChange: (sort: string) => void
+  onClearAll?: () => void
 }
 
 export function SearchSection({
@@ -25,6 +26,7 @@ export function SearchSection({
   onTagsChange,
   selectedSort,
   onSortChange,
+  onClearAll,
 }: SearchSectionProps) {
 
   const filterButtons = [
@@ -124,12 +126,32 @@ export function SearchSection({
           <div className="flex items-center flex-1">
             <img className="w-6 h-6 sm:w-8 sm:h-8 mr-3 sm:mr-4 flex-shrink-0" alt="" src="/vector.svg" />
             <input
-              type="search"
+              type="text"
               value={searchQuery}
               onChange={(e) => onSearchChange(e.target.value)}
               placeholder="Search..."
               className="flex-1 bg-transparent border-none outline-none text-white text-lg sm:text-2xl placeholder:text-white/70 font-inter"
             />
+            {(searchQuery || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0) && (
+              <button
+                onClick={() => {
+                  if (onClearAll) {
+                    onClearAll()
+                  } else {
+                    onSearchChange('')
+                    onFilterChange('all')
+                    onCategoriesChange([])
+                    onTagsChange([])
+                  }
+                }}
+                className="ml-2 p-2 hover:bg-white/10 rounded-full transition-colors"
+                title="Clear all filters"
+              >
+                <svg className="w-5 h-5 text-white/70 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            )}
           </div>
 
           <div className="flex gap-2 sm:gap-3 sm:ml-4 justify-between sm:justify-start">
