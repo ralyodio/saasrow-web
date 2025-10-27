@@ -99,7 +99,7 @@ export function RelatedSoftware({ currentId, category, tags = [] }: RelatedSoftw
             <div className="flex items-start gap-3 mb-3">
               {item.logo ? (
                 <img
-                  src={item.logo}
+                  src={supabase.storage.from('software-logos').getPublicUrl(item.logo).data.publicUrl}
                   alt={item.title}
                   className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
                 />
