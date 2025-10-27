@@ -22,6 +22,8 @@ interface Submission {
   tier?: string
   upvotes?: number
   downvotes?: number
+  share_count?: number
+  last_share_reset?: string
 }
 
 export default function SoftwareDetailPage() {
@@ -34,6 +36,9 @@ export default function SoftwareDetailPage() {
   const [upvotes, setUpvotes] = useState(0)
   const [downvotes, setDownvotes] = useState(0)
   const [isVoting, setIsVoting] = useState(false)
+  const [shareCount, setShareCount] = useState(0)
+  const [showCopied, setShowCopied] = useState(false)
+  const [isTrending, setIsTrending] = useState(false)
 
   useEffect(() => {
     fetchSubmission()
@@ -193,6 +198,48 @@ export default function SoftwareDetailPage() {
     }
   }
 
+  const checkTrendingStatus = (sub: Submission) => {
+    if (!sub.last_share_reset || !sub.share_count) {
+      setIsTrending(false)
+      return
+    }
+    const now = new Date()
+    const lastReset = new Date(sub.last_share_reset)
+    const hoursSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60)
+    setIsTrending(sub.share_count >= 10 && hoursSinceReset < 24)
+  }
+
+  const handleShare = async () => {
+    if (!submission) return
+
+    const shareUrl = `${window.location.origin}/software/${submission.id}?ref=share`
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShowCopied(true)
+      setTimeout(() => setShowCopied(false), 2000)
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-share`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ submissionId: submission.id }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setShareCount(result.shareCount)
+        setIsTrending(result.isTrending)
+      }
+    } catch (error) {
+      console.error('Failed to share:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to copy share link' })
+    }
+  }
+
   const fetchSubmission = async () => {
     setLoading(true)
     try {
@@ -211,6 +258,8 @@ export default function SoftwareDetailPage() {
           setSubmission(found)
           setUpvotes(found.upvotes || 0)
           setDownvotes(found.downvotes || 0)
+          setShareCount(found.share_count || 0)
+          checkTrendingStatus(found)
         } else {
           setNotFound(true)
         }
@@ -289,6 +338,14 @@ export default function SoftwareDetailPage() {
                       >
                         {submission.category}
                       </Link>
+                      {isTrending && (
+                        <div className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-gradient-to-r from-[#ff6b35] to-[#f7931e] text-white font-ubuntu text-sm font-bold">
+                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" />
+                          </svg>
+                          TRENDING
+                        </div>
+                      )}
                       {submission.view_count !== undefined && (
                         <div className="flex items-center gap-2 text-white/60 font-ubuntu text-sm">
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -374,13 +431,18 @@ export default function SoftwareDetailPage() {
                     Visit Website
                   </a>
                   <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(submission.url)
-                      setAlertMessage({ type: 'success', message: 'URL copied to clipboard!' })
-                    }}
-                    className="px-8 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-lg hover:bg-[#555555] transition-colors"
+                    onClick={handleShare}
+                    className="relative px-8 py-4 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold text-lg hover:bg-[#555555] transition-colors flex items-center justify-center gap-2"
                   >
-                    Copy URL
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                    </svg>
+                    Share {shareCount > 0 && `(${shareCount})`}
+                    {showCopied && (
+                      <span className="absolute -top-12 left-1/2 -translate-x-1/2 bg-[#4FFFE3] text-neutral-800 text-sm px-4 py-2 rounded-lg font-ubuntu whitespace-nowrap shadow-lg">
+                        Link copied to clipboard!
+                      </span>
+                    )}
                   </button>
                 </div>
               </div>
