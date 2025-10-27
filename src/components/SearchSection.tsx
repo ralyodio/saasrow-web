@@ -120,12 +120,16 @@ export function SearchSection({
     onTagsChange(newTags)
   }
 
+  const hasActiveFilters = searchQuery.length > 0 || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0
+
+  console.log('SearchSection render:', { hasActiveFilters, searchQuery, selectedFilter, activeCategories, activeTags })
+
   return (
     <section className="w-full max-w-[1318px] mx-auto px-4 py-8">
       <div className="relative">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-[#4a4a4a] rounded-2xl sm:rounded-full px-4 sm:px-8 py-4 gap-4 z-10">
           <div className="flex items-center flex-1 gap-3">
-            {(searchQuery.length > 0 || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0) ? (
+            {hasActiveFilters ? (
               <button
                 onClick={(e) => {
                   e.preventDefault()
@@ -143,15 +147,16 @@ export function SearchSection({
                 className="p-2 hover:bg-red-500/20 rounded-full transition-all flex-shrink-0 cursor-pointer"
                 title="Clear all filters"
                 type="button"
+                id="clear-search-button"
               >
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+                <svg id="clear-x-icon" className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                   <line x1="18" y1="6" x2="6" y2="18" />
                   <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               </button>
             ) : (
-              <div className="p-2 flex-shrink-0">
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <div className="p-2 flex-shrink-0" id="search-icon-container">
+                <svg id="search-magnify-icon" className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8" />
                   <path d="m21 21-4.35-4.35" />
                 </svg>
