@@ -56,6 +56,12 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
       if (vote) {
         setUserVote(vote.vote_type as 'upvote' | 'downvote')
       }
+    } else {
+      const anonymousVoteKey = `vote_${software.id}`
+      const savedVote = localStorage.getItem(anonymousVoteKey)
+      if (savedVote) {
+        setUserVote(savedVote as 'upvote' | 'downvote')
+      }
     }
   }
 
@@ -95,6 +101,15 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
         setUserVote(result.voteType)
         setUpvotes(result.upvotes)
         setDownvotes(result.downvotes)
+
+        if (!session) {
+          const anonymousVoteKey = `vote_${software.id}`
+          if (result.voteType) {
+            localStorage.setItem(anonymousVoteKey, result.voteType)
+          } else {
+            localStorage.removeItem(anonymousVoteKey)
+          }
+        }
       } else {
         alert(result.error || 'Failed to vote')
       }

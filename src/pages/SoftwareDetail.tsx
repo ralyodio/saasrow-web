@@ -59,6 +59,12 @@ export default function SoftwareDetailPage() {
       if (vote) {
         setUserVote(vote.vote_type as 'upvote' | 'downvote')
       }
+    } else {
+      const anonymousVoteKey = `vote_${id}`
+      const savedVote = localStorage.getItem(anonymousVoteKey)
+      if (savedVote) {
+        setUserVote(savedVote as 'upvote' | 'downvote')
+      }
     }
   }
 
@@ -95,6 +101,15 @@ export default function SoftwareDetailPage() {
         setUserVote(result.voteType)
         setUpvotes(result.upvotes)
         setDownvotes(result.downvotes)
+
+        if (!session) {
+          const anonymousVoteKey = `vote_${submission.id}`
+          if (result.voteType) {
+            localStorage.setItem(anonymousVoteKey, result.voteType)
+          } else {
+            localStorage.removeItem(anonymousVoteKey)
+          }
+        }
       } else {
         setAlertMessage({ type: 'error', message: result.error || 'Failed to vote' })
       }
