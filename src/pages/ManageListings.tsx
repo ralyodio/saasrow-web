@@ -6,6 +6,7 @@ import { Alert } from '../components/Alert'
 import { ConfirmDialog } from '../components/ConfirmDialog'
 import { BasicAnalytics } from '../components/BasicAnalytics'
 import { PremiumAnalytics } from '../components/PremiumAnalytics'
+import { ScreenshotGallery } from '../components/ScreenshotGallery'
 
 interface SocialLink {
   id?: string
@@ -80,6 +81,7 @@ export default function ManageListings() {
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => void; confirmColor?: 'primary' | 'danger' } | null>(null)
   const [showAnalytics, setShowAnalytics] = useState<string | null>(null)
+  const [generatingScreenshots, setGeneratingScreenshots] = useState<string | null>(null)
 
   const apiUrl = import.meta.env.VITE_SUPABASE_URL
 
@@ -359,6 +361,46 @@ export default function ManageListings() {
       setAlertMessage({ type: 'error', message: err instanceof Error ? err.message : 'Failed to cancel subscription' })
     } finally {
       setCancelling(false)
+    }
+  }
+
+  const handleGenerateScreenshots = async (submissionId: string, url: string, tier: string) => {
+    setGeneratingScreenshots(submissionId)
+    try {
+      const response = await fetch(`${apiUrl}/functions/v1/capture-screenshots`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          submissionId,
+          url,
+          tier
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate screenshots')
+      }
+
+      setAlertMessage({
+        type: 'success',
+        message: `Successfully generated ${result.count || 0} screenshot(s)`
+      })
+
+      setTimeout(() => {
+        window.location.reload()
+      }, 1500)
+    } catch (err) {
+      setAlertMessage({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Failed to generate screenshots'
+      })
+    } finally {
+      setGeneratingScreenshots(null)
     }
   }
 
@@ -858,6 +900,7 @@ export default function ManageListings() {
                           <li>✓ Featured badge with priority placement</li>
                           <li>✓ Same-day review</li>
                           <li>✓ Advanced analytics dashboard</li>
+                          <li>✓ Screenshot gallery</li>
                           <li>✓ Premium search positioning</li>
                           <li>✓ Logo in category pages</li>
                           <li>✓ Social media mentions</li>
@@ -880,6 +923,7 @@ export default function ManageListings() {
                           {submission.homepage_featured && <li>✓ Homepage featured spot (ACTIVE)</li>}
                           <li>✓ Same-day review</li>
                           {submission.analytics_enabled && <li>✓ Advanced analytics dashboard</li>}
+                          <li>✓ Screenshot gallery</li>
                           {submission.newsletter_featured && <li>✓ Newsletter feature - 200K+ subscribers (ACTIVE)</li>}
                           <li>✓ Dedicated account manager</li>
                           <li>✓ SEO optimization support</li>
@@ -909,6 +953,27 @@ export default function ManageListings() {
                     <div className="text-sm text-white/50 mt-4 font-ubuntu">
                       Submitted: {new Date(submission.created_at).toLocaleDateString()}
                     </div>
+
+                    {submission.tier && (submission.tier === 'featured' || submission.tier === 'premium') && (
+                      <div className="mt-4 space-y-3">
+                        <button
+                          onClick={() => handleGenerateScreenshots(submission.id, submission.url, submission.tier!)}
+                          disabled={generatingScreenshots === submission.id}
+                          className="w-full px-4 py-3 bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] rounded-xl font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {generatingScreenshots === submission.id ? 'Generating...' : 'Generate Screenshots'}
+                        </button>
+                      </div>
+                    )}
+
+                    {submission.tier && (submission.tier === 'featured' || submission.tier === 'premium') && (
+                      <div className="mt-4">
+                        <ScreenshotGallery submissionId={submission.id} />
+                      </div>
+                    )}
 
                     {submission.tier && submission.tier !== 'free' && (
                       <div className="mt-4">
