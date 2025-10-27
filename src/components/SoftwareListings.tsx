@@ -17,6 +17,7 @@ interface Software {
   homepage_featured?: boolean
   upvotes?: number
   downvotes?: number
+  view_count?: number
 }
 
 interface SoftwareListingsProps {
@@ -131,8 +132,12 @@ export function SoftwareListings({
           return b.title.localeCompare(a.title)
         case 'Most Popular':
         case 'Top Rated':
-          const aScore = (a.upvotes || 0) - (a.downvotes || 0)
-          const bScore = (b.upvotes || 0) - (b.downvotes || 0)
+          const aVotes = (a.upvotes || 0) - (a.downvotes || 0)
+          const bVotes = (b.upvotes || 0) - (b.downvotes || 0)
+          const aViews = a.view_count || 0
+          const bViews = b.view_count || 0
+          const aScore = aVotes * 10 + aViews
+          const bScore = bVotes * 10 + bViews
           return bScore - aScore
         default:
           return 0
