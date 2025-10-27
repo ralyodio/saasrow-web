@@ -96,14 +96,10 @@ Deno.serve(async (req: Request) => {
               border-bottom: 2px solid rgba(79, 255, 227, 0.2);
             }
             .logo {
-              font-size: 36px;
-              font-weight: 800;
-              background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%);
-              -webkit-background-clip: text;
-              -webkit-text-fill-color: transparent;
-              background-clip: text;
-              margin-bottom: 12px;
-              letter-spacing: -0.5px;
+              height: 64px;
+              width: auto;
+              margin: 0 auto 12px;
+              display: block;
             }
             .subtitle {
               color: #4FFFE3;
@@ -182,7 +178,7 @@ Deno.serve(async (req: Request) => {
             }
             @media only screen and (max-width: 600px) {
               .container { padding: 32px 24px; }
-              .logo { font-size: 28px; }
+              .logo { height: 48px; }
               .subtitle { font-size: 20px; }
               .button { padding: 16px 36px; font-size: 15px; }
             }
@@ -191,7 +187,7 @@ Deno.serve(async (req: Request) => {
         <body>
           <div class="container">
             <div class="header">
-              <div class="logo">SaaSRow</div>
+              <img src="https://saasrow.com/wiresniff-logo-1-1.png" alt="SaaSRow" class="logo" />
               <h2 class="subtitle">Manage Your Listings</h2>
             </div>
             <div class="content">
