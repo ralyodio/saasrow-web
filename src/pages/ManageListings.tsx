@@ -108,9 +108,12 @@ export default function ManageListings() {
 
       setSubmissions(result.data || [])
 
-      // Store email for later use
+      // Store email and userId for later use
       if (result.email) {
         sessionStorage.setItem('userEmail', result.email)
+      }
+      if (result.userId) {
+        sessionStorage.setItem('userId', result.userId)
       }
 
       // Check if this is a paid user with active subscription

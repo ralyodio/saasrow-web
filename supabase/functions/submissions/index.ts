@@ -28,7 +28,7 @@ Deno.serve(async (req: Request) => {
       if (token) {
         const { data: userToken } = await supabase
           .from('user_tokens')
-          .select('email')
+          .select('user_id, email')
           .eq('token', token)
           .maybeSingle()
 
@@ -43,7 +43,7 @@ Deno.serve(async (req: Request) => {
                 url
               )
             `)
-            .eq('email', userToken.email)
+            .eq('user_id', userToken.user_id)
             .order('created_at', { ascending: false })
 
           if (error) {
@@ -57,7 +57,7 @@ Deno.serve(async (req: Request) => {
           }
 
           return new Response(
-            JSON.stringify({ data, email: userToken.email }),
+            JSON.stringify({ data, email: userToken.email, userId: userToken.user_id }),
             {
               status: 200,
               headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -98,10 +98,11 @@ Deno.serve(async (req: Request) => {
           )
         }
 
+        const userId = data[0].user_id
         const email = data[0].email
 
         return new Response(
-          JSON.stringify({ data, email }),
+          JSON.stringify({ data, email, userId }),
           {
             status: 200,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },

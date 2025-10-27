@@ -50,15 +50,49 @@ Deno.serve(async (req: Request) => {
 
     const userEmail = user.email;
 
+    // Get user_id from users table
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    let { data: userData } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("email", userEmail)
+      .maybeSingle();
+
+    // If user doesn't exist in users table, create them
+    if (!userData) {
+      const { data: newUser } = await supabaseAdmin
+        .from("users")
+        .insert({ email: userEmail })
+        .select("id")
+        .single();
+      userData = newUser;
+    }
+
+    const userId = userData?.id;
+
+    if (!userId) {
+      return new Response(
+        JSON.stringify({ error: "User not found" }),
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     if (req.method === "GET") {
       const url = new URL(req.url);
       const submissionId = url.searchParams.get("submission_id");
 
       if (submissionId) {
-        const { data, error } = await supabase
-          .from("bookmarks")
+        const { data, error } = await supabaseAdmin
+          .from("favorites")
           .select("*")
-          .eq("user_email", userEmail)
+          .eq("user_id", userId)
           .eq("submission_id", submissionId)
           .maybeSingle();
 
@@ -74,23 +108,23 @@ Deno.serve(async (req: Request) => {
           }
         );
       } else {
-        const { data, error } = await supabase
-          .from("bookmarks")
+        const { data, error } = await supabaseAdmin
+          .from("favorites")
           .select(`
             *,
             software_submissions:submission_id (
               id,
-              name,
-              tagline,
-              website_url,
-              logo_url,
+              title,
+              description,
+              url,
+              logo,
               category,
               tier,
               upvotes,
               downvotes
             )
           `)
-          .eq("user_email", userEmail)
+          .eq("user_id", userId)
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -120,10 +154,10 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const { data, error } = await supabase
-        .from("bookmarks")
+      const { data, error } = await supabaseAdmin
+        .from("favorites")
         .insert({
-          user_email: userEmail,
+          user_id: userId,
           submission_id,
         })
         .select()
@@ -165,10 +199,10 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const { error } = await supabase
-        .from("bookmarks")
+      const { error } = await supabaseAdmin
+        .from("favorites")
         .delete()
-        .eq("user_email", userEmail)
+        .eq("user_id", userId)
         .eq("submission_id", submissionId);
 
       if (error) {

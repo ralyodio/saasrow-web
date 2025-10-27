@@ -22,32 +22,35 @@ export function Favorites() {
   const [favoriteSoftware, setFavoriteSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (userEmail) {
+    if (userId) {
       loadFavorites();
     } else {
       setIsLoading(false);
     }
-  }, [userEmail]);
+  }, [userId]);
 
   const checkAuth = () => {
     const email = sessionStorage.getItem('userEmail');
+    const uid = sessionStorage.getItem('userId');
     setUserEmail(email);
+    setUserId(uid);
   };
 
   const loadFavorites = async () => {
-    if (!userEmail) return;
+    if (!userId) return;
 
     try {
       const { data: favorites, error: favoritesError } = await supabase
         .from('favorites')
         .select('submission_id')
-        .eq('user_email', userEmail);
+        .eq('user_id', userId);
 
       if (favoritesError) throw favoritesError;
 

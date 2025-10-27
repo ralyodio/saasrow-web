@@ -14,6 +14,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   const [isLoading, setIsLoading] = useState(false);
   const [totalBookmarks, setTotalBookmarks] = useState(0);
   const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -26,27 +27,29 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   }, []);
 
   useEffect(() => {
-    if (userEmail) {
+    if (userId) {
       checkBookmarkStatus();
       if (showCount) {
         updateTotalBookmarks();
       }
     }
-  }, [submissionId, userEmail, showCount]);
+  }, [submissionId, userId, showCount]);
 
   const checkAuth = () => {
     const email = sessionStorage.getItem('userEmail');
+    const uid = sessionStorage.getItem('userId');
     setUserEmail(email);
+    setUserId(uid);
   };
 
   const checkBookmarkStatus = async () => {
-    if (!userEmail) return;
+    if (!userId) return;
 
     try {
       const { data, error } = await supabase
         .from('favorites')
         .select('id')
-        .eq('user_email', userEmail)
+        .eq('user_id', userId)
         .eq('submission_id', submissionId)
         .maybeSingle();
 
@@ -58,13 +61,13 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   };
 
   const updateTotalBookmarks = async () => {
-    if (!userEmail) return;
+    if (!userId) return;
 
     try {
       const { count, error } = await supabase
         .from('favorites')
         .select('*', { count: 'exact', head: true })
-        .eq('user_email', userEmail);
+        .eq('user_id', userId);
 
       if (error) throw error;
       setTotalBookmarks(count || 0);
@@ -79,7 +82,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
-    if (!userEmail) {
+    if (!userId) {
       alert('Please log in or create an account to save favorites');
       return;
     }
@@ -91,7 +94,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         const { error } = await supabase
           .from('favorites')
           .delete()
-          .eq('user_email', userEmail)
+          .eq('user_id', userId)
           .eq('submission_id', submissionId);
 
         if (error) throw error;
@@ -100,7 +103,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         const { error } = await supabase
           .from('favorites')
           .insert({
-            user_email: userEmail,
+            user_id: userId,
             submission_id: submissionId
           });
 

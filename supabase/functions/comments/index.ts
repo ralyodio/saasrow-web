@@ -181,6 +181,20 @@ Deno.serve(async (req: Request) => {
 
       const isVerified = !!user;
 
+      // Get user_id from users table if authenticated
+      let userIdToInsert = null;
+      if (user) {
+        const { data: userData } = await supabase
+          .from("users")
+          .select("id")
+          .eq("email", user.email)
+          .maybeSingle();
+
+        if (userData) {
+          userIdToInsert = userData.id;
+        }
+      }
+
       const { data: comment, error } = await supabase
         .from("comments")
         .insert({
@@ -191,6 +205,7 @@ Deno.serve(async (req: Request) => {
           rating: rating || null,
           ip_address: clientIp,
           is_verified: isVerified,
+          user_id: userIdToInsert,
         })
         .select()
         .single();

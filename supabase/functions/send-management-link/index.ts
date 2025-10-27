@@ -17,7 +17,7 @@ Deno.serve(async (req: Request) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
     const { email } = await req.json()
@@ -43,10 +43,37 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // First, ensure user exists in users table
+    let { data: user, error: userError } = await supabase
+      .from('users')
+      .select('id, email')
+      .eq('email', email)
+      .maybeSingle()
+
+    if (userError && userError.code !== 'PGRST116') {
+      throw userError
+    }
+
+    // If user doesn't exist, create one
+    if (!user) {
+      const { data: newUser, error: createError } = await supabase
+        .from('users')
+        .insert({ email })
+        .select('id, email')
+        .single()
+
+      if (createError) {
+        throw createError
+      }
+
+      user = newUser
+    }
+
+    // Now get submissions for this user
     const { data: submissions, error } = await supabase
       .from('software_submissions')
-      .select('management_token')
-      .eq('email', email)
+      .select('management_token, user_id')
+      .eq('user_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle()
