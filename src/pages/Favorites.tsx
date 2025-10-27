@@ -19,7 +19,7 @@ interface Software {
 }
 
 export function Favorites() {
-  const [bookmarkedSoftware, setBookmarkedSoftware] = useState<Software[]>([]);
+  const [favoriteSoftware, setFavoriteSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userEmail, setUserEmail] = useState<string | null>(null);
 
@@ -29,7 +29,7 @@ export function Favorites() {
 
   useEffect(() => {
     if (userEmail) {
-      loadBookmarks();
+      loadFavorites();
     } else {
       setIsLoading(false);
     }
@@ -40,23 +40,23 @@ export function Favorites() {
     setUserEmail(email);
   };
 
-  const loadBookmarks = async () => {
+  const loadFavorites = async () => {
     if (!userEmail) return;
 
     try {
-      const { data: bookmarks, error: bookmarksError } = await supabase
-        .from('bookmarks')
+      const { data: favorites, error: favoritesError } = await supabase
+        .from('favorites')
         .select('submission_id')
         .eq('user_email', userEmail);
 
-      if (bookmarksError) throw bookmarksError;
+      if (favoritesError) throw favoritesError;
 
-      if (!bookmarks || bookmarks.length === 0) {
+      if (!favorites || favorites.length === 0) {
         setIsLoading(false);
         return;
       }
 
-      const submissionIds = bookmarks.map(b => b.submission_id);
+      const submissionIds = favorites.map(f => f.submission_id);
 
       const { data: submissions, error: subError } = await supabase
         .from('software_submissions')
@@ -66,16 +66,16 @@ export function Favorites() {
 
       if (subError) throw subError;
 
-      setBookmarkedSoftware(submissions || []);
+      setFavoriteSoftware(submissions || []);
     } catch (error) {
-      console.error('Error loading bookmarks:', error);
+      console.error('Error loading favorites:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleBookmarkRemoved = () => {
-    loadBookmarks();
+  const handleFavoriteToggled = () => {
+    loadFavorites();
   };
 
   if (isLoading) {
@@ -129,7 +129,7 @@ export function Favorites() {
             <h1 className="text-4xl font-bold text-white">My Favorites</h1>
           </div>
 
-          {bookmarkedSoftware.length === 0 ? (
+          {favoriteSoftware.length === 0 ? (
             <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
               <Heart className="w-16 h-16 text-white/30 mx-auto mb-4" />
               <p className="text-white/70 text-lg mb-6">
@@ -144,7 +144,7 @@ export function Favorites() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bookmarkedSoftware.map((software) => {
+              {favoriteSoftware.map((software) => {
                 const netVotes = (software.upvotes || 0) - (software.downvotes || 0);
 
                 return (
@@ -170,7 +170,7 @@ export function Favorites() {
                           </span>
                         </div>
                       </Link>
-                      <div onClick={handleBookmarkRemoved}>
+                      <div onClick={handleFavoriteToggled}>
                         <BookmarkButton submissionId={software.id} size="md" />
                       </div>
                     </div>

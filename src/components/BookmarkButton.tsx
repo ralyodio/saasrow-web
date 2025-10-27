@@ -44,7 +44,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     try {
       const { data, error } = await supabase
-        .from('bookmarks')
+        .from('favorites')
         .select('id')
         .eq('user_email', userEmail)
         .eq('submission_id', submissionId)
@@ -62,7 +62,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     try {
       const { count, error } = await supabase
-        .from('bookmarks')
+        .from('favorites')
         .select('*', { count: 'exact', head: true })
         .eq('user_email', userEmail);
 
@@ -89,7 +89,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
     try {
       if (isBookmarked) {
         const { error } = await supabase
-          .from('bookmarks')
+          .from('favorites')
           .delete()
           .eq('user_email', userEmail)
           .eq('submission_id', submissionId);
@@ -98,7 +98,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         setIsBookmarked(false);
       } else {
         const { error } = await supabase
-          .from('bookmarks')
+          .from('favorites')
           .insert({
             user_email: userEmail,
             submission_id: submissionId
