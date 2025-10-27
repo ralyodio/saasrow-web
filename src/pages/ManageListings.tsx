@@ -862,6 +862,11 @@ export default function ManageListings() {
                           <li>✓ Logo in category pages</li>
                           <li>✓ Social media mentions</li>
                         </ul>
+                        <div className="mt-4 pt-4 border-t border-white/10">
+                          <p className="text-sm text-white/60 font-ubuntu">
+                            💎 <span className="text-white/80 font-semibold">Want even more insights?</span> Upgrade to Premium for homepage featuring, newsletter exposure to 200K+ subscribers, and enhanced analytics with detailed conversion tracking.
+                          </p>
+                        </div>
                       </div>
                     )}
 
