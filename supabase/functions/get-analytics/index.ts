@@ -46,7 +46,7 @@ Deno.serve(async (req: Request) => {
 
     const { data: submission, error: submissionError } = await supabase
       .from('software_submissions')
-      .select('id, email, tier, view_count, management_token')
+      .select('id, email, tier, view_count, management_token, upvotes, downvotes')
       .eq('id', submissionId)
       .maybeSingle()
 
@@ -106,6 +106,8 @@ Deno.serve(async (req: Request) => {
       totalViews,
       totalClicks,
       clickThroughRate: parseFloat(clickThroughRate.toFixed(2)),
+      upvotes: submission.upvotes || 0,
+      downvotes: submission.downvotes || 0,
       dailyStats: dailyStats || [],
       recentClicks: recentClicks || [],
     }

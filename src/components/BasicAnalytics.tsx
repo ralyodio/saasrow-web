@@ -5,6 +5,8 @@ interface AnalyticsData {
   totalViews: number
   totalClicks: number
   clickThroughRate: number
+  upvotes: number
+  downvotes: number
   dailyStats: Array<{
     date: string
     views: number
@@ -87,7 +89,7 @@ export function BasicAnalytics({ submissionId, token }: BasicAnalyticsProps) {
           Monthly Performance
         </h3>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-[#2a2a2a] rounded-xl p-4">
             <div className="flex items-center gap-2 text-white/60 text-sm font-ubuntu mb-2">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -122,6 +124,29 @@ export function BasicAnalytics({ submissionId, token }: BasicAnalyticsProps) {
             </div>
             <div className="text-white text-3xl font-bold font-ubuntu">
               {analytics.clickThroughRate}%
+            </div>
+          </div>
+
+          <div className="bg-[#2a2a2a] rounded-xl p-4">
+            <div className="flex items-center gap-2 text-white/60 text-sm font-ubuntu mb-2">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              Community Votes
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1">
+                <span className="text-[#4FFFE3] text-2xl font-bold font-ubuntu">{analytics.upvotes}</span>
+                <svg className="w-4 h-4 text-[#4FFFE3]" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-red-400 text-2xl font-bold font-ubuntu">{analytics.downvotes}</span>
+                <svg className="w-4 h-4 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
