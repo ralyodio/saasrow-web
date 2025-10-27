@@ -21,50 +21,42 @@ interface Software {
 export function Favorites() {
   const [bookmarkedSoftware, setBookmarkedSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (userId) {
+    if (userEmail) {
       loadBookmarks();
     } else {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [userEmail]);
 
-  const checkAuth = async () => {
+  const checkAuth = () => {
     const email = sessionStorage.getItem('userEmail');
-    if (email) {
-      const { data } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', email)
-        .maybeSingle();
-
-      setUserId(data?.id || null);
-    }
+    setUserEmail(email);
   };
 
   const loadBookmarks = async () => {
-    if (!userId) return;
+    if (!userEmail) return;
 
     try {
-      const { data: favorites, error: favError } = await supabase
-        .from('user_favorites')
+      const { data: bookmarks, error: bookmarksError } = await supabase
+        .from('bookmarks')
         .select('submission_id')
-        .eq('user_id', userId);
+        .eq('user_email', userEmail);
 
-      if (favError) throw favError;
+      if (bookmarksError) throw bookmarksError;
 
-      if (!favorites || favorites.length === 0) {
+      if (!bookmarks || bookmarks.length === 0) {
         setIsLoading(false);
         return;
       }
 
-      const submissionIds = favorites.map(f => f.submission_id);
+      const submissionIds = bookmarks.map(b => b.submission_id);
 
       const { data: submissions, error: subError } = await supabase
         .from('software_submissions')
@@ -98,7 +90,7 @@ export function Favorites() {
     );
   }
 
-  if (!userId) {
+  if (!userEmail) {
     return (
       <div className="min-h-screen bg-[#222222] flex flex-col">
         <Header />
