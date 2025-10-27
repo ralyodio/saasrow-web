@@ -4,6 +4,7 @@ import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { Alert } from '../components/Alert'
 import { ScreenshotGallery } from '../components/ScreenshotGallery'
+import { Comments } from '../components/Comments'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -450,6 +451,8 @@ export default function SoftwareDetailPage() {
               {submission.tier && (submission.tier === 'featured' || submission.tier === 'premium') && (
                 <ScreenshotGallery submissionId={submission.id} />
               )}
+
+              <Comments submissionId={submission.id} />
 
               <div className="bg-[#3a3a3a] rounded-2xl p-8 mt-6">
                 <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">Details</h2>
