@@ -69,11 +69,6 @@ export function Comments({ submissionId }: CommentsProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!isAuthenticated && (!formData.authorName || !formData.authorEmail)) {
-      setAlertMessage({ type: 'error', message: 'Please fill in all required fields' })
-      return
-    }
-
     if (!formData.content) {
       setAlertMessage({ type: 'error', message: 'Please write a comment' })
       return
@@ -82,6 +77,18 @@ export function Comments({ submissionId }: CommentsProps) {
     if (formData.content.length < 10) {
       setAlertMessage({ type: 'error', message: 'Comment must be at least 10 characters' })
       return
+    }
+
+    if (!isAuthenticated) {
+      if (!formData.authorName || !formData.authorEmail) {
+        setAlertMessage({ type: 'error', message: 'Please fill in all required fields' })
+        return
+      }
+    } else {
+      if (!formData.authorName || !formData.authorName.trim()) {
+        setAlertMessage({ type: 'error', message: 'Please enter your name' })
+        return
+      }
     }
 
     setSubmitting(true)
@@ -195,21 +202,21 @@ export function Comments({ submissionId }: CommentsProps) {
           {renderStars(formData.rating, true)}
         </div>
 
-        {!isAuthenticated && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-white/70 font-ubuntu text-sm mb-2">
-                Name *
-              </label>
-              <input
-                type="text"
-                value={formData.authorName}
-                onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
-                className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
-                placeholder="Your name"
-                disabled={submitting}
-              />
-            </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="block text-white/70 font-ubuntu text-sm mb-2">
+              Name {!isAuthenticated && '*'}
+            </label>
+            <input
+              type="text"
+              value={formData.authorName}
+              onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
+              className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
+              placeholder="Your name"
+              disabled={submitting}
+            />
+          </div>
+          {!isAuthenticated && (
             <div>
               <label className="block text-white/70 font-ubuntu text-sm mb-2">
                 Email *
@@ -223,8 +230,8 @@ export function Comments({ submissionId }: CommentsProps) {
                 disabled={submitting}
               />
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         <div className="mb-4">
           <label className="block text-white/70 font-ubuntu text-sm mb-2">

@@ -167,8 +167,18 @@ Deno.serve(async (req: Request) => {
         }
       }
 
-      const finalAuthorName = user?.user_metadata?.name || user?.email?.split('@')[0] || authorName;
-      const finalAuthorEmail = user?.email || authorEmail;
+      let finalAuthorName = authorName;
+      let finalAuthorEmail = authorEmail;
+
+      if (user) {
+        finalAuthorEmail = user.email!;
+        if (authorName && authorName.trim()) {
+          finalAuthorName = authorName;
+        } else {
+          finalAuthorName = user.email!.split('@')[0];
+        }
+      }
+
       const isVerified = !!user;
 
       const { data: comment, error } = await supabase
