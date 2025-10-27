@@ -52,37 +52,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
-    const hasAcknowledgedLogin = localStorage.getItem('acknowledgedLogin');
-    if (!hasAcknowledgedLogin) {
-      const shouldContinue = confirm('Please log in or create an account to save your favorites across devices. Continue without an account? (Favorites will be saved locally only)');
-      if (!shouldContinue) {
-        return;
-      }
-      localStorage.setItem('acknowledgedLogin', 'true');
-    }
-
-    setIsLoading(true);
-
-    try {
-      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-      let newBookmarks;
-
-      if (isBookmarked) {
-        newBookmarks = bookmarks.filter((id: string) => id !== submissionId);
-      } else {
-        newBookmarks = [...bookmarks, submissionId];
-      }
-
-      localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
-      setIsBookmarked(!isBookmarked);
-
-      window.dispatchEvent(new Event('storage'));
-    } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      alert('Failed to update bookmark. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    alert('Please log in or create an account to save favorites');
   };
 
   return (
