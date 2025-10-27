@@ -128,11 +128,14 @@ export default function AdminPage() {
       verifyAdminToken(token)
     } else {
       const storedEmail = sessionStorage.getItem('adminEmail')
-      if (storedEmail) {
+      const storedToken = sessionStorage.getItem('adminToken')
+      if (storedEmail && storedToken) {
         setAdminEmail(storedEmail)
         setIsAuthenticated(true)
         fetchSubmissions()
       } else {
+        sessionStorage.removeItem('adminEmail')
+        sessionStorage.removeItem('adminToken')
         setLoading(false)
       }
     }
