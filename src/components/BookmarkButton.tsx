@@ -50,6 +50,8 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
 
       localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
       setIsBookmarked(!isBookmarked);
+
+      window.dispatchEvent(new Event('storage'));
     } catch (error) {
       console.error('Error toggling bookmark:', error);
       alert('Failed to update bookmark. Please try again.');
