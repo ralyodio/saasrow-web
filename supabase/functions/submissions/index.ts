@@ -539,7 +539,7 @@ Deno.serve(async (req: Request) => {
                       <strong>Pro tip:</strong> Want to boost your listing's visibility? Upgrade to Featured or Premium tier for homepage placement, advanced analytics, and priority support.
                     </p>
                     <p style="padding: 15px; background: #f0f9ff; border-left: 4px solid #0ea5e9; margin: 20px 0; border-radius: 4px;">
-                      💡 <strong>Get 20% off your upgrade!</strong> Join our newsletter to receive an exclusive discount coupon for Featured or Premium tier upgrades, plus tips on maximizing your listing's reach.
+                      💡 <strong>Get 50% off your upgrade!</strong> Join our newsletter to receive an exclusive discount coupon for Featured or Premium tier upgrades, plus tips on maximizing your listing's reach.
                     </p>
                   </div>
                   <div class="footer">
