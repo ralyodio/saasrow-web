@@ -13,7 +13,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [totalBookmarks, setTotalBookmarks] = useState(0);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -26,24 +26,27 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (userEmail) {
       checkBookmarkStatus();
       if (showCount) {
         updateTotalBookmarks();
       }
     }
-  }, [submissionId, isAuthenticated, showCount]);
+  }, [submissionId, userEmail, showCount]);
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
+  const checkAuth = () => {
+    const email = sessionStorage.getItem('userEmail');
+    setUserEmail(email);
   };
 
   const checkBookmarkStatus = async () => {
+    if (!userEmail) return;
+
     try {
       const { data, error } = await supabase
         .from('favorites')
         .select('id')
+        .eq('user_email', userEmail)
         .eq('submission_id', submissionId)
         .maybeSingle();
 
@@ -55,10 +58,13 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   };
 
   const updateTotalBookmarks = async () => {
+    if (!userEmail) return;
+
     try {
       const { count, error } = await supabase
         .from('favorites')
-        .select('*', { count: 'exact', head: true });
+        .select('*', { count: 'exact', head: true })
+        .eq('user_email', userEmail);
 
       if (error) throw error;
       setTotalBookmarks(count || 0);
@@ -73,7 +79,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
-    if (!isAuthenticated) {
+    if (!userEmail) {
       alert('Please log in or create an account to save favorites');
       return;
     }
@@ -81,13 +87,11 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
     setIsLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
       if (isBookmarked) {
         const { error } = await supabase
           .from('favorites')
           .delete()
+          .eq('user_email', userEmail)
           .eq('submission_id', submissionId);
 
         if (error) throw error;
@@ -96,7 +100,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         const { error } = await supabase
           .from('favorites')
           .insert({
-            user_id: user.id,
+            user_email: userEmail,
             submission_id: submissionId
           });
 

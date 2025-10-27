@@ -21,30 +21,33 @@ interface Software {
 export function Favorites() {
   const [favoriteSoftware, setFavoriteSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (userEmail) {
       loadFavorites();
     } else {
       setIsLoading(false);
     }
-  }, [isAuthenticated]);
+  }, [userEmail]);
 
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setIsAuthenticated(!!session);
+  const checkAuth = () => {
+    const email = sessionStorage.getItem('userEmail');
+    setUserEmail(email);
   };
 
   const loadFavorites = async () => {
+    if (!userEmail) return;
+
     try {
       const { data: favorites, error: favoritesError } = await supabase
         .from('favorites')
-        .select('submission_id');
+        .select('submission_id')
+        .eq('user_email', userEmail);
 
       if (favoritesError) throw favoritesError;
 
@@ -87,7 +90,7 @@ export function Favorites() {
     );
   }
 
-  if (!isAuthenticated) {
+  if (!userEmail) {
     return (
       <div className="min-h-screen bg-[#222222] flex flex-col">
         <Header />
