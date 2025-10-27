@@ -21,33 +21,52 @@ interface Software {
 export function Favorites() {
   const [bookmarkedSoftware, setBookmarkedSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    loadBookmarks();
+    checkAuth();
   }, []);
 
-  const loadBookmarks = async () => {
-    try {
-      const bookmarkIds = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+  useEffect(() => {
+    if (userId) {
+      loadBookmarks();
+    } else {
+      setIsLoading(false);
+    }
+  }, [userId]);
 
-      if (bookmarkIds.length === 0) {
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUserId(session?.user?.id || null);
+  };
+
+  const loadBookmarks = async () => {
+    if (!userId) return;
+
+    try {
+      const { data: favorites, error: favError } = await supabase
+        .from('user_favorites')
+        .select('submission_id')
+        .eq('user_id', userId);
+
+      if (favError) throw favError;
+
+      if (!favorites || favorites.length === 0) {
         setIsLoading(false);
         return;
       }
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?status=approved`;
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        },
-      });
+      const submissionIds = favorites.map(f => f.submission_id);
 
-      if (response.ok) {
-        const result = await response.json();
-        const allSoftware = result.data || [];
-        const bookmarked = allSoftware.filter((sw: Software) => bookmarkIds.includes(sw.id));
-        setBookmarkedSoftware(bookmarked);
-      }
+      const { data: submissions, error: subError } = await supabase
+        .from('software_submissions')
+        .select('*')
+        .in('id', submissionIds)
+        .eq('status', 'approved');
+
+      if (subError) throw subError;
+
+      setBookmarkedSoftware(submissions || []);
     } catch (error) {
       console.error('Error loading bookmarks:', error);
     } finally {
@@ -71,6 +90,34 @@ export function Favorites() {
     );
   }
 
+  if (!userId) {
+    return (
+      <div className="min-h-screen bg-[#222222] flex flex-col">
+        <Header />
+        <main className="flex-1 container mx-auto px-4 py-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="flex items-center gap-3 mb-8">
+              <Heart className="w-8 h-8 text-red-500 fill-red-500" />
+              <h1 className="text-4xl font-bold text-white">My Favorites</h1>
+            </div>
+            <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
+              <Heart className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <p className="text-white/70 text-lg mb-6">
+                Please log in to view your favorites
+              </p>
+              <Link
+                to="/explore"
+                className="inline-block bg-white text-[#222222] px-8 py-3 rounded-lg hover:bg-white/90 transition-colors font-semibold"
+              >
+                Explore Software
+              </Link>
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#222222] flex flex-col">

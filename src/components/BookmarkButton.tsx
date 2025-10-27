@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface BookmarkButtonProps {
   submissionId: string;
@@ -12,6 +13,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [totalBookmarks, setTotalBookmarks] = useState(0);
+  const [userId, setUserId] = useState<string | null>(null);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -20,29 +22,54 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   };
 
   useEffect(() => {
-    checkLocalBookmark();
-    if (showCount) {
-      updateTotalBookmarks();
-      window.addEventListener('storage', updateTotalBookmarks);
-      return () => window.removeEventListener('storage', updateTotalBookmarks);
-    }
-  }, [submissionId, showCount]);
+    checkAuth();
+  }, []);
 
-  const checkLocalBookmark = () => {
+  useEffect(() => {
+    if (userId) {
+      checkBookmarkStatus();
+      if (showCount) {
+        updateTotalBookmarks();
+      }
+    }
+  }, [submissionId, userId, showCount]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setUserId(session?.user?.id || null);
+  };
+
+  const checkBookmarkStatus = async () => {
+    if (!userId) return;
+
     try {
-      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-      setIsBookmarked(bookmarks.includes(submissionId));
+      const { data, error } = await supabase
+        .from('user_favorites')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('submission_id', submissionId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setIsBookmarked(!!data);
     } catch (error) {
-      console.error('Error checking local bookmark:', error);
+      console.error('Error checking bookmark:', error);
     }
   };
 
-  const updateTotalBookmarks = () => {
+  const updateTotalBookmarks = async () => {
+    if (!userId) return;
+
     try {
-      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
-      setTotalBookmarks(bookmarks.length);
-    } catch {
-      setTotalBookmarks(0);
+      const { count, error } = await supabase
+        .from('user_favorites')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId);
+
+      if (error) throw error;
+      setTotalBookmarks(count || 0);
+    } catch (error) {
+      console.error('Error fetching bookmark count:', error);
     }
   };
 
@@ -52,7 +79,44 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
-    alert('Please log in or create an account to save favorites');
+    if (!userId) {
+      alert('Please log in or create an account to save favorites');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      if (isBookmarked) {
+        const { error } = await supabase
+          .from('user_favorites')
+          .delete()
+          .eq('user_id', userId)
+          .eq('submission_id', submissionId);
+
+        if (error) throw error;
+        setIsBookmarked(false);
+      } else {
+        const { error } = await supabase
+          .from('user_favorites')
+          .insert({
+            user_id: userId,
+            submission_id: submissionId
+          });
+
+        if (error) throw error;
+        setIsBookmarked(true);
+      }
+
+      if (showCount) {
+        await updateTotalBookmarks();
+      }
+    } catch (error) {
+      console.error('Error toggling bookmark:', error);
+      alert('Failed to update bookmark. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
