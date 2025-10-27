@@ -124,7 +124,6 @@ export function SearchSection({
       <div className="relative">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-[#4a4a4a] rounded-2xl sm:rounded-full px-4 sm:px-8 py-4 gap-4">
           <div className="flex items-center flex-1">
-            <img className="w-6 h-6 sm:w-8 sm:h-8 mr-3 sm:mr-4 flex-shrink-0" alt="" src="/vector.svg" />
             <input
               type="text"
               value={searchQuery}
@@ -132,7 +131,7 @@ export function SearchSection({
               placeholder="Search..."
               className="flex-1 bg-transparent border-none outline-none text-white text-lg sm:text-2xl placeholder:text-white/70 font-inter"
             />
-            {(searchQuery || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0) && (
+            {(searchQuery || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0) ? (
               <button
                 onClick={() => {
                   if (onClearAll) {
@@ -144,13 +143,15 @@ export function SearchSection({
                     onTagsChange([])
                   }
                 }}
-                className="ml-2 p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="ml-2 p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                 title="Clear all filters"
               >
-                <svg className="w-5 h-5 text-white/70 hover:text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white/70 hover:text-white transition-colors" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
+            ) : (
+              <img className="w-6 h-6 sm:w-8 sm:h-8 ml-2 flex-shrink-0" alt="Search" src="/vector.svg" />
             )}
           </div>
 
