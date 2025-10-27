@@ -600,22 +600,33 @@ export default function AdminPage() {
   const fetchAnalytics = async () => {
     setLoadingAnalytics(true)
     try {
+      const token = sessionStorage.getItem('adminToken')
+
+      if (!token) {
+        console.error('No admin token available')
+        throw new Error('No admin token available')
+      }
+
+      console.log('Fetching analytics with token:', token.substring(0, 10) + '...')
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-admin-analytics`
-      const response = await fetch(apiUrl, {
+      const response = await fetch(`${apiUrl}?token=${encodeURIComponent(token)}`, {
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
       })
 
+      const data = await response.json()
+      console.log('Analytics response:', response.status, data)
+
       if (!response.ok) {
-        throw new Error('Failed to fetch analytics')
+        throw new Error(data.error || 'Failed to fetch analytics')
       }
 
-      const data = await response.json()
       setAnalyticsData(data)
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
-      setAlertMessage({ type: 'error', message: 'Failed to load analytics data' })
+      setAlertMessage({ type: 'error', message: error.message || 'Failed to load analytics data' })
     } finally {
       setLoadingAnalytics(false)
     }
