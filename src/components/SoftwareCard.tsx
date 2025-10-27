@@ -74,10 +74,17 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
     }
   }
 
+  const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('a')) {
+      return
+    }
+    window.location.href = `/software/${software.id}`
+  }
+
   return (
-    <Link
-      to={`/software/${software.id}`}
-      className={`bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 hover:bg-[#404040] transition-all sm:hover:transform sm:hover:scale-105 block relative ${
+    <div
+      onClick={handleCardClick}
+      className={`bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 hover:bg-[#404040] transition-all sm:hover:transform sm:hover:scale-105 block relative cursor-pointer ${
         isPremium ? 'ring-2 ring-[#E0FF04]' : ''
       }`}
     >
@@ -190,6 +197,6 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           </div>
         )}
       </div>
-    </Link>
+    </div>
   )
 }
