@@ -123,14 +123,7 @@ export function SearchSection({
     <section className="w-full max-w-[1318px] mx-auto px-4 py-8">
       <div className="relative">
         <div className="relative flex flex-col sm:flex-row items-stretch sm:items-center bg-[#4a4a4a] rounded-2xl sm:rounded-full px-4 sm:px-8 py-4 gap-4">
-          <div className="flex items-center flex-1">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              placeholder="Search..."
-              className="flex-1 bg-transparent border-none outline-none text-white text-lg sm:text-2xl placeholder:text-white/70 font-inter"
-            />
+          <div className="flex items-center flex-1 gap-3">
             {(searchQuery || selectedFilter !== 'all' || activeCategories.length > 0 || activeTags.length > 0) ? (
               <button
                 onClick={() => {
@@ -143,18 +136,25 @@ export function SearchSection({
                     onTagsChange([])
                   }
                 }}
-                className="ml-2 p-2 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
+                className="p-1 hover:bg-white/10 rounded-full transition-colors flex-shrink-0"
                 title="Clear all filters"
               >
-                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white/70 hover:text-white transition-colors" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white hover:text-white/70 transition-colors" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
                 </svg>
               </button>
             ) : (
-              <svg className="w-6 h-6 sm:w-8 sm:h-8 ml-2 flex-shrink-0 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0 text-white opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             )}
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search..."
+              className="flex-1 bg-transparent border-none outline-none text-white text-lg sm:text-2xl placeholder:text-white/70 font-inter"
+            />
           </div>
 
           <div className="flex gap-2 sm:gap-3 sm:ml-4 justify-between sm:justify-start">
