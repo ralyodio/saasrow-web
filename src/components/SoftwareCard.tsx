@@ -17,6 +17,8 @@ interface Software {
   view_count?: number
   upvotes?: number
   downvotes?: number
+  share_count?: number
+  last_share_reset?: string
 }
 
 interface SoftwareCardProps {
@@ -31,6 +33,9 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   const [upvotes, setUpvotes] = useState(software.upvotes || 0)
   const [downvotes, setDownvotes] = useState(software.downvotes || 0)
   const [isVoting, setIsVoting] = useState(false)
+  const [shareCount, setShareCount] = useState(software.share_count || 0)
+  const [showCopied, setShowCopied] = useState(false)
+  const [isTrending, setIsTrending] = useState(false)
 
   useEffect(() => {
     checkAuthAndVote()
@@ -39,7 +44,9 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
   useEffect(() => {
     setUpvotes(software.upvotes || 0)
     setDownvotes(software.downvotes || 0)
-  }, [software.upvotes, software.downvotes])
+    setShareCount(software.share_count || 0)
+    checkTrendingStatus()
+  }, [software.upvotes, software.downvotes, software.share_count, software.last_share_reset])
 
   const checkAuthAndVote = async () => {
     const { data: { session } } = await supabase.auth.getSession()
@@ -171,8 +178,50 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
     }
   }
 
+  const checkTrendingStatus = () => {
+    if (!software.last_share_reset || !software.share_count) {
+      setIsTrending(false)
+      return
+    }
+    const now = new Date()
+    const lastReset = new Date(software.last_share_reset)
+    const hoursSinceReset = (now.getTime() - lastReset.getTime()) / (1000 * 60 * 60)
+    setIsTrending(software.share_count >= 10 && hoursSinceReset < 24)
+  }
+
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    const shareUrl = `${window.location.origin}/software/${software.id}?ref=share`
+
+    try {
+      await navigator.clipboard.writeText(shareUrl)
+      setShowCopied(true)
+      setTimeout(() => setShowCopied(false), 2000)
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-share`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ submissionId: software.id }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setShareCount(result.shareCount)
+        setIsTrending(result.isTrending)
+      }
+    } catch (error) {
+      console.error('Failed to share:', error)
+    }
+  }
+
   const handleCardClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if ((e.target as HTMLElement).closest('a')) {
+    if ((e.target as HTMLElement).closest('a') || (e.target as HTMLElement).closest('button')) {
       return
     }
     window.location.href = `/software/${software.id}`
@@ -190,9 +239,17 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           PREMIUM
         </div>
       )}
-      {isFeatured && (
+      {isFeatured && !isTrending && (
         <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#4FFFE3] to-[#00d4ff] text-neutral-800 px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg">
           FEATURED
+        </div>
+      )}
+      {isTrending && (
+        <div className="absolute -top-2 -right-2 sm:-top-3 sm:-right-3 bg-gradient-to-r from-[#ff6b35] to-[#f7931e] text-white px-3 py-1 rounded-full text-xs font-bold font-ubuntu shadow-lg flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" />
+          </svg>
+          TRENDING
         </div>
       )}
       <div className="mb-3 sm:mb-4">
@@ -316,15 +373,31 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
             </button>
           </div>
         </div>
-        {software.view_count !== undefined && software.view_count > 0 && (
-          <div className="flex items-center gap-1.5 text-white/40 font-ubuntu text-xs">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleShare}
+            className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white transition-all"
+          >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
             </svg>
-            <span>{software.view_count.toLocaleString()}</span>
-          </div>
-        )}
+            {shareCount > 0 && <span className="text-xs font-ubuntu">{shareCount}</span>}
+            {showCopied && (
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#4FFFE3] text-neutral-800 text-xs px-2 py-1 rounded font-ubuntu whitespace-nowrap">
+                Link copied!
+              </span>
+            )}
+          </button>
+          {software.view_count !== undefined && software.view_count > 0 && (
+            <div className="flex items-center gap-1.5 text-white/40 font-ubuntu text-xs">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              <span>{software.view_count.toLocaleString()}</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
