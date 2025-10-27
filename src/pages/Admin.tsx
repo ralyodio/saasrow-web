@@ -46,6 +46,20 @@ interface NewsletterHistoryItem {
   sent_at: string
 }
 
+interface Comment {
+  id: string
+  submission_id: string
+  author_name: string
+  author_email: string
+  content: string
+  rating?: number
+  created_at: string
+  is_verified: boolean
+  submission?: {
+    title: string
+  }
+}
+
 interface User {
   email: string
   tier: 'free' | 'featured' | 'premium'
@@ -95,7 +109,7 @@ export default function AdminPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
-  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users' | 'analytics'>('submissions')
+  const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users' | 'analytics' | 'comments'>('submissions')
   const [newsTopic, setNewsTopic] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
@@ -119,6 +133,9 @@ export default function AdminPage() {
   const [userSubmissions, setUserSubmissions] = useState<{ [email: string]: Submission[] }>({})
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
   const [loadingAnalytics, setLoadingAnalytics] = useState(false)
+  const [comments, setComments] = useState<Comment[]>([])
+  const [loadingComments, setLoadingComments] = useState(false)
+  const [commentFilter, setCommentFilter] = useState<'all' | 'pending' | 'approved'>('all')
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -366,6 +383,9 @@ export default function AdminPage() {
     }
     if (isAuthenticated && activeTab === 'analytics') {
       fetchAnalytics()
+    }
+    if (isAuthenticated && activeTab === 'comments') {
+      fetchComments()
     }
   }, [isAuthenticated, activeTab])
 
@@ -801,6 +821,61 @@ export default function AdminPage() {
     })
   }
 
+  const fetchComments = async () => {
+    setLoadingComments(true)
+    try {
+      const token = sessionStorage.getItem('adminToken')
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-comments`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Admin-Token': token || '',
+        },
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setComments(result.comments || [])
+      } else {
+        const result = await response.json()
+        setAlertMessage({ type: 'error', message: result.error || 'Failed to load comments' })
+      }
+    } catch (error) {
+      console.error('Failed to fetch comments:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to load comments' })
+    } finally {
+      setLoadingComments(false)
+    }
+  }
+
+  const moderateComment = async (commentId: string, action: 'approve' | 'reject') => {
+    try {
+      const token = sessionStorage.getItem('adminToken')
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/moderate-comments`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Admin-Token': token || '',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ commentId, action }),
+      })
+
+      if (response.ok) {
+        setAlertMessage({ type: 'success', message: `Comment ${action === 'approve' ? 'approved' : 'deleted'} successfully` })
+        fetchComments()
+      } else {
+        const result = await response.json()
+        setAlertMessage({ type: 'error', message: result.error || `Failed to ${action} comment` })
+      }
+    } catch (error) {
+      console.error(`Failed to ${action} comment:`, error)
+      setAlertMessage({ type: 'error', message: `Failed to ${action} comment` })
+    }
+  }
+
   const performSendNewsletter = async (subject: string, content: string, subscriberCount: number) => {
     setSendingNewsletter(true)
     try {
@@ -1084,6 +1159,16 @@ export default function AdminPage() {
               }`}
             >
               Analytics
+            </button>
+            <button
+              onClick={() => setActiveTab('comments')}
+              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+                activeTab === 'comments'
+                  ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+              }`}
+            >
+              Comments
             </button>
           </div>
 
@@ -1965,6 +2050,157 @@ export default function AdminPage() {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'comments' && (
+            <div className="space-y-8">
+              <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                <div className="flex items-center justify-between mb-6">
+                  <div>
+                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                      Comment Moderation
+                    </h2>
+                    <p className="text-white/70 font-ubuntu">
+                      Review and approve pending comments
+                    </p>
+                  </div>
+                  <button
+                    onClick={fetchComments}
+                    className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                <div className="flex gap-3 mb-6">
+                  <button
+                    onClick={() => setCommentFilter('all')}
+                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                      commentFilter === 'all'
+                        ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                        : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+                    }`}
+                  >
+                    All ({comments.length})
+                  </button>
+                  <button
+                    onClick={() => setCommentFilter('pending')}
+                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                      commentFilter === 'pending'
+                        ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                        : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+                    }`}
+                  >
+                    Pending ({comments.filter(c => !c.is_verified).length})
+                  </button>
+                  <button
+                    onClick={() => setCommentFilter('approved')}
+                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                      commentFilter === 'approved'
+                        ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
+                        : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
+                    }`}
+                  >
+                    Approved ({comments.filter(c => c.is_verified).length})
+                  </button>
+                </div>
+
+                {loadingComments ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">Loading comments...</p>
+                  </div>
+                ) : comments.filter(c => commentFilter === 'all' || (commentFilter === 'pending' && !c.is_verified) || (commentFilter === 'approved' && c.is_verified)).length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-white/70 font-ubuntu text-lg">No {commentFilter === 'all' ? '' : commentFilter} comments</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {comments
+                      .filter(c => commentFilter === 'all' || (commentFilter === 'pending' && !c.is_verified) || (commentFilter === 'approved' && c.is_verified))
+                      .map((comment) => (
+                        <div
+                          key={comment.id}
+                          className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-4 mb-4">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-3 mb-2">
+                                <h3 className="text-white text-lg font-bold font-ubuntu">
+                                  {comment.author_name}
+                                </h3>
+                                <span className="text-white/50 font-ubuntu text-sm">
+                                  {comment.author_email}
+                                </span>
+                                {comment.is_verified ? (
+                                  <span className="px-2 py-1 rounded-full text-xs font-ubuntu bg-green-500/20 text-green-400 border border-green-500/30">
+                                    Approved
+                                  </span>
+                                ) : (
+                                  <span className="px-2 py-1 rounded-full text-xs font-ubuntu bg-yellow-500/20 text-yellow-400 border border-yellow-500/30">
+                                    Pending
+                                  </span>
+                                )}
+                                {comment.rating && (
+                                  <div className="flex items-center gap-1">
+                                    {[...Array(comment.rating)].map((_, i) => (
+                                      <svg key={i} className="w-4 h-4 text-[#E0FF04]" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                      </svg>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                              {comment.submission && (
+                                <p className="text-white/50 font-ubuntu text-sm mb-2">
+                                  On: <span className="text-[#4FFFE3]">{comment.submission.title}</span>
+                                </p>
+                              )}
+                              <p className="text-white/70 font-ubuntu text-sm mb-2">
+                                {new Date(comment.created_at).toLocaleString('en-US', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                              <p className="text-white font-ubuntu leading-relaxed">
+                                {comment.content}
+                              </p>
+                            </div>
+                            <div className="flex gap-2">
+                              {!comment.is_verified && (
+                                <button
+                                  onClick={() => moderateComment(comment.id, 'approve')}
+                                  className="px-4 py-2 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-ubuntu font-bold hover:bg-green-500/30 transition-colors"
+                                >
+                                  Approve
+                                </button>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setConfirmDialog({
+                                    title: 'Delete Comment',
+                                    message: 'Are you sure you want to delete this comment? This action cannot be undone.',
+                                    confirmColor: 'danger',
+                                    onConfirm: () => {
+                                      setConfirmDialog(null)
+                                      moderateComment(comment.id, 'reject')
+                                    }
+                                  })
+                                }}
+                                className="px-4 py-2 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-ubuntu font-bold hover:bg-red-500/30 transition-colors"
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 )}
               </div>
