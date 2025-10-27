@@ -13,7 +13,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [totalBookmarks, setTotalBookmarks] = useState(0);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -26,50 +26,44 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   }, []);
 
   useEffect(() => {
-    if (userEmail) {
+    if (isAuthenticated) {
       checkBookmarkStatus();
       if (showCount) {
         updateTotalBookmarks();
       }
     }
-  }, [submissionId, userEmail, showCount]);
+  }, [submissionId, isAuthenticated, showCount]);
 
-  const checkAuth = () => {
-    const email = sessionStorage.getItem('userEmail');
-    setUserEmail(email);
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    setIsAuthenticated(!!session);
   };
 
   const checkBookmarkStatus = async () => {
-    if (!userEmail) return;
-
     try {
       const { data, error } = await supabase
         .from('favorites')
         .select('id')
-        .eq('user_email', userEmail)
         .eq('submission_id', submissionId)
         .maybeSingle();
 
       if (error) throw error;
       setIsBookmarked(!!data);
     } catch (error) {
-      console.error('Error checking bookmark:', error);
+      console.error('Error checking favorite:', error);
     }
   };
 
   const updateTotalBookmarks = async () => {
-    if (!userEmail) return;
-
     try {
       const { count, error } = await supabase
         .from('favorites')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_email', userEmail);
+        .select('*', { count: 'exact', head: true });
 
       if (error) throw error;
       setTotalBookmarks(count || 0);
     } catch (error) {
-      console.error('Error fetching bookmark count:', error);
+      console.error('Error fetching favorite count:', error);
     }
   };
 
@@ -79,7 +73,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
-    if (!userEmail) {
+    if (!isAuthenticated) {
       alert('Please log in or create an account to save favorites');
       return;
     }
@@ -87,11 +81,13 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
     setIsLoading(true);
 
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
       if (isBookmarked) {
         const { error } = await supabase
           .from('favorites')
           .delete()
-          .eq('user_email', userEmail)
           .eq('submission_id', submissionId);
 
         if (error) throw error;
@@ -100,7 +96,7 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         const { error } = await supabase
           .from('favorites')
           .insert({
-            user_email: userEmail,
+            user_id: user.id,
             submission_id: submissionId
           });
 
@@ -112,8 +108,8 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
         await updateTotalBookmarks();
       }
     } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      alert('Failed to update bookmark. Please try again.');
+      console.error('Error toggling favorite:', error);
+      alert('Failed to update favorite. Please try again.');
     } finally {
       setIsLoading(false);
     }
