@@ -20,6 +20,8 @@ interface Submission {
   tags?: string[]
   view_count?: number
   tier?: string
+  upvotes?: number
+  downvotes?: number
 }
 
 export default function SoftwareDetailPage() {
@@ -28,13 +30,81 @@ export default function SoftwareDetailPage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [userVote, setUserVote] = useState<'upvote' | 'downvote' | null>(null)
+  const [upvotes, setUpvotes] = useState(0)
+  const [downvotes, setDownvotes] = useState(0)
+  const [isVoting, setIsVoting] = useState(false)
 
   useEffect(() => {
     fetchSubmission()
     if (id) {
       incrementViewCount(id)
+      checkUserVote()
     }
   }, [id])
+
+  const checkUserVote = async () => {
+    if (!id) return
+
+    const { data: { session } } = await supabase.auth.getSession()
+
+    if (session) {
+      const { data: vote } = await supabase
+        .from('votes')
+        .select('vote_type')
+        .eq('submission_id', id)
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (vote) {
+        setUserVote(vote.vote_type as 'upvote' | 'downvote')
+      }
+    }
+  }
+
+  const handleVote = async (voteType: 'upvote' | 'downvote') => {
+    if (!submission || isVoting) return
+
+    setIsVoting(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vote`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      }
+
+      if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          submissionId: submission.id,
+          voteType,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setUserVote(result.voteType)
+        setUpvotes(result.upvotes)
+        setDownvotes(result.downvotes)
+      } else {
+        setAlertMessage({ type: 'error', message: result.error || 'Failed to vote' })
+      }
+    } catch (error) {
+      console.error('Failed to vote:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to vote' })
+    } finally {
+      setIsVoting(false)
+    }
+  }
 
   const addReferralParam = (url: string): string => {
     try {
@@ -124,6 +194,8 @@ export default function SoftwareDetailPage() {
         const found = (result.data || []).find((sub: Submission) => sub.id === id)
         if (found) {
           setSubmission(found)
+          setUpvotes(found.upvotes || 0)
+          setDownvotes(found.downvotes || 0)
         } else {
           setNotFound(true)
         }
@@ -195,7 +267,7 @@ export default function SoftwareDetailPage() {
                     <h1 className="text-white text-4xl font-bold font-ubuntu mb-3">
                       {submission.title}
                     </h1>
-                    <div className="flex items-center gap-4 mb-3">
+                    <div className="flex items-center gap-4 mb-3 flex-wrap">
                       <Link
                         to={`/category/${submission.category.toLowerCase()}`}
                         className="inline-block px-4 py-2 rounded-full text-sm font-ubuntu bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] hover:bg-[#4FFFE3]/30 transition-colors"
@@ -211,6 +283,36 @@ export default function SoftwareDetailPage() {
                           <span>{submission.view_count.toLocaleString()} views</span>
                         </div>
                       )}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleVote('upvote')}
+                          disabled={isVoting}
+                          className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                            userVote === 'upvote'
+                              ? 'bg-[#4FFFE3]/20 text-[#4FFFE3]'
+                              : 'bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white'
+                          } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-ubuntu font-bold">{upvotes}</span>
+                        </button>
+                        <button
+                          onClick={() => handleVote('downvote')}
+                          disabled={isVoting}
+                          className={`flex items-center gap-1 px-3 py-2 rounded-lg transition-all ${
+                            userVote === 'downvote'
+                              ? 'bg-red-500/20 text-red-400'
+                              : 'bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white'
+                          } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                          <span className="text-sm font-ubuntu font-bold">{downvotes}</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
