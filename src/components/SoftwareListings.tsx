@@ -131,6 +131,9 @@ export function SoftwareListings({
           return b.title.localeCompare(a.title)
         case 'Most Popular':
         case 'Top Rated':
+          const aScore = (a.upvotes || 0) - (a.downvotes || 0)
+          const bScore = (b.upvotes || 0) - (b.downvotes || 0)
+          return bScore - aScore
         default:
           return 0
       }
