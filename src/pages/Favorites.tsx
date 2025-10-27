@@ -115,7 +115,7 @@ export function Favorites() {
                           />
                         )}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-white font-bold text-lg truncate">
+                          <h3 className="text-white font-bold text-lg break-words">
                             {software.title}
                           </h3>
                           <span className="text-white/50 text-sm capitalize">
