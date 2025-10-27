@@ -84,12 +84,27 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method === "POST") {
+      const authHeader = req.headers.get("Authorization");
+      const token = authHeader?.replace("Bearer ", "");
+
+      const { data: { user } } = await supabase.auth.getUser(token || "");
+
       const body = await req.json();
       const { submissionId, authorName, authorEmail, content, rating } = body;
 
-      if (!submissionId || !authorName || !authorEmail || !content) {
+      if (!submissionId || !content) {
         return new Response(
           JSON.stringify({ error: "Missing required fields" }),
+          {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      if (!user && (!authorName || !authorEmail)) {
+        return new Response(
+          JSON.stringify({ error: "Name and email required for anonymous comments" }),
           {
             status: 400,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -117,47 +132,55 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(authorEmail)) {
-        return new Response(
-          JSON.stringify({ error: "Invalid email address" }),
-          {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+      if (!user) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(authorEmail)) {
+          return new Response(
+            JSON.stringify({ error: "Invalid email address" }),
+            {
+              status: 400,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
       }
 
       const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0] ||
                        req.headers.get("x-real-ip") ||
                        "unknown";
 
-      const { data: recentComments } = await supabase
-        .from("comments")
-        .select("id")
-        .eq("ip_address", clientIp)
-        .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
+      if (!user) {
+        const { data: recentComments } = await supabase
+          .from("comments")
+          .select("id")
+          .eq("ip_address", clientIp)
+          .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString());
 
-      if (recentComments && recentComments.length >= 3) {
-        return new Response(
-          JSON.stringify({ error: "Too many comments. Please try again later." }),
-          {
-            status: 429,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
+        if (recentComments && recentComments.length >= 3) {
+          return new Response(
+            JSON.stringify({ error: "Too many comments. Please try again later." }),
+            {
+              status: 429,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
       }
+
+      const finalAuthorName = user?.user_metadata?.name || user?.email?.split('@')[0] || authorName;
+      const finalAuthorEmail = user?.email || authorEmail;
+      const isVerified = !!user;
 
       const { data: comment, error } = await supabase
         .from("comments")
         .insert({
           submission_id: submissionId,
-          author_name: authorName,
-          author_email: authorEmail,
+          author_name: finalAuthorName,
+          author_email: finalAuthorEmail,
           content: content,
           rating: rating || null,
           ip_address: clientIp,
-          is_verified: false,
+          is_verified: isVerified,
         })
         .select()
         .single();
@@ -172,9 +195,13 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const message = user
+        ? "Comment posted successfully!"
+        : "Comment submitted successfully. It will appear after review.";
+
       return new Response(
         JSON.stringify({
-          message: "Comment submitted successfully. It will appear after review.",
+          message,
           comment,
         }),
         {

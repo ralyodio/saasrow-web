@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Alert } from './Alert'
+import { supabase } from '../lib/supabase'
 
 interface Comment {
   id: string
@@ -22,6 +23,7 @@ export function Comments({ submissionId }: CommentsProps) {
   const [averageRating, setAverageRating] = useState<number | null>(null)
   const [commentCount, setCommentCount] = useState(0)
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
   const [formData, setFormData] = useState({
     authorName: '',
@@ -32,7 +34,13 @@ export function Comments({ submissionId }: CommentsProps) {
 
   useEffect(() => {
     fetchComments()
+    checkAuth()
   }, [submissionId])
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    setIsAuthenticated(!!session)
+  }
 
   const fetchComments = async () => {
     setLoading(true)
@@ -61,8 +69,13 @@ export function Comments({ submissionId }: CommentsProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.authorName || !formData.authorEmail || !formData.content) {
+    if (!isAuthenticated && (!formData.authorName || !formData.authorEmail)) {
       setAlertMessage({ type: 'error', message: 'Please fill in all required fields' })
+      return
+    }
+
+    if (!formData.content) {
+      setAlertMessage({ type: 'error', message: 'Please write a comment' })
       return
     }
 
@@ -74,13 +87,19 @@ export function Comments({ submissionId }: CommentsProps) {
     setSubmitting(true)
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/comments`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': session
+          ? `Bearer ${session.access_token}`
+          : `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      }
+
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           submissionId,
           authorName: formData.authorName,
@@ -93,8 +112,13 @@ export function Comments({ submissionId }: CommentsProps) {
       const result = await response.json()
 
       if (response.ok) {
-        setAlertMessage({ type: 'success', message: 'Thank you! Your review will appear after approval.' })
+        setAlertMessage({ type: 'success', message: result.message || 'Comment posted!' })
         setFormData({ authorName: '', authorEmail: '', content: '', rating: 0 })
+        if (session) {
+          setTimeout(() => {
+            fetchComments()
+          }, 500)
+        }
       } else {
         setAlertMessage({ type: 'error', message: result.error || 'Failed to submit comment' })
       }
@@ -171,34 +195,36 @@ export function Comments({ submissionId }: CommentsProps) {
           {renderStars(formData.rating, true)}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-          <div>
-            <label className="block text-white/70 font-ubuntu text-sm mb-2">
-              Name *
-            </label>
-            <input
-              type="text"
-              value={formData.authorName}
-              onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
-              placeholder="Your name"
-              disabled={submitting}
-            />
+        {!isAuthenticated && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+            <div>
+              <label className="block text-white/70 font-ubuntu text-sm mb-2">
+                Name *
+              </label>
+              <input
+                type="text"
+                value={formData.authorName}
+                onChange={(e) => setFormData({ ...formData, authorName: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
+                placeholder="Your name"
+                disabled={submitting}
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 font-ubuntu text-sm mb-2">
+                Email *
+              </label>
+              <input
+                type="email"
+                value={formData.authorEmail}
+                onChange={(e) => setFormData({ ...formData, authorEmail: e.target.value })}
+                className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
+                placeholder="your@email.com"
+                disabled={submitting}
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-white/70 font-ubuntu text-sm mb-2">
-              Email *
-            </label>
-            <input
-              type="email"
-              value={formData.authorEmail}
-              onChange={(e) => setFormData({ ...formData, authorEmail: e.target.value })}
-              className="w-full px-4 py-3 rounded-lg bg-[#4a4a4a] text-white font-ubuntu border border-white/10 focus:border-[#4FFFE3] focus:outline-none"
-              placeholder="your@email.com"
-              disabled={submitting}
-            />
-          </div>
-        </div>
+        )}
 
         <div className="mb-4">
           <label className="block text-white/70 font-ubuntu text-sm mb-2">
