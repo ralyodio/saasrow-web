@@ -6,6 +6,7 @@ import { Alert } from '../components/Alert'
 import { ScreenshotGallery } from '../components/ScreenshotGallery'
 import { Comments } from '../components/Comments'
 import { RelatedSoftware } from '../components/RelatedSoftware'
+import { BookmarkButton } from '../components/BookmarkButton'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -358,6 +359,7 @@ export default function SoftwareDetailPage() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
+                        <BookmarkButton submissionId={submission.id} size="lg" showLabel />
                         <button
                           onClick={() => handleVote('upvote')}
                           disabled={isVoting}

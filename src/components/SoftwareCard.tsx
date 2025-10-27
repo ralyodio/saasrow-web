@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
+import { BookmarkButton } from './BookmarkButton'
 
 interface Software {
   id: string
@@ -375,6 +376,9 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
+            <BookmarkButton submissionId={software.id} size="sm" />
+          </div>
           <button
             onClick={handleShare}
             className="relative flex items-center gap-1.5 px-2 py-1 rounded-lg bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white transition-all"
