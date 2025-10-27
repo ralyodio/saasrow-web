@@ -52,6 +52,15 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
     if (isLoading) return;
 
+    const hasAcknowledgedLogin = localStorage.getItem('acknowledgedLogin');
+    if (!hasAcknowledgedLogin) {
+      const shouldContinue = confirm('Please log in or create an account to save your favorites across devices. Continue without an account? (Favorites will be saved locally only)');
+      if (!shouldContinue) {
+        return;
+      }
+      localStorage.setItem('acknowledgedLogin', 'true');
+    }
+
     setIsLoading(true);
 
     try {
