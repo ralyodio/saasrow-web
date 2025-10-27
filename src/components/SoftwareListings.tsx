@@ -15,6 +15,8 @@ interface Software {
   tier?: string
   featured?: boolean
   homepage_featured?: boolean
+  upvotes?: number
+  downvotes?: number
 }
 
 interface SoftwareListingsProps {

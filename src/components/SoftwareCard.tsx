@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
 interface Software {
@@ -14,6 +15,8 @@ interface Software {
   homepage_featured?: boolean
   newsletter_featured?: boolean
   view_count?: number
+  upvotes?: number
+  downvotes?: number
 }
 
 interface SoftwareCardProps {
@@ -23,6 +26,83 @@ interface SoftwareCardProps {
 export function SoftwareCard({ software }: SoftwareCardProps) {
   const isPremium = software.tier === 'premium'
   const isFeatured = software.tier === 'featured'
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [userVote, setUserVote] = useState<'upvote' | 'downvote' | null>(null)
+  const [upvotes, setUpvotes] = useState(software.upvotes || 0)
+  const [downvotes, setDownvotes] = useState(software.downvotes || 0)
+  const [isVoting, setIsVoting] = useState(false)
+
+  useEffect(() => {
+    checkAuthAndVote()
+  }, [])
+
+  const checkAuthAndVote = async () => {
+    const { data: { session } } = await supabase.auth.getSession()
+    setIsAuthenticated(!!session)
+
+    if (session) {
+      const { data: vote } = await supabase
+        .from('votes')
+        .select('vote_type')
+        .eq('submission_id', software.id)
+        .eq('user_id', session.user.id)
+        .maybeSingle()
+
+      if (vote) {
+        setUserVote(vote.vote_type as 'upvote' | 'downvote')
+      }
+    }
+  }
+
+  const handleVote = async (voteType: 'upvote' | 'downvote', e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (!isAuthenticated) {
+      alert('Please sign in to vote')
+      return
+    }
+
+    if (isVoting) return
+
+    setIsVoting(true)
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        alert('Please sign in to vote')
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vote`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          submissionId: software.id,
+          voteType,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        setUserVote(result.voteType)
+        setUpvotes(result.upvotes)
+        setDownvotes(result.downvotes)
+      } else {
+        alert(result.error || 'Failed to vote')
+      }
+    } catch (error) {
+      console.error('Failed to vote:', error)
+      alert('Failed to vote')
+    } finally {
+      setIsVoting(false)
+    }
+  }
 
   const addReferralParam = (url: string): string => {
     try {
@@ -175,18 +255,50 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
       )}
 
       <div className="flex items-center justify-between">
-        <a
-          href={addReferralParam(software.url)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
-          onClick={(e) => handleOutboundClick(e, software.id, addReferralParam(software.url))}
-        >
-          Visit Website
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
+        <div className="flex items-center gap-3">
+          <a
+            href={addReferralParam(software.url)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-[#4FFFE3] font-ubuntu text-sm hover:underline"
+            onClick={(e) => handleOutboundClick(e, software.id, addReferralParam(software.url))}
+          >
+            Visit Website
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => handleVote('upvote', e)}
+              disabled={isVoting}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${
+                userVote === 'upvote'
+                  ? 'bg-[#4FFFE3]/20 text-[#4FFFE3]'
+                  : 'bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white'
+              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3.293 9.707a1 1 0 010-1.414l6-6a1 1 0 011.414 0l6 6a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L4.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-ubuntu">{upvotes}</span>
+            </button>
+            <button
+              onClick={(e) => handleVote('downvote', e)}
+              disabled={isVoting}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg transition-all ${
+                userVote === 'downvote'
+                  ? 'bg-red-500/20 text-red-400'
+                  : 'bg-[#4a4a4a] text-white/60 hover:bg-[#555555] hover:text-white'
+              } ${isVoting ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M16.707 10.293a1 1 0 010 1.414l-6 6a1 1 0 01-1.414 0l-6-6a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l4.293-4.293a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              <span className="text-xs font-ubuntu">{downvotes}</span>
+            </button>
+          </div>
+        </div>
         {software.view_count !== undefined && software.view_count > 0 && (
           <div className="flex items-center gap-1.5 text-white/40 font-ubuntu text-xs">
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
