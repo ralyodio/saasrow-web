@@ -155,10 +155,10 @@ export function SearchSection({
                 </svg>
               </button>
             ) : (
-              <div className="p-2 flex-shrink-0" id="search-icon-container">
-                <svg id="search-magnify-icon" className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+              <div className="p-2 flex-shrink-0 bg-blue-500" id="search-icon-container" title="MAGNIFYING GLASS ICON">
+                <svg id="search-magnify-icon" className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-400" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.35-4.35" />
+                  <path d="m21 21-4.35-4.35" strokeLinecap="round" />
                 </svg>
               </div>
             )}
