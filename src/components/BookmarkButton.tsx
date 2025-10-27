@@ -5,11 +5,13 @@ interface BookmarkButtonProps {
   submissionId: string;
   size?: 'sm' | 'md' | 'lg';
   showLabel?: boolean;
+  showCount?: boolean;
 }
 
-export function BookmarkButton({ submissionId, size = 'md', showLabel = false }: BookmarkButtonProps) {
+export function BookmarkButton({ submissionId, size = 'md', showLabel = false, showCount = false }: BookmarkButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [totalBookmarks, setTotalBookmarks] = useState(0);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -19,7 +21,12 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
 
   useEffect(() => {
     checkLocalBookmark();
-  }, [submissionId]);
+    if (showCount) {
+      updateTotalBookmarks();
+      window.addEventListener('storage', updateTotalBookmarks);
+      return () => window.removeEventListener('storage', updateTotalBookmarks);
+    }
+  }, [submissionId, showCount]);
 
   const checkLocalBookmark = () => {
     try {
@@ -27,6 +34,15 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
       setIsBookmarked(bookmarks.includes(submissionId));
     } catch (error) {
       console.error('Error checking local bookmark:', error);
+    }
+  };
+
+  const updateTotalBookmarks = () => {
+    try {
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      setTotalBookmarks(bookmarks.length);
+    } catch {
+      setTotalBookmarks(0);
     }
   };
 
@@ -79,6 +95,11 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
       {showLabel && (
         <span className="text-sm text-white/70">
           {isBookmarked ? 'Saved' : 'Save'}
+        </span>
+      )}
+      {showCount && totalBookmarks > 0 && (
+        <span className="text-xs text-white/70 font-ubuntu">
+          {totalBookmarks}
         </span>
       )}
     </button>

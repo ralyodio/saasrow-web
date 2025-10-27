@@ -376,8 +376,8 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }}>
-            <BookmarkButton submissionId={software.id} size="sm" />
+          <div onClick={(e) => { e.stopPropagation(); e.preventDefault(); }} className="ml-2">
+            <BookmarkButton submissionId={software.id} size="sm" showCount />
           </div>
           <button
             onClick={handleShare}

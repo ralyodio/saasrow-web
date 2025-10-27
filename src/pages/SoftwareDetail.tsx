@@ -359,7 +359,9 @@ export default function SoftwareDetailPage() {
                         </div>
                       )}
                       <div className="flex items-center gap-2">
-                        <BookmarkButton submissionId={submission.id} size="lg" showLabel />
+                        <div className="mr-2">
+                          <BookmarkButton submissionId={submission.id} size="lg" showLabel showCount />
+                        </div>
                         <button
                           onClick={() => handleVote('upvote')}
                           disabled={isVoting}
