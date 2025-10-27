@@ -58,29 +58,26 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
     e.preventDefault()
     e.stopPropagation()
 
-    if (!isAuthenticated) {
-      alert('Please sign in to vote')
-      return
-    }
-
     if (isVoting) return
 
     setIsVoting(true)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        alert('Please sign in to vote')
-        return
-      }
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/vote`
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      }
+
+      if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`
+      }
+
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           submissionId: software.id,
           voteType,
