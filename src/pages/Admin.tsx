@@ -159,6 +159,7 @@ export default function AdminPage() {
 
       if (response.ok && result.valid) {
         sessionStorage.setItem('adminEmail', result.email)
+        sessionStorage.setItem('adminToken', token)
         setAdminEmail(result.email)
         setIsAuthenticated(true)
         fetchSubmissions()
