@@ -89,6 +89,7 @@ export default function TagsPage() {
 
       switch (sort) {
         case 'popularity':
+        case 'top-rated':
           const aVotes = (a.upvotes || 0) - (a.downvotes || 0)
           const bVotes = (b.upvotes || 0) - (b.downvotes || 0)
           const aViews = a.view_count || 0
@@ -178,6 +179,7 @@ export default function TagsPage() {
                   className="px-4 py-2 bg-[#3a3a3a] text-white rounded-lg font-ubuntu border border-white/10 focus:outline-none focus:border-[#4FFFE3]"
                 >
                   <option value="popularity">Most Popular</option>
+                  <option value="top-rated">Top Rated</option>
                   <option value="newest">Newest</option>
                   <option value="name-asc">Name (A-Z)</option>
                   <option value="name-desc">Name (Z-A)</option>
