@@ -36,6 +36,11 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
     checkAuthAndVote()
   }, [])
 
+  useEffect(() => {
+    setUpvotes(software.upvotes || 0)
+    setDownvotes(software.downvotes || 0)
+  }, [software.upvotes, software.downvotes])
+
   const checkAuthAndVote = async () => {
     const { data: { session } } = await supabase.auth.getSession()
     setIsAuthenticated(!!session)

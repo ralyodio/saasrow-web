@@ -139,7 +139,9 @@ Deno.serve(async (req: Request) => {
         category_logo_enabled,
         submitted_at,
         created_at,
-        view_count
+        view_count,
+        upvotes,
+        downvotes
       `
 
       let query = client
@@ -485,7 +487,6 @@ Deno.serve(async (req: Request) => {
         )
       }
 
-      // Send email notification when approved
       if (status === 'approved' && data.email) {
         try {
           const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173'
@@ -688,7 +689,6 @@ Deno.serve(async (req: Request) => {
           }
         } catch (emailError) {
           console.error('Error sending approval email:', emailError)
-          // Don't fail the request if email fails
         }
       }
 
