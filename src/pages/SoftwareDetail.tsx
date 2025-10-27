@@ -5,6 +5,7 @@ import { Footer } from '../components/Footer'
 import { Alert } from '../components/Alert'
 import { ScreenshotGallery } from '../components/ScreenshotGallery'
 import { Comments } from '../components/Comments'
+import { RelatedSoftware } from '../components/RelatedSoftware'
 import { supabase } from '../lib/supabase'
 
 interface Submission {
@@ -453,6 +454,12 @@ export default function SoftwareDetailPage() {
               )}
 
               <Comments submissionId={submission.id} />
+
+              <RelatedSoftware
+                currentId={submission.id}
+                category={submission.category}
+                tags={submission.tags}
+              />
 
               <div className="bg-[#3a3a3a] rounded-2xl p-8 mt-6">
                 <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">Details</h2>
