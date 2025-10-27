@@ -35,8 +35,16 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
   }, [submissionId, userId, showCount]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUserId(session?.user?.id || null);
+    const email = sessionStorage.getItem('userEmail');
+    if (email) {
+      const { data } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      setUserId(data?.id || null);
+    }
   };
 
   const checkBookmarkStatus = async () => {

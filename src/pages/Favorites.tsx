@@ -36,8 +36,16 @@ export function Favorites() {
   }, [userId]);
 
   const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setUserId(session?.user?.id || null);
+    const email = sessionStorage.getItem('userEmail');
+    if (email) {
+      const { data } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
+
+      setUserId(data?.id || null);
+    }
   };
 
   const loadBookmarks = async () => {
@@ -106,10 +114,10 @@ export function Favorites() {
                 Please log in to view your favorites
               </p>
               <Link
-                to="/explore"
+                to="/discover"
                 className="inline-block bg-white text-[#222222] px-8 py-3 rounded-lg hover:bg-white/90 transition-colors font-semibold"
               >
-                Explore Software
+                Discover Software
               </Link>
             </div>
           </div>
@@ -136,10 +144,10 @@ export function Favorites() {
                 You haven't saved any software yet
               </p>
               <Link
-                to="/explore"
+                to="/discover"
                 className="inline-block bg-white text-[#222222] px-8 py-3 rounded-lg hover:bg-white/90 transition-colors font-semibold"
               >
-                Explore Software
+                Discover Software
               </Link>
             </div>
           ) : (
