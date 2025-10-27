@@ -106,12 +106,12 @@ export function Favorites() {
                     className="bg-[#3a3a3a] rounded-xl p-6 hover:bg-[#4a4a4a] transition-colors"
                   >
                     <div className="flex items-start justify-between mb-4">
-                      <Link to={`/software/${software.id}`} className="flex items-center gap-3 flex-1">
+                      <Link to={`/software/${software.id}`} className="flex items-start gap-3 flex-1">
                         {software.logo && (
                           <img
                             src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
                             alt={software.title}
-                            className="w-12 h-12 rounded-lg object-cover bg-white p-2"
+                            className="w-12 h-12 rounded-lg object-cover bg-white p-2 flex-shrink-0"
                           />
                         )}
                         <div className="flex-1 min-w-0">
