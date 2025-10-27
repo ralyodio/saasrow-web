@@ -6,58 +6,47 @@ import { supabase } from '../lib/supabase';
 import { Heart, ExternalLink } from 'lucide-react';
 import { BookmarkButton } from '../components/BookmarkButton';
 
-interface Bookmark {
+interface Software {
   id: string;
-  created_at: string;
-  software_submissions: {
-    id: string;
-    name: string;
-    tagline: string;
-    website_url: string;
-    logo_url: string;
-    category: string;
-    tier: string;
-    upvotes: number;
-    downvotes: number;
-  };
+  title: string;
+  description: string;
+  url: string;
+  logo?: string;
+  category: string;
+  tier?: string;
+  upvotes?: number;
+  downvotes?: number;
 }
 
 export function Favorites() {
-  const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+  const [bookmarkedSoftware, setBookmarkedSoftware] = useState<Software[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    checkAuthAndLoadBookmarks();
+    loadBookmarks();
   }, []);
 
-  const checkAuthAndLoadBookmarks = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      setIsAuthenticated(false);
-      setIsLoading(false);
-      return;
-    }
-
-    setIsAuthenticated(true);
-    await loadBookmarks(session.access_token);
-  };
-
-  const loadBookmarks = async (accessToken: string) => {
+  const loadBookmarks = async () => {
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bookmarks`;
+      const bookmarkIds = JSON.parse(localStorage.getItem('bookmarks') || '[]');
 
+      if (bookmarkIds.length === 0) {
+        setIsLoading(false);
+        return;
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?status=approved`;
       const response = await fetch(apiUrl, {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setBookmarks(data.bookmarks || []);
+        const result = await response.json();
+        const allSoftware = result.data || [];
+        const bookmarked = allSoftware.filter((sw: Software) => bookmarkIds.includes(sw.id));
+        setBookmarkedSoftware(bookmarked);
       }
     } catch (error) {
       console.error('Error loading bookmarks:', error);
@@ -66,8 +55,8 @@ export function Favorites() {
     }
   };
 
-  const handleBookmarkRemoved = (submissionId: string) => {
-    setBookmarks(prev => prev.filter(b => b.software_submissions.id !== submissionId));
+  const handleBookmarkRemoved = () => {
+    loadBookmarks();
   };
 
   if (isLoading) {
@@ -82,29 +71,6 @@ export function Favorites() {
     );
   }
 
-  if (!isAuthenticated) {
-    return (
-      <div className="min-h-screen bg-[#222222] flex flex-col">
-        <Header />
-        <main className="flex-1 container mx-auto px-4 py-12">
-          <div className="max-w-2xl mx-auto text-center">
-            <Heart className="w-16 h-16 text-white/30 mx-auto mb-6" />
-            <h1 className="text-4xl font-bold text-white mb-4">My Favorites</h1>
-            <p className="text-white/70 text-lg mb-8">
-              Please log in to view your saved software
-            </p>
-            <Link
-              to="/"
-              className="inline-block bg-[#3a3a3a] text-white px-8 py-3 rounded-lg hover:bg-[#4a4a4a] transition-colors"
-            >
-              Go to Home
-            </Link>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#222222] flex flex-col">
@@ -116,7 +82,7 @@ export function Favorites() {
             <h1 className="text-4xl font-bold text-white">My Favorites</h1>
           </div>
 
-          {bookmarks.length === 0 ? (
+          {bookmarkedSoftware.length === 0 ? (
             <div className="bg-[#3a3a3a] rounded-2xl p-12 text-center">
               <Heart className="w-16 h-16 text-white/30 mx-auto mb-4" />
               <p className="text-white/70 text-lg mb-6">
@@ -131,40 +97,39 @@ export function Favorites() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {bookmarks.map((bookmark) => {
-                const software = bookmark.software_submissions;
-                const netVotes = software.upvotes - software.downvotes;
+              {bookmarkedSoftware.map((software) => {
+                const netVotes = (software.upvotes || 0) - (software.downvotes || 0);
 
                 return (
                   <div
-                    key={bookmark.id}
+                    key={software.id}
                     className="bg-[#3a3a3a] rounded-xl p-6 hover:bg-[#4a4a4a] transition-colors"
                   >
                     <div className="flex items-start justify-between mb-4">
                       <Link to={`/software/${software.id}`} className="flex items-center gap-3 flex-1">
-                        {software.logo_url && (
+                        {software.logo && (
                           <img
-                            src={software.logo_url}
-                            alt={software.name}
-                            className="w-12 h-12 rounded-lg object-cover"
+                            src={supabase.storage.from('software-logos').getPublicUrl(software.logo).data.publicUrl}
+                            alt={software.title}
+                            className="w-12 h-12 rounded-lg object-cover bg-white p-2"
                           />
                         )}
                         <div className="flex-1 min-w-0">
                           <h3 className="text-white font-bold text-lg truncate">
-                            {software.name}
+                            {software.title}
                           </h3>
                           <span className="text-white/50 text-sm capitalize">
                             {software.category}
                           </span>
                         </div>
                       </Link>
-                      <div onClick={() => handleBookmarkRemoved(software.id)}>
+                      <div onClick={handleBookmarkRemoved}>
                         <BookmarkButton submissionId={software.id} size="md" />
                       </div>
                     </div>
 
                     <p className="text-white/70 text-sm mb-4 line-clamp-2">
-                      {software.tagline}
+                      {software.description}
                     </p>
 
                     <div className="flex items-center justify-between">
@@ -179,7 +144,7 @@ export function Favorites() {
                         )}
                       </div>
                       <a
-                        href={software.website_url}
+                        href={software.url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-white/70 hover:text-white transition-colors"

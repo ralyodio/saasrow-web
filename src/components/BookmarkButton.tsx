@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
-import { supabase } from '../lib/supabase';
 
 interface BookmarkButtonProps {
   submissionId: string;
@@ -11,7 +10,6 @@ interface BookmarkButtonProps {
 export function BookmarkButton({ submissionId, size = 'md', showLabel = false }: BookmarkButtonProps) {
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   const sizeClasses = {
     sm: 'w-4 h-4',
@@ -20,41 +18,15 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
   };
 
   useEffect(() => {
-    checkAuthAndBookmark();
+    checkLocalBookmark();
   }, [submissionId]);
 
-  const checkAuthAndBookmark = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-
-    if (!session) {
-      setIsAuthenticated(false);
-      return;
-    }
-
-    setIsAuthenticated(true);
-    await checkBookmarkStatus();
-  };
-
-  const checkBookmarkStatus = async () => {
+  const checkLocalBookmark = () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
-
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bookmarks?submission_id=${submissionId}`;
-
-      const response = await fetch(apiUrl, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setIsBookmarked(data.isBookmarked);
-      }
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      setIsBookmarked(bookmarks.includes(submissionId));
     } catch (error) {
-      console.error('Error checking bookmark status:', error);
+      console.error('Error checking local bookmark:', error);
     }
   };
 
@@ -62,40 +34,22 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
     e.preventDefault();
     e.stopPropagation();
 
-    if (!isAuthenticated) {
-      alert('Please log in to bookmark software');
-      return;
-    }
-
     if (isLoading) return;
 
     setIsLoading(true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        alert('Please log in to bookmark software');
-        return;
-      }
+      const bookmarks = JSON.parse(localStorage.getItem('bookmarks') || '[]');
+      let newBookmarks;
 
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bookmarks${isBookmarked ? `?submission_id=${submissionId}` : ''}`;
-
-      const response = await fetch(apiUrl, {
-        method: isBookmarked ? 'DELETE' : 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-        body: isBookmarked ? undefined : JSON.stringify({ submission_id: submissionId }),
-      });
-
-      if (response.ok) {
-        setIsBookmarked(!isBookmarked);
+      if (isBookmarked) {
+        newBookmarks = bookmarks.filter((id: string) => id !== submissionId);
       } else {
-        const error = await response.json();
-        console.error('Bookmark error:', error);
-        alert('Failed to update bookmark. Please try again.');
+        newBookmarks = [...bookmarks, submissionId];
       }
+
+      localStorage.setItem('bookmarks', JSON.stringify(newBookmarks));
+      setIsBookmarked(!isBookmarked);
     } catch (error) {
       console.error('Error toggling bookmark:', error);
       alert('Failed to update bookmark. Please try again.');
@@ -103,10 +57,6 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false }:
       setIsLoading(false);
     }
   };
-
-  if (!isAuthenticated) {
-    return null;
-  }
 
   return (
     <button

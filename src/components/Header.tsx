@@ -1,7 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Menu, X, Heart } from 'lucide-react'
-import { supabase } from '../lib/supabase'
 
 interface HeaderProps {
   isManagementPage?: boolean
@@ -16,16 +15,6 @@ export function Header({ isManagementPage = false }: HeaderProps) {
   const [email, setEmail] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-
-  useEffect(() => {
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
-    const { data: { session } } = await supabase.auth.getSession()
-    setIsAuthenticated(!!session)
-  }
 
   const handleLogout = () => {
     navigate('/')
@@ -115,15 +104,13 @@ export function Header({ isManagementPage = false }: HeaderProps) {
             </Link>
           ))}
 
-          {isAuthenticated && (
-            <Link
-              to="/favorites"
-              className="text-white hover:opacity-80 transition-opacity flex items-center gap-2"
-              title="My Favorites"
-            >
-              <Heart className="w-6 h-6" />
-            </Link>
-          )}
+          <Link
+            to="/favorites"
+            className="text-white hover:opacity-80 transition-opacity flex items-center gap-2"
+            title="My Favorites"
+          >
+            <Heart className="w-6 h-6" />
+          </Link>
 
           <Link
             to="/featured"
@@ -170,16 +157,14 @@ export function Header({ isManagementPage = false }: HeaderProps) {
             </Link>
           ))}
 
-          {isAuthenticated && (
-            <Link
-              to="/favorites"
-              onClick={() => setMobileMenuOpen(false)}
-              className="block w-full text-center px-6 py-3 rounded-full border-2 border-white/50 text-white font-roboto text-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
-            >
-              <Heart className="w-5 h-5" />
-              <span>My Favorites</span>
-            </Link>
-          )}
+          <Link
+            to="/favorites"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block w-full text-center px-6 py-3 rounded-full border-2 border-white/50 text-white font-roboto text-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+          >
+            <Heart className="w-5 h-5" />
+            <span>My Favorites</span>
+          </Link>
 
           <Link
             to="/featured"
