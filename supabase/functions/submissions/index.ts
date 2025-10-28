@@ -246,7 +246,7 @@ Deno.serve(async (req: Request) => {
           image,
           status: 'pending',
           management_token: managementToken,
-          tier: 'basic',
+          tier: 'free',
         })
         .select()
         .single()
