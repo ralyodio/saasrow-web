@@ -278,8 +278,31 @@ Deno.serve(async (req: Request) => {
         }
       }
 
+      try {
+        const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-notification`
+        await fetch(notificationUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            type: 'new_submission',
+            data: {
+              title,
+              url,
+              category,
+              email,
+            },
+          }),
+        })
+        console.log('Admin notification sent for new submission')
+      } catch (notificationError) {
+        console.error('Error sending admin notification:', notificationError)
+      }
+
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           data: submission,
           message: 'Submission created successfully'
         }),

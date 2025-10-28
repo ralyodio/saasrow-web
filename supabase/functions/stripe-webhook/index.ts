@@ -237,6 +237,27 @@ async function syncCustomerFromStripe(customerId: string) {
             } else {
               console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
             }
+
+            try {
+              const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-notification`
+              await fetch(notificationUrl, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  type: 'new_subscription',
+                  data: {
+                    email: customerEmail,
+                    tier,
+                  },
+                }),
+              })
+              console.log(`Admin notification sent for new ${tier} subscription`)
+            } catch (notificationError) {
+              console.error('Error sending admin notification:', notificationError)
+            }
           }
         } else {
           const oldTier = existingToken.tier;
@@ -279,6 +300,27 @@ async function syncCustomerFromStripe(customerId: string) {
               } else {
                 console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
               }
+            }
+
+            try {
+              const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-notification`
+              await fetch(notificationUrl, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  type: 'new_subscription',
+                  data: {
+                    email: customerEmail,
+                    tier,
+                  },
+                }),
+              })
+              console.log(`Admin notification sent for new ${tier} subscription`)
+            } catch (notificationError) {
+              console.error('Error sending admin notification:', notificationError)
             }
           }
         }
