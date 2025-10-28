@@ -62,7 +62,7 @@ export default function FeaturedPage() {
       ],
     },
     {
-      name: 'Basic',
+      name: 'Featured',
       description: 'For growing companies',
       monthlyPrice: 2,
       yearlyPrice: 19.2,
