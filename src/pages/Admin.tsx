@@ -260,11 +260,18 @@ export default function AdminPage() {
 
   const updateSubmissionStatus = async (id: string, status: 'approved' | 'rejected') => {
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const token = sessionStorage.getItem('adminToken')
+      if (!token) {
+        setAlertMessage({ type: 'error', message: 'Admin authentication required' })
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-submissions`
       const response = await fetch(apiUrl, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Admin-Token': token,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id, status }),
@@ -275,9 +282,11 @@ export default function AdminPage() {
           prev.map((sub) => (sub.id === id ? { ...sub, status } : sub))
         )
         fetchAnalytics()
+        setAlertMessage({ type: 'success', message: `Submission ${status} successfully` })
       } else {
-        console.error('Failed to update submission:', await response.text())
-        setAlertMessage({ type: 'error', message: 'Failed to update submission status' })
+        const error = await response.json()
+        console.error('Failed to update submission:', error)
+        setAlertMessage({ type: 'error', message: error.error || 'Failed to update submission status' })
       }
     } catch (error) {
       console.error('Failed to update submission:', error)
@@ -298,13 +307,19 @@ export default function AdminPage() {
   }
 
   const performDelete = async (id: string, title: string) => {
-
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const token = sessionStorage.getItem('adminToken')
+      if (!token) {
+        setAlertMessage({ type: 'error', message: 'Admin authentication required' })
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/admin-submissions`
       const response = await fetch(apiUrl, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'X-Admin-Token': token,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ id }),
@@ -314,8 +329,9 @@ export default function AdminPage() {
         setSubmissions((prev) => prev.filter((sub) => sub.id !== id))
         setAlertMessage({ type: 'success', message: 'Submission deleted successfully' })
       } else {
-        console.error('Failed to delete submission:', await response.text())
-        setAlertMessage({ type: 'error', message: 'Failed to delete submission' })
+        const error = await response.json()
+        console.error('Failed to delete submission:', error)
+        setAlertMessage({ type: 'error', message: error.error || 'Failed to delete submission' })
       }
     } catch (error) {
       console.error('Failed to delete submission:', error)
