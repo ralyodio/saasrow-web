@@ -89,7 +89,7 @@ export default function SubmitPage() {
       }
 
       if (userTier === 'free' && urlList.length > 1) {
-        setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Basic (5 URLs) or Premium (unlimited).' })
+        setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Featured (5 URLs) or Premium (unlimited).' })
         setIsFetching(false)
         return
       }
@@ -548,7 +548,7 @@ export default function SubmitPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#4FFFE3]/30">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[#4FFFE3] font-bold font-ubuntu text-lg">Basic Tier</h3>
+                    <h3 className="text-[#4FFFE3] font-bold font-ubuntu text-lg">Featured Tier</h3>
                     <div className="text-right">
                       <div className="text-white font-ubuntu text-sm">$1.60/mo</div>
                       <div className="text-white/60 font-ubuntu text-xs">billed annually</div>
@@ -574,6 +574,14 @@ export default function SubmitPage() {
                     <li className="flex items-start gap-2">
                       <span className="text-[#4FFFE3] mt-0.5">✓</span>
                       <span>Monthly analytics</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Logo in category pages</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Social media mentions</span>
                     </li>
                   </ul>
                   <a
@@ -659,7 +667,7 @@ export default function SubmitPage() {
                   />
                 )}
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!"}
+                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Featured for 5 URLs or Premium for unlimited!"}
                   {userTier === 'featured' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                   {userTier === 'premium' && "Enter unlimited URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                 </p>
