@@ -1093,26 +1093,26 @@ export default function AdminPage() {
       <div className="relative z-10">
         <Header />
 
-        <main className="w-full max-w-[1400px] mx-auto px-4 py-12">
-          <div className="mb-8 flex items-center justify-between">
+        <main className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          <div className="mb-6 sm:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">Admin Dashboard</h1>
-              <p className="text-white/70 text-xl font-ubuntu">
+              <h1 className="text-white text-3xl sm:text-4xl lg:text-5xl font-bold font-ubuntu mb-2">Admin Dashboard</h1>
+              <p className="text-white/70 text-base sm:text-lg lg:text-xl font-ubuntu">
                 Manage software submissions and news posts
               </p>
             </div>
             <button
               onClick={handleLogout}
-              className="px-6 py-3 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold hover:bg-[#555555] transition-colors"
+              className="px-6 py-3 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold hover:bg-[#555555] transition-colors w-full sm:w-auto"
             >
               Logout
             </button>
           </div>
 
-          <div className="flex gap-4 mb-8">
+          <div className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8">
             <button
               onClick={() => setActiveTab('submissions')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'submissions'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1122,17 +1122,17 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('news')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'news'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
               }`}
             >
-              News Posts
+              News
             </button>
             <button
               onClick={() => setActiveTab('newsletter')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'newsletter'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1142,7 +1142,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('users')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'users'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1152,7 +1152,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'analytics'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1162,7 +1162,7 @@ export default function AdminPage() {
             </button>
             <button
               onClick={() => setActiveTab('comments')}
-              className={`px-8 py-3 rounded-full font-ubuntu font-bold transition-all ${
+              className={`px-4 sm:px-6 lg:px-8 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all text-sm sm:text-base ${
                 activeTab === 'comments'
                   ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                   : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1174,12 +1174,12 @@ export default function AdminPage() {
 
           {activeTab === 'submissions' && (
             <>
-              <div className="flex gap-4 mb-8">
+              <div className="flex flex-wrap gap-2 sm:gap-4 mb-6 sm:mb-8">
             {['all', 'pending', 'approved', 'rejected'].map((status) => (
               <button
                 key={status}
                 onClick={() => setFilter(status as typeof filter)}
-                className={`px-6 py-3 rounded-full font-ubuntu font-bold transition-all capitalize ${
+                className={`px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-full font-ubuntu font-bold transition-all capitalize text-xs sm:text-sm lg:text-base ${
                   filter === status
                     ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                     : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -1203,34 +1203,34 @@ export default function AdminPage() {
               {filteredSubmissions.map((submission) => (
                 <div
                   key={submission.id}
-                  className="bg-[#3a3a3a] rounded-2xl p-6 hover:bg-[#404040] transition-colors"
+                  className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 hover:bg-[#404040] transition-colors"
                 >
-                  <div className="flex items-start gap-4 mb-4">
+                  <div className="flex flex-col sm:flex-row items-start gap-4 mb-4">
                     {submission.logo && (
                       <div className="flex-shrink-0">
                         <img
                           src={submission.logo}
                           alt={`${submission.title} logo`}
-                          className="w-16 h-16 rounded-lg bg-white p-2 object-contain"
+                          className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg bg-white p-2 object-contain"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none'
                           }}
                         />
                       </div>
                     )}
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="text-white text-2xl font-bold font-ubuntu">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-2">
+                        <h3 className="text-white text-lg sm:text-xl lg:text-2xl font-bold font-ubuntu break-words">
                           {submission.title}
                         </h3>
                         <span
-                          className={`px-3 py-1 rounded-full text-sm font-ubuntu border capitalize ${getStatusColor(
+                          className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-ubuntu border capitalize ${getStatusColor(
                             submission.status
                           )}`}
                         >
                           {submission.status}
                         </span>
-                        <span className="px-3 py-1 rounded-full text-sm font-ubuntu bg-[#4a4a4a] text-white/70">
+                        <span className="px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-ubuntu bg-[#4a4a4a] text-white/70">
                           {submission.category}
                         </span>
                       </div>
@@ -1255,39 +1255,39 @@ export default function AdminPage() {
                           ))}
                         </div>
                       )}
-                      <div className="flex items-center gap-4 text-white/50 font-ubuntu text-sm">
-                        <span>Contact: {submission.email}</span>
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white/50 font-ubuntu text-xs sm:text-sm">
+                        <span className="break-all">Contact: {submission.email}</span>
                         <span>
                           Submitted: {new Date(submission.submitted_at).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2 ml-4">
-                      <div className="flex gap-2">
-                        {submission.status !== 'approved' && (
-                          <button
-                            onClick={() => updateSubmissionStatus(submission.id, 'approved')}
-                            className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
-                          >
-                            Approve
-                          </button>
-                        )}
-                        {submission.status !== 'rejected' && (
-                          <button
-                            onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
-                            className="px-4 py-2 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu font-bold hover:bg-red-400/30 transition-colors"
-                          >
-                            Reject
-                          </button>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => deleteSubmission(submission.id, submission.title)}
-                        className="px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors"
-                      >
-                        Delete
-                      </button>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2 mt-4">
+                    <div className="flex gap-2 flex-wrap">
+                      {submission.status !== 'approved' && (
+                        <button
+                          onClick={() => updateSubmissionStatus(submission.id, 'approved')}
+                          className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {submission.status !== 'rejected' && (
+                        <button
+                          onClick={() => updateSubmissionStatus(submission.id, 'rejected')}
+                          className="flex-1 sm:flex-none px-3 sm:px-4 py-2 rounded-lg bg-red-400/20 text-red-400 border border-red-400 font-ubuntu font-bold hover:bg-red-400/30 transition-colors text-sm"
+                        >
+                          Reject
+                        </button>
+                      )}
                     </div>
+                    <button
+                      onClick={() => deleteSubmission(submission.id, submission.title)}
+                      className="px-3 sm:px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors text-sm"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
               ))}
@@ -1298,25 +1298,25 @@ export default function AdminPage() {
 
           {activeTab === 'newsletter' && (
             <div className="space-y-8">
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                    <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-2">
                       Newsletter Subscribers ({subscribers.filter(s => s.is_active).length} active)
                     </h2>
-                    <p className="text-white/70 font-ubuntu">
+                    <p className="text-white/70 font-ubuntu text-sm sm:text-base">
                       Manage your newsletter subscriber list
                     </p>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-wrap gap-2 sm:gap-3">
                     <button
                       onClick={exportSubscribers}
                       disabled={subscribers.length === 0}
-                      className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
                     >
                       Export CSV
                     </button>
-                    <label className="px-6 py-3 rounded-full bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors cursor-pointer">
+                    <label className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors cursor-pointer text-sm sm:text-base">
                       Import CSV
                       <input
                         type="file"
@@ -1337,24 +1337,24 @@ export default function AdminPage() {
                     <p className="text-white/70 font-ubuntu text-lg">No subscribers yet</p>
                   </div>
                 ) : (
-                  <div className="max-h-96 overflow-y-auto">
-                    <table className="w-full">
+                  <div className="max-h-96 overflow-auto">
+                    <table className="w-full min-w-[600px]">
                       <thead className="sticky top-0 bg-[#3a3a3a] border-b border-white/10">
                         <tr className="text-left">
-                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Email</th>
-                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Subscribed At</th>
-                          <th className="py-3 px-4 text-white font-ubuntu font-bold">Status</th>
+                          <th className="py-2 sm:py-3 px-2 sm:px-4 text-white font-ubuntu font-bold text-sm sm:text-base">Email</th>
+                          <th className="py-2 sm:py-3 px-2 sm:px-4 text-white font-ubuntu font-bold text-sm sm:text-base">Subscribed At</th>
+                          <th className="py-2 sm:py-3 px-2 sm:px-4 text-white font-ubuntu font-bold text-sm sm:text-base">Status</th>
                         </tr>
                       </thead>
                       <tbody>
                         {subscribers.map((subscriber) => (
                           <tr key={subscriber.id} className="border-b border-white/5 hover:bg-white/5">
-                            <td className="py-3 px-4 text-white/90 font-ubuntu">{subscriber.email}</td>
-                            <td className="py-3 px-4 text-white/70 font-ubuntu">
+                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-white/90 font-ubuntu text-xs sm:text-sm break-all">{subscriber.email}</td>
+                            <td className="py-2 sm:py-3 px-2 sm:px-4 text-white/70 font-ubuntu text-xs sm:text-sm whitespace-nowrap">
                               {new Date(subscriber.subscribed_at).toLocaleDateString()}
                             </td>
-                            <td className="py-3 px-4">
-                              <span className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                            <td className="py-2 sm:py-3 px-2 sm:px-4">
+                              <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-ubuntu border ${
                                 subscriber.is_active
                                   ? 'text-[#4FFFE3] bg-[#4FFFE3]/10 border-[#4FFFE3]'
                                   : 'text-red-400 bg-red-400/10 border-red-400'
@@ -1370,11 +1370,11 @@ export default function AdminPage() {
                 )}
               </div>
 
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <h2 className="text-white text-3xl font-bold font-ubuntu mb-4">
+              <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-3 sm:mb-4">
                   Send Newsletter
                 </h2>
-                <p className="text-white/70 font-ubuntu mb-6">
+                <p className="text-white/70 font-ubuntu mb-4 sm:mb-6 text-sm sm:text-base">
                   Compose and send a newsletter to all active subscribers
                 </p>
 
@@ -1421,11 +1421,11 @@ export default function AdminPage() {
                 </form>
               </div>
 
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <h2 className="text-white text-3xl font-bold font-ubuntu mb-4">
+              <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-3 sm:mb-4">
                   Newsletter History ({newsletterHistory.length})
                 </h2>
-                <p className="text-white/70 font-ubuntu mb-6">
+                <p className="text-white/70 font-ubuntu mb-4 sm:mb-6 text-sm sm:text-base">
                   View all previously sent newsletters
                 </p>
 

@@ -596,32 +596,32 @@ export default function ManageListings() {
           )}
 
           {showAddForm && (
-            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-8 mb-6">
-              <h2 className="text-2xl font-bold mb-4 text-white font-ubuntu">Add New Listing</h2>
-              <p className="text-white/70 mb-6 font-ubuntu">
+            <div className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6 lg:p-8 mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 text-white font-ubuntu">Add New Listing</h2>
+              <p className="text-white/70 mb-4 sm:mb-6 font-ubuntu text-sm sm:text-base">
                 Enter the URL of your software and we'll automatically extract the details for you.
               </p>
 
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                 <input
                   type="url"
                   value={addUrl}
                   onChange={(e) => setAddUrl(e.target.value)}
                   placeholder="https://example.com"
-                  className="flex-1 px-6 py-4 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu text-lg"
+                  className="flex-1 px-4 sm:px-6 py-3 sm:py-4 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu text-base sm:text-lg"
                   disabled={processing}
                 />
                 <button
                   onClick={handleProcessUrl}
                   disabled={processing || !addUrl}
-                  className="px-8 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="px-6 sm:px-8 py-3 sm:py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50 whitespace-nowrap"
                 >
                   {processing ? 'Processing...' : 'Add Listing'}
                 </button>
                 <button
                   onClick={() => setShowAddForm(false)}
                   disabled={processing}
-                  className="px-8 py-4 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold disabled:opacity-50"
+                  className="px-6 sm:px-8 py-3 sm:py-4 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold disabled:opacity-50"
                 >
                   Cancel
                 </button>
@@ -629,9 +629,9 @@ export default function ManageListings() {
             </div>
           )}
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {submissions.map((submission) => (
-              <div key={submission.id} className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-6">
+              <div key={submission.id} className="bg-[#2a2a2a] rounded-2xl border border-white/10 p-4 sm:p-6">
                 {editingId === submission.id ? (
                   <form
                     onSubmit={(e) => {
@@ -766,25 +766,25 @@ export default function ManageListings() {
                         </button>
                       </div>
                       {(formData.socialLinks || []).map((link, index) => (
-                        <div key={index} className="flex gap-2 mb-2">
+                        <div key={index} className="flex flex-col sm:flex-row gap-2 mb-2">
                           <input
                             type="text"
                             placeholder="Platform (e.g., Twitter)"
                             value={link.platform}
                             onChange={(e) => updateSocialLink(index, 'platform', e.target.value)}
-                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
+                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu text-sm sm:text-base"
                           />
                           <input
                             type="url"
                             placeholder="URL"
                             value={link.url}
                             onChange={(e) => updateSocialLink(index, 'url', e.target.value)}
-                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu"
+                            className="flex-1 px-4 py-3 bg-[#1a1a1a] border border-white/10 rounded-xl text-white placeholder-white/40 focus:ring-2 focus:ring-[#4FFFE3] focus:border-transparent font-ubuntu text-sm sm:text-base"
                           />
                           <button
                             type="button"
                             onClick={() => removeSocialLink(index)}
-                            className="px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg font-ubuntu"
+                            className="px-3 py-2 text-red-400 hover:bg-red-400/10 rounded-lg font-ubuntu text-sm"
                           >
                             Remove
                           </button>
@@ -792,18 +792,18 @@ export default function ManageListings() {
                       ))}
                     </div>
 
-                    <div className="flex gap-4 pt-4">
+                    <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
                       <button
                         type="submit"
                         disabled={saving}
-                        className="flex-1 px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+                        className="flex-1 px-6 sm:px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50 text-sm sm:text-base"
                       >
                         {saving ? 'Saving...' : 'Save Changes'}
                       </button>
                       <button
                         type="button"
                         onClick={handleCancelEdit}
-                        className="px-8 py-3 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold"
+                        className="px-6 sm:px-8 py-3 border border-white/20 rounded-full hover:bg-white/5 transition text-white font-ubuntu font-bold text-sm sm:text-base"
                       >
                         Cancel
                       </button>
@@ -811,36 +811,36 @@ export default function ManageListings() {
                   </form>
                 ) : (
                   <>
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex-1">
-                        <h2 className="text-xl font-bold text-white mb-2 font-ubuntu">{submission.title}</h2>
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-4">
+                      <div className="flex-1 min-w-0">
+                        <h2 className="text-lg sm:text-xl font-bold text-white mb-2 font-ubuntu break-words">{submission.title}</h2>
                         <a
                           href={submission.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-[#4FFFE3] hover:underline text-sm font-ubuntu"
+                          className="text-[#4FFFE3] hover:underline text-xs sm:text-sm font-ubuntu break-all"
                         >
                           {submission.url}
                         </a>
                       </div>
                       <div className="flex items-center gap-2 flex-wrap">
                         {submission.tier === 'premium' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 text-gray-900">
+                          <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-yellow-400 to-cyan-400 text-gray-900">
                             PREMIUM
                           </span>
                         )}
                         {submission.tier === 'featured' && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
+                          <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
                             FEATURED
                           </span>
                         )}
                         {(!submission.tier || submission.tier === 'free') && (
-                          <span className="px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
-                            FREE TIER
+                          <span className="px-2 sm:px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-cyan-400 to-blue-500 text-white">
+                            FREE
                           </span>
                         )}
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
                             submission.status === 'approved'
                               ? 'bg-green-100 text-green-800'
                               : submission.status === 'rejected'
@@ -852,7 +852,7 @@ export default function ManageListings() {
                         </span>
                         <button
                           onClick={() => handleEdit(submission)}
-                          className="px-6 py-2 text-[#4FFFE3] hover:bg-[#4FFFE3]/10 rounded-full transition font-ubuntu font-bold"
+                          className="px-4 sm:px-6 py-2 text-[#4FFFE3] hover:bg-[#4FFFE3]/10 rounded-full transition font-ubuntu font-bold text-sm"
                         >
                           Edit
                         </button>
