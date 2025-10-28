@@ -83,6 +83,27 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      if (status === 'approved' && data && (data.tier === 'featured' || data.tier === 'premium')) {
+        try {
+          const screenshotUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/capture-screenshots`
+          await fetch(screenshotUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              submissionId: data.id,
+              url: data.url,
+              tier: data.tier,
+            }),
+          })
+          console.log(`Triggered screenshot capture for submission ${data.id}`)
+        } catch (screenshotError) {
+          console.error('Error triggering screenshot capture:', screenshotError)
+        }
+      }
+
       return new Response(
         JSON.stringify({ data }),
         {
