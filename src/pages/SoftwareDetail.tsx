@@ -165,20 +165,11 @@ export default function SoftwareDetailPage() {
     }
   }
 
-  const handleOutboundClick = async (e: React.MouseEvent<HTMLAnchorElement>, submissionId: string, url: string) => {
-    e.preventDefault()
-
-    const targetUrl = url
-    const openInNewTab = () => {
-      window.open(targetUrl, '_blank', 'noopener,noreferrer')
-    }
-
+  const handleOutboundClick = async (e: React.MouseEvent<HTMLAnchorElement>, submissionId: string) => {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 300)
 
-      await fetch(apiUrl, {
+      fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -189,15 +180,12 @@ export default function SoftwareDetailPage() {
           referrer: document.referrer || null,
           userAgent: navigator.userAgent,
         }),
-        signal: controller.signal,
         keepalive: true
+      }).catch(error => {
+        console.error('Failed to track click:', error)
       })
-
-      clearTimeout(timeoutId)
     } catch (error) {
       console.error('Failed to track click:', error)
-    } finally {
-      openInNewTab()
     }
   }
 
@@ -431,11 +419,11 @@ export default function SoftwareDetailPage() {
                     href={addReferralParam(submission.url)}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={(e) => handleOutboundClick(e, submission.id, addReferralParam(submission.url))}
+                    onClick={(e) => handleOutboundClick(e, submission.id)}
                     className="flex-1 text-center px-8 py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
                     title="Visit Website"
                   >
-                    VIsit Website
+                    Visit Website
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                     </svg>
