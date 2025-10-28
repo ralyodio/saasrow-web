@@ -166,10 +166,17 @@ export default function SoftwareDetailPage() {
   }
 
   const handleOutboundClick = async (e: React.MouseEvent<HTMLAnchorElement>, submissionId: string) => {
+    const link = e.currentTarget
+    const href = link.href
+
+    e.preventDefault()
+
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-click`
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 500)
 
-      fetch(apiUrl, {
+      await fetch(apiUrl, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -180,12 +187,15 @@ export default function SoftwareDetailPage() {
           referrer: document.referrer || null,
           userAgent: navigator.userAgent,
         }),
+        signal: controller.signal,
         keepalive: true
-      }).catch(error => {
-        console.error('Failed to track click:', error)
       })
+
+      clearTimeout(timeoutId)
     } catch (error) {
       console.error('Failed to track click:', error)
+    } finally {
+      window.location.href = href
     }
   }
 
