@@ -545,7 +545,7 @@ export default function SubmitPage() {
               <h2 className="text-white text-xl font-bold font-ubuntu mb-4 text-center">
                 🚀 Upgrade for More Visibility & Features
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="max-w-md mx-auto">
                 <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#4FFFE3]/30">
                   <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[#4FFFE3] font-bold font-ubuntu text-lg">Featured Tier</h3>
@@ -591,43 +591,6 @@ export default function SubmitPage() {
                     Learn More
                   </a>
                 </div>
-                <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#E0FF04]/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[#E0FF04] font-bold font-ubuntu text-lg">Premium Tier</h3>
-                    <div className="text-right">
-                      <div className="text-white font-ubuntu text-sm">$3.20/mo</div>
-                      <div className="text-white/60 font-ubuntu text-xs">billed annually</div>
-                    </div>
-                  </div>
-                  <ul className="text-white/70 text-sm font-ubuntu space-y-2">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Free dofollow link</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Unlimited listings</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Homepage feature + Premium badge</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Same-day review</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#E0FF04] mt-0.5">✓</span>
-                      <span>Newsletter (200K+ subscribers)</span>
-                    </li>
-                  </ul>
-                  <a
-                    href="/featured"
-                    className="block mt-4 w-full py-2 text-center rounded-lg bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity"
-                  >
-                    Upgrade Now
-                  </a>
-                </div>
               </div>
               <p className="text-center text-white/60 text-sm font-ubuntu mt-4">
                 💰 Have a discount code? You'll be able to apply it at checkout.
@@ -641,7 +604,6 @@ export default function SubmitPage() {
                 <label htmlFor={userTier === 'free' ? 'url' : 'urls'} className="block text-white font-ubuntu text-lg mb-4">
                   {userTier === 'free' && 'Software URL (Free Tier - 1 URL)'}
                   {userTier === 'featured' && 'Software URLs (Featured Tier - Up to 5 URLs)'}
-                  {userTier === 'premium' && 'Software URLs (Premium Tier - Unlimited)'}
                 </label>
                 {userTier === 'free' ? (
                   <input
@@ -667,13 +629,12 @@ export default function SubmitPage() {
                   />
                 )}
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Featured for 5 URLs or Premium for unlimited!"}
+                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Featured for 5 URLs!"}
                   {userTier === 'featured' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
-                  {userTier === 'premium' && "Enter unlimited URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                 </p>
                 <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
                   <p className="text-white font-ubuntu text-sm mb-2">
-                    <strong className="text-[#4FFFE3]">{userTier === 'free' ? 'Free' : userTier === 'featured' ? 'Featured' : 'Premium'} Tier Includes:</strong>
+                    <strong className="text-[#4FFFE3]">{userTier === 'featured' ? 'Featured' : 'Free'} Tier Includes:</strong>
                   </p>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
                     {userTier === 'free' && (
@@ -696,33 +657,16 @@ export default function SubmitPage() {
                         <li>• Social media mentions</li>
                       </>
                     )}
-                    {userTier === 'premium' && (
-                      <>
-                        <li>• Free dofollow link</li>
-                        <li>• Unlimited software listings</li>
-                        <li>• Homepage featured spot</li>
-                        <li>• Same-day review</li>
-                        <li>• Advanced analytics dashboard</li>
-                        <li>• Newsletter feature (200K+ subscribers)</li>
-                        <li>• Dedicated account manager</li>
-                        <li>• SEO optimization support</li>
-                      </>
-                    )}
                   </ul>
                 </div>
-                {userTier !== 'premium' && (
+                {userTier === 'free' && (
                   <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
                     <p className="text-white/70 text-sm font-ubuntu flex items-start gap-2">
                       <span className="text-[#E0FF04] text-lg">⭐</span>
                       <span>
                         <strong className="text-white">Need more?</strong>
                         <br />
-                        {userTier === 'free' && (
-                          <>Upgrade to <span className="text-[#E0FF04]">Featured</span> for 5 URLs and priority review, or <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
-                        )}
-                        {userTier === 'featured' && (
-                          <>Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
-                        )}
+                        Upgrade to <span className="text-[#E0FF04]">Featured</span> for 5 URLs, priority review, featured badge, monthly analytics, and social media mentions!
                       </span>
                     </p>
                   </div>
