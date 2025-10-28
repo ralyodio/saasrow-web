@@ -1660,19 +1660,19 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                       <div>
-                        <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                        <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-2">
                           Top Performing Software
                         </h2>
-                        <p className="text-white/70 font-ubuntu">
+                        <p className="text-white/70 font-ubuntu text-sm sm:text-base">
                           Ranked by total views and engagement
                         </p>
                       </div>
                       <button
                         onClick={fetchAnalytics}
-                        className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                        className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm sm:text-base whitespace-nowrap"
                       >
                         Refresh
                       </button>
@@ -1687,19 +1687,19 @@ export default function AdminPage() {
                         {analyticsData.topPerformers.map((software, index) => (
                           <div
                             key={software.id}
-                            className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                            className="bg-[#404040] rounded-xl p-4 sm:p-6 hover:bg-[#454545] transition-colors"
                           >
-                            <div className="flex items-center gap-4">
-                              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] flex items-center justify-center">
-                                <span className="text-neutral-800 text-xl font-bold font-ubuntu">#{index + 1}</span>
+                            <div className="flex flex-col sm:flex-row items-start gap-3 sm:gap-4">
+                              <div className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] flex items-center justify-center">
+                                <span className="text-neutral-800 text-lg sm:text-xl font-bold font-ubuntu">#{index + 1}</span>
                               </div>
-                              <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                  <h3 className="text-white text-xl font-bold font-ubuntu">
+                              <div className="flex-1 min-w-0">
+                                <div className="flex flex-wrap items-center gap-2 mb-2">
+                                  <h3 className="text-white text-base sm:text-lg lg:text-xl font-bold font-ubuntu break-words">
                                     {software.title}
                                   </h3>
                                   <span
-                                    className={`px-3 py-1 rounded-full text-xs font-ubuntu border ${
+                                    className={`px-2 sm:px-3 py-1 rounded-full text-xs font-ubuntu border ${
                                       software.tier === 'premium'
                                         ? 'text-[#E0FF04] bg-[#E0FF04]/10 border-[#E0FF04]'
                                         : software.tier === 'featured'
@@ -1714,11 +1714,11 @@ export default function AdminPage() {
                                   href={software.url}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-[#4FFFE3] text-sm font-ubuntu hover:underline block mb-2"
+                                  className="text-[#4FFFE3] text-xs sm:text-sm font-ubuntu hover:underline block mb-2 break-all"
                                 >
                                   {software.url}
                                 </a>
-                                <div className="flex gap-6 text-sm">
+                                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-4 lg:gap-6 text-xs sm:text-sm">
                                   <div>
                                     <span className="text-white/50 font-ubuntu">Views: </span>
                                     <span className="text-white font-bold font-ubuntu">{software.view_count.toLocaleString()}</span>
@@ -1761,16 +1761,16 @@ export default function AdminPage() {
 
           {activeTab === 'users' && (
             <div className="space-y-8">
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <div className="flex items-center justify-between mb-6">
-                  <div>
-                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+              <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
+                  <div className="flex-1">
+                    <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-2">
                       All Users ({users.length})
                     </h2>
-                    <p className="text-white/70 font-ubuntu">
+                    <p className="text-white/70 font-ubuntu text-sm sm:text-base mb-3">
                       Manage all users across Free, Featured, and Premium tiers
                     </p>
-                    <div className="flex gap-4 mt-3 text-sm">
+                    <div className="flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm">
                       <span className="text-white/60 font-ubuntu">
                         Free: {users.filter(u => u.tier === 'free').length}
                       </span>
@@ -1784,7 +1784,7 @@ export default function AdminPage() {
                   </div>
                   <button
                     onClick={fetchUsers}
-                    className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                    className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm sm:text-base whitespace-nowrap"
                   >
                     Refresh
                   </button>
@@ -1803,12 +1803,12 @@ export default function AdminPage() {
                     {users.map((user, index) => (
                       <div
                         key={index}
-                        className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                        className="bg-[#404040] rounded-xl p-4 sm:p-6 hover:bg-[#454545] transition-colors"
                       >
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-3">
-                              <h3 className="text-white text-xl font-bold font-ubuntu">
+                        <div className="flex flex-col lg:flex-row lg:items-start gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2 mb-3">
+                              <h3 className="text-white text-base sm:text-lg lg:text-xl font-bold font-ubuntu break-all">
                                 {user.email}
                               </h3>
                               <span
@@ -1842,7 +1842,7 @@ export default function AdminPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 text-xs sm:text-sm">
                               <div>
                                 <span className="text-white/50 font-ubuntu">Joined:</span>
                                 <span className="text-white/90 font-ubuntu ml-2">
@@ -1884,20 +1884,18 @@ export default function AdminPage() {
                               </div>
                             )}
                           </div>
-                          <div className="flex flex-col gap-2">
+                          <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                             {user.submission_count > 0 && (
                               <button
                                 onClick={() => toggleUserSubmissions(user.email)}
-                                className="px-4 py-2 rounded-lg bg-white/10 text-white border border-white/20 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                                className="px-3 sm:px-4 py-2 rounded-lg bg-white/10 text-white border border-white/20 font-ubuntu font-bold hover:bg-white/20 transition-colors text-xs sm:text-sm"
                               >
                                 {expandedUserId === user.email ? 'Hide' : 'View'} Submissions
                               </button>
                             )}
-                          </div>
-                          <div className="flex flex-col gap-2 ml-2">
                             <a
                               href={`mailto:${user.email}`}
-                              className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center text-sm"
+                              className="px-3 sm:px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-center text-xs sm:text-sm"
                             >
                               Email
                             </a>
@@ -1905,13 +1903,13 @@ export default function AdminPage() {
                               <>
                                 <button
                                   onClick={() => handleUpgradeUser(user.email, 'featured')}
-                                  className="px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm"
+                                  className="px-3 sm:px-4 py-2 rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-xs sm:text-sm"
                                 >
                                   → Featured
                                 </button>
                                 <button
                                   onClick={() => handleUpgradeUser(user.email, 'premium')}
-                                  className="px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-sm"
+                                  className="px-3 sm:px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-xs sm:text-sm"
                                 >
                                   → Premium
                                 </button>
@@ -1921,13 +1919,13 @@ export default function AdminPage() {
                               <>
                                 <button
                                   onClick={() => handleUpgradeUser(user.email, 'premium')}
-                                  className="px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-sm"
+                                  className="px-3 sm:px-4 py-2 rounded-lg bg-[#E0FF04]/20 text-[#E0FF04] border border-[#E0FF04] font-ubuntu font-bold hover:bg-[#E0FF04]/30 transition-colors text-xs sm:text-sm"
                                 >
                                   → Premium
                                 </button>
                                 <button
                                   onClick={() => handleDowngradeUser(user.email)}
-                                  className="px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                                  className="px-3 sm:px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-xs sm:text-sm"
                                 >
                                   → Free
                                 </button>
@@ -1936,14 +1934,14 @@ export default function AdminPage() {
                             {user.tier === 'premium' && (
                               <button
                                 onClick={() => handleDowngradeUser(user.email)}
-                                className="px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-sm"
+                                className="px-3 sm:px-4 py-2 rounded-lg bg-white/10 text-white/70 border border-white/30 font-ubuntu font-bold hover:bg-white/20 transition-colors text-xs sm:text-sm"
                               >
                                 → Free
                               </button>
                             )}
                             <button
                               onClick={() => handleDeleteUser(user.email)}
-                              className="px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors text-sm"
+                              className="px-3 sm:px-4 py-2 rounded-lg bg-red-600/20 text-red-500 border border-red-600 font-ubuntu font-bold hover:bg-red-600/30 transition-colors text-xs sm:text-sm"
                             >
                               Delete
                             </button>
@@ -2058,28 +2056,28 @@ export default function AdminPage() {
 
           {activeTab === 'comments' && (
             <div className="space-y-8">
-              <div className="bg-[#3a3a3a] rounded-2xl p-8">
-                <div className="flex items-center justify-between mb-6">
+              <div className="bg-[#3a3a3a] rounded-2xl p-4 sm:p-6 lg:p-8">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
                   <div>
-                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-2">
+                    <h2 className="text-white text-xl sm:text-2xl lg:text-3xl font-bold font-ubuntu mb-2">
                       Comment Moderation
                     </h2>
-                    <p className="text-white/70 font-ubuntu">
+                    <p className="text-white/70 font-ubuntu text-sm sm:text-base">
                       Review and approve pending comments
                     </p>
                   </div>
                   <button
                     onClick={fetchComments}
-                    className="px-6 py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors"
+                    className="px-4 sm:px-6 py-2 sm:py-3 rounded-full bg-[#4FFFE3]/20 text-[#4FFFE3] border border-[#4FFFE3] font-ubuntu font-bold hover:bg-[#4FFFE3]/30 transition-colors text-sm sm:text-base whitespace-nowrap"
                   >
                     Refresh
                   </button>
                 </div>
 
-                <div className="flex gap-3 mb-6">
+                <div className="flex flex-wrap gap-2 sm:gap-3 mb-6">
                   <button
                     onClick={() => setCommentFilter('all')}
-                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                    className={`px-3 sm:px-4 py-2 rounded-full font-ubuntu font-bold transition-all text-xs sm:text-sm ${
                       commentFilter === 'all'
                         ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                         : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -2089,7 +2087,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => setCommentFilter('pending')}
-                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                    className={`px-3 sm:px-4 py-2 rounded-full font-ubuntu font-bold transition-all text-xs sm:text-sm ${
                       commentFilter === 'pending'
                         ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                         : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -2099,7 +2097,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     onClick={() => setCommentFilter('approved')}
-                    className={`px-4 py-2 rounded-full font-ubuntu font-bold transition-all ${
+                    className={`px-3 sm:px-4 py-2 rounded-full font-ubuntu font-bold transition-all text-xs sm:text-sm ${
                       commentFilter === 'approved'
                         ? 'bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800'
                         : 'bg-[#4a4a4a] text-white hover:bg-[#555555]'
@@ -2124,15 +2122,15 @@ export default function AdminPage() {
                       .map((comment) => (
                         <div
                           key={comment.id}
-                          className="bg-[#404040] rounded-xl p-6 hover:bg-[#454545] transition-colors"
+                          className="bg-[#404040] rounded-xl p-4 sm:p-6 hover:bg-[#454545] transition-colors"
                         >
-                          <div className="flex items-start justify-between gap-4 mb-4">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-3 mb-2">
-                                <h3 className="text-white text-lg font-bold font-ubuntu">
+                          <div className="flex flex-col lg:flex-row lg:items-start gap-4 mb-4">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2 mb-2">
+                                <h3 className="text-white text-base sm:text-lg font-bold font-ubuntu break-words">
                                   {comment.author_name}
                                 </h3>
-                                <span className="text-white/50 font-ubuntu text-sm">
+                                <span className="text-white/50 font-ubuntu text-xs sm:text-sm break-all">
                                   {comment.author_email}
                                 </span>
                                 {comment.is_verified ? (
@@ -2159,7 +2157,7 @@ export default function AdminPage() {
                                   On: <span className="text-[#4FFFE3]">{comment.submission.title}</span>
                                 </p>
                               )}
-                              <p className="text-white/70 font-ubuntu text-sm mb-2">
+                              <p className="text-white/70 font-ubuntu text-xs sm:text-sm mb-2">
                                 {new Date(comment.created_at).toLocaleString('en-US', {
                                   year: 'numeric',
                                   month: 'short',
@@ -2168,15 +2166,15 @@ export default function AdminPage() {
                                   minute: '2-digit'
                                 })}
                               </p>
-                              <p className="text-white font-ubuntu leading-relaxed">
+                              <p className="text-white font-ubuntu leading-relaxed text-sm sm:text-base break-words">
                                 {comment.content}
                               </p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row lg:flex-col gap-2">
                               {!comment.is_verified && (
                                 <button
                                   onClick={() => moderateComment(comment.id, 'approve')}
-                                  className="px-4 py-2 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-ubuntu font-bold hover:bg-green-500/30 transition-colors"
+                                  className="px-3 sm:px-4 py-2 rounded-full bg-green-500/20 text-green-400 border border-green-500/30 font-ubuntu font-bold hover:bg-green-500/30 transition-colors text-xs sm:text-sm whitespace-nowrap"
                                 >
                                   Approve
                                 </button>
@@ -2193,7 +2191,7 @@ export default function AdminPage() {
                                     }
                                   })
                                 }}
-                                className="px-4 py-2 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-ubuntu font-bold hover:bg-red-500/30 transition-colors"
+                                className="px-3 sm:px-4 py-2 rounded-full bg-red-500/20 text-red-400 border border-red-500/30 font-ubuntu font-bold hover:bg-red-500/30 transition-colors text-xs sm:text-sm"
                               >
                                 Delete
                               </button>
