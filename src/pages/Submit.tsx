@@ -126,6 +126,10 @@ export default function SubmitPage() {
               image: data.image,
               logo: data.logo,
             })
+          } else if (data.duplicate) {
+            setMessage({ type: 'error', text: data.error })
+            setIsFetching(false)
+            return
           }
         } catch (error) {
           console.error('Error fetching', url, error)
