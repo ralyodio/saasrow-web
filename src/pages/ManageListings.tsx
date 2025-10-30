@@ -393,14 +393,13 @@ export default function ManageListings() {
       }
 
       const screenshotCount = result.screenshotCount || 0
+      const errorDetails = result.errors ? ` (${result.errors.length} failed)` : ''
       setAlertMessage({
-        type: 'success',
-        message: `Successfully generated ${screenshotCount} screenshot(s)`
+        type: screenshotCount > 0 ? 'success' : 'error',
+        message: screenshotCount > 0
+          ? `Successfully generated ${screenshotCount} screenshot(s)${errorDetails}`
+          : 'Failed to generate screenshots. Check console for details.'
       })
-
-      setTimeout(() => {
-        window.location.reload()
-      }, 1500)
     } catch (err) {
       console.error('Screenshot generation error:', err)
       setAlertMessage({
