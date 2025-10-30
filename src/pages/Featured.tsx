@@ -162,6 +162,13 @@ export default function FeaturedPage() {
       const successUrl = `${currentUrl}?success=true&tier=${tier}&email=${encodeURIComponent(email)}`
       const cancelUrl = `${currentUrl}?cancelled=true&plan=${tier}&period=${billingPeriod}`
 
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop()?.split(';').shift()
+        return undefined
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
       const response = await fetch(apiUrl, {
         method: 'POST',
@@ -176,6 +183,8 @@ export default function FeaturedPage() {
           mode: 'subscription',
           discount_code: pendingDiscount,
           customer_email: email,
+          datafast_visitor_id: getCookie('datafast_visitor_id'),
+          datafast_session_id: getCookie('datafast_session_id'),
         }),
       })
 
