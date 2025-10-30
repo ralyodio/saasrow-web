@@ -96,15 +96,34 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
     apiUrl.searchParams.set("height", "800");
     apiUrl.searchParams.set("hidecookie", "true");
 
+    console.log(`Requesting screenshot from API for: ${url}`);
     const response = await fetch(apiUrl.toString());
 
     if (!response.ok) {
-      console.error(`Screenshot API error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.error(`Screenshot API error: ${response.status} ${response.statusText}`, errorText);
+      return null;
+    }
+
+    const contentType = response.headers.get("content-type");
+    console.log(`Screenshot API response content-type: ${contentType}`);
+
+    if (!contentType || !contentType.includes("image")) {
+      const responseText = await response.text();
+      console.error(`Unexpected response type: ${contentType}. Response: ${responseText.substring(0, 500)}`);
       return null;
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
+    const buffer = new Uint8Array(arrayBuffer);
+    console.log(`Screenshot captured successfully: ${buffer.length} bytes`);
+
+    if (buffer.length === 0) {
+      console.error(`Screenshot buffer is empty for ${url}`);
+      return null;
+    }
+
+    return buffer;
   } catch (error) {
     console.error(`Error capturing screenshot for ${url}:`, error);
     return null;
@@ -154,6 +173,31 @@ Deno.serve(async (req: Request) => {
       );
     }
 
+    console.log(`Checking for existing screenshots for submission ${submissionId}`);
+    const { data: existingScreenshots } = await supabase
+      .from("submission_screenshots")
+      .select("id, storage_path")
+      .eq("submission_id", submissionId);
+
+    if (existingScreenshots && existingScreenshots.length > 0) {
+      console.log(`Found ${existingScreenshots.length} existing screenshots, deleting them...`);
+
+      for (const screenshot of existingScreenshots) {
+        if (screenshot.storage_path) {
+          await supabase.storage
+            .from("submission-screenshots")
+            .remove([screenshot.storage_path]);
+          console.log(`Deleted storage file: ${screenshot.storage_path}`);
+        }
+      }
+
+      await supabase
+        .from("submission_screenshots")
+        .delete()
+        .eq("submission_id", submissionId);
+      console.log(`Deleted database records for submission ${submissionId}`);
+    }
+
     console.log(`Extracting navigation links from ${url}`);
     const navLinks = await extractTopNavLinks(url);
 
@@ -177,8 +221,10 @@ Deno.serve(async (req: Request) => {
       }
 
       const timestamp = Date.now();
-      const fileName = `${submissionId}/${timestamp}-${link.text.toLowerCase().replace(/\s+/g, '-')}.png`;
+      const sanitizedTitle = link.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const fileName = `${submissionId}/${timestamp}-${sanitizedTitle}.png`;
 
+      console.log(`Uploading screenshot to storage: ${fileName}`);
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("submission-screenshots")
         .upload(fileName, screenshotBuffer, {
@@ -191,9 +237,12 @@ Deno.serve(async (req: Request) => {
         continue;
       }
 
+      console.log(`Upload successful, generating public URL for: ${fileName}`);
       const { data: publicUrlData } = supabase.storage
         .from("submission-screenshots")
         .getPublicUrl(fileName);
+
+      console.log(`Public URL generated: ${publicUrlData.publicUrl}`);
 
       const { error: dbError } = await supabase
         .from("submission_screenshots")
