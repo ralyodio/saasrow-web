@@ -88,17 +88,13 @@ async function extractTopNavLinks(url: string): Promise<NavLink[]> {
 async function captureScreenshot(url: string): Promise<Uint8Array | null> {
   try {
     const apiUrl = new URL("https://api.rasterwise.com/v1/get-screenshot");
-    apiUrl.searchParams.set("apikey", GETSCREENSHOT_API_KEY!);
     apiUrl.searchParams.set("url", url);
-    apiUrl.searchParams.set("format", "png");
-    apiUrl.searchParams.set("fullpage", "false");
-    apiUrl.searchParams.set("width", "1280");
-    apiUrl.searchParams.set("height", "800");
-    apiUrl.searchParams.set("hidecookie", "true");
-    apiUrl.searchParams.set("hidemsg", "true");
+    apiUrl.searchParams.set("apikey", GETSCREENSHOT_API_KEY!);
 
     console.log(`Requesting screenshot from Rasterwise GetScreenshot API for: ${url}`);
+    console.log(`Full API URL: ${apiUrl.toString()}`);
     const response = await fetch(apiUrl.toString(), {
+      method: 'GET',
       headers: {
         'Auth': 'allow',
         'cache-control': 'no-cache'
