@@ -204,27 +204,37 @@ Deno.serve(async (req: Request) => {
       console.log(`Deleted database records for submission ${submissionId}`);
     }
 
+    console.log(`Starting screenshot capture process for ${url}`);
     console.log(`Extracting navigation links from ${url}`);
     const navLinks = await extractTopNavLinks(url);
+
+    console.log(`Initial extraction found ${navLinks.length} links`);
 
     if (navLinks.length === 0) {
       console.log("No navigation links found, capturing homepage only");
       navLinks.push({ text: "Home", href: url });
     }
 
-    console.log(`Found ${navLinks.length} navigation links to screenshot`);
+    console.log(`Total links to screenshot: ${navLinks.length}`);
+    console.log(`Links:`, JSON.stringify(navLinks, null, 2));
 
     const screenshotResults = [];
+    const errors = [];
 
-    for (const link of navLinks) {
-      console.log(`Capturing screenshot for: ${link.text} (${link.href})`);
-      
+    for (let i = 0; i < navLinks.length; i++) {
+      const link = navLinks[i];
+      console.log(`[${i + 1}/${navLinks.length}] Capturing screenshot for: ${link.text} (${link.href})`);
+
       const screenshotBuffer = await captureScreenshot(link.href);
-      
+
       if (!screenshotBuffer) {
-        console.error(`Failed to capture screenshot for ${link.href}`);
+        const errorMsg = `Failed to capture screenshot for ${link.href}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
         continue;
       }
+
+      console.log(`Screenshot captured, size: ${screenshotBuffer.length} bytes`);
 
       const timestamp = Date.now();
       const sanitizedTitle = link.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
@@ -274,11 +284,17 @@ Deno.serve(async (req: Request) => {
       console.log(`Successfully captured and stored screenshot for ${link.text}`);
     }
 
+    console.log(`Screenshot capture complete. Success: ${screenshotResults.length}, Errors: ${errors.length}`);
+    if (errors.length > 0) {
+      console.error(`Errors encountered:`, errors);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
         screenshotCount: screenshotResults.length,
         screenshots: screenshotResults,
+        errors: errors.length > 0 ? errors : undefined,
       }),
       {
         status: 200,
