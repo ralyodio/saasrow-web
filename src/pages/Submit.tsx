@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface FetchedData {
   url: string
@@ -76,6 +77,11 @@ export default function SubmitPage() {
     e.preventDefault()
     setIsFetching(true)
     setMessage(null)
+
+    trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_STARTED, {
+      tier: userTier,
+      hasEmail: !!userEmail,
+    });
 
     try {
       const urlList = userTier === 'free'
@@ -341,7 +347,7 @@ export default function SubmitPage() {
       if (subscribeToNewsletter) {
         try {
           const newsletterUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
-          await fetch(newsletterUrl, {
+          const response = await fetch(newsletterUrl, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
@@ -349,6 +355,13 @@ export default function SubmitPage() {
             },
             body: JSON.stringify({ email: emailInput }),
           })
+
+          if (response.ok) {
+            trackEvent(analyticsEvents.NEWSLETTER_SUBSCRIBED, {
+              email: emailInput,
+              source: 'submit_page',
+            });
+          }
         } catch (error) {
           console.error('Error subscribing to newsletter:', error)
         }
@@ -386,6 +399,13 @@ export default function SubmitPage() {
       }
 
       if (successCount > 0) {
+        trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_COMPLETED, {
+          email: emailInput,
+          count: successCount,
+          tier: userTier,
+          subscribedToNewsletter: subscribeToNewsletter,
+        });
+
         try {
           const sendLinkResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-management-link`, {
             method: 'POST',
@@ -419,6 +439,10 @@ export default function SubmitPage() {
           handleStartOver()
         }, 5000)
       } else {
+        trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_FAILED, {
+          email: emailInput,
+          tier: userTier,
+        });
         setMessage({ type: 'error', text: 'Failed to submit any entries' })
       }
     } catch (error) {

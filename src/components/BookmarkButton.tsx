@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { trackEvent, analyticsEvents } from '../lib/analytics';
 
 interface BookmarkButtonProps {
   submissionId: string;
@@ -99,6 +100,9 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
         if (error) throw error;
         setIsBookmarked(false);
+        trackEvent(analyticsEvents.FAVORITE_REMOVED, {
+          submission_id: submissionId,
+        });
       } else {
         const { error } = await supabase
           .from('favorites')
@@ -109,6 +113,9 @@ export function BookmarkButton({ submissionId, size = 'md', showLabel = false, s
 
         if (error) throw error;
         setIsBookmarked(true);
+        trackEvent(analyticsEvents.FAVORITE_ADDED, {
+          submission_id: submissionId,
+        });
       }
 
       if (showCount) {

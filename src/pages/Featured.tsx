@@ -4,6 +4,7 @@ import { Footer } from '../components/Footer'
 import { DiscountPopup } from '../components/DiscountPopup'
 import { Alert } from '../components/Alert'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 export default function FeaturedPage() {
   const [billingPeriod, setBillingPeriod] = useState<'yearly' | 'monthly'>('yearly')
@@ -136,6 +137,12 @@ export default function FeaturedPage() {
       return
     }
 
+    trackEvent(analyticsEvents.LISTING_UPGRADE_INITIATED, {
+      plan: plan.name,
+      billing_period: billingPeriod,
+      has_discount: !!discountCode,
+    });
+
     setPendingPlan(plan)
     setPendingDiscount(discountCode)
     setShowEmailModal(true)
@@ -175,6 +182,12 @@ export default function FeaturedPage() {
       const data = await response.json()
 
       if (response.ok && data.url) {
+        trackEvent(analyticsEvents.LISTING_UPGRADE_COMPLETED, {
+          plan: pendingPlan.name,
+          email: email,
+          billing_period: billingPeriod,
+          has_discount: !!pendingDiscount,
+        });
         window.location.href = data.url
       } else {
         setAlertMessage({ type: 'error', message: `Failed to create checkout session: ${data.error || 'Unknown error'}` })

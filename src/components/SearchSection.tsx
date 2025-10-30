@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Search, X } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface SearchSectionProps {
   searchQuery: string
@@ -63,6 +64,18 @@ export function SearchSection({
   }, [])
 
   useEffect(() => {
+    if (searchQuery.length >= 3) {
+      const timeoutId = setTimeout(() => {
+        trackEvent(analyticsEvents.SEARCH_PERFORMED, {
+          query: searchQuery,
+        });
+      }, 1000);
+
+      return () => clearTimeout(timeoutId);
+    }
+  }, [searchQuery])
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
         setShowCategoryDropdown(false)
@@ -110,6 +123,13 @@ export function SearchSection({
     const newCategories = activeCategories.includes(category)
       ? activeCategories.filter((c) => c !== category)
       : [...activeCategories, category]
+
+    if (!activeCategories.includes(category)) {
+      trackEvent(analyticsEvents.CATEGORY_VIEWED, {
+        category,
+      });
+    }
+
     onCategoriesChange(newCategories)
   }
 
@@ -117,6 +137,13 @@ export function SearchSection({
     const newTags = activeTags.includes(tag)
       ? activeTags.filter((t) => t !== tag)
       : [...activeTags, tag]
+
+    if (!activeTags.includes(tag)) {
+      trackEvent(analyticsEvents.TAG_CLICKED, {
+        tag,
+      });
+    }
+
     onTagsChange(newTags)
   }
 

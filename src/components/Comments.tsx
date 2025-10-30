@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Alert } from './Alert'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface Comment {
   id: string
@@ -119,6 +120,11 @@ export function Comments({ submissionId }: CommentsProps) {
       const result = await response.json()
 
       if (response.ok) {
+        trackEvent(analyticsEvents.COMMENT_POSTED, {
+          submission_id: submissionId,
+          has_rating: formData.rating > 0,
+          is_authenticated: !!session,
+        });
         setAlertMessage({ type: 'success', message: result.message || 'Comment posted!' })
         setFormData({ authorName: '', authorEmail: '', content: '', rating: 0 })
         if (session) {

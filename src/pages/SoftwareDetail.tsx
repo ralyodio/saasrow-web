@@ -8,6 +8,7 @@ import { Comments } from '../components/Comments'
 import { RelatedSoftware } from '../components/RelatedSoftware'
 import { BookmarkButton } from '../components/BookmarkButton'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface Submission {
   id: string
@@ -158,6 +159,10 @@ export default function SoftwareDetailPage() {
           body: JSON.stringify({ submissionId }),
         })
 
+        trackEvent(analyticsEvents.SOFTWARE_VIEW, {
+          submission_id: submissionId,
+        });
+
         sessionStorage.setItem(viewKey, 'true')
       }
     } catch (error) {
@@ -192,6 +197,11 @@ export default function SoftwareDetailPage() {
       })
 
       clearTimeout(timeoutId)
+
+      trackEvent(analyticsEvents.SOFTWARE_CLICK, {
+        submission_id: submissionId,
+        url: href,
+      });
     } catch (error) {
       console.error('Failed to track click:', error)
     } finally {

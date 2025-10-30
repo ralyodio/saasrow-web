@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import { BookmarkButton } from './BookmarkButton'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface Software {
   id: string
@@ -107,6 +108,11 @@ export function SoftwareCard({ software }: SoftwareCardProps) {
       const result = await response.json()
 
       if (response.ok) {
+        trackEvent(analyticsEvents.VOTE_CAST, {
+          submission_id: software.id,
+          vote_type: result.voteType || 'removed',
+          is_authenticated: !!session,
+        });
         setUserVote(result.voteType)
         setUpvotes(result.upvotes)
         setDownvotes(result.downvotes)
