@@ -98,7 +98,12 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
     apiUrl.searchParams.set("hidemsg", "true");
 
     console.log(`Requesting screenshot from Rasterwise GetScreenshot API for: ${url}`);
-    const response = await fetch(apiUrl.toString());
+    const response = await fetch(apiUrl.toString(), {
+      headers: {
+        'Auth': 'allow',
+        'cache-control': 'no-cache'
+      }
+    });
 
     if (!response.ok) {
       const errorText = await response.text();
