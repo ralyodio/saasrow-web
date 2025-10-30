@@ -370,6 +370,7 @@ export default function ManageListings() {
   const handleGenerateScreenshots = async (submissionId: string, url: string, tier: string) => {
     setGeneratingScreenshots(submissionId)
     try {
+      console.log('Generating screenshots for:', { submissionId, url, tier })
       const response = await fetch(`${apiUrl}/functions/v1/capture-screenshots`, {
         method: 'POST',
         headers: {
@@ -383,21 +384,25 @@ export default function ManageListings() {
         })
       })
 
+      console.log('Response status:', response.status)
       const result = await response.json()
+      console.log('Response data:', result)
 
       if (!response.ok) {
         throw new Error(result.error || 'Failed to generate screenshots')
       }
 
+      const screenshotCount = result.screenshotCount || 0
       setAlertMessage({
         type: 'success',
-        message: `Successfully generated ${result.count || 0} screenshot(s)`
+        message: `Successfully generated ${screenshotCount} screenshot(s)`
       })
 
       setTimeout(() => {
         window.location.reload()
       }, 1500)
     } catch (err) {
+      console.error('Screenshot generation error:', err)
       setAlertMessage({
         type: 'error',
         message: err instanceof Error ? err.message : 'Failed to generate screenshots'
