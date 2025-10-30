@@ -114,10 +114,30 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
     const contentType = response.headers.get("content-type");
     console.log(`Screenshot API response content-type: ${contentType}`);
 
-    if (!contentType || !contentType.includes("image")) {
-      const responseText = await response.text();
-      console.error(`Unexpected response type: ${contentType}. Response: ${responseText.substring(0, 500)}`);
-      throw new Error(`Rasterwise returned non-image response (${contentType}): ${responseText.substring(0, 200)}`);
+    if (contentType && contentType.includes("application/json")) {
+      const jsonResponse = await response.json();
+      console.log(`Rasterwise API returned JSON response:`, jsonResponse);
+
+      if (jsonResponse.status === "success" && jsonResponse.screenshotImage) {
+        console.log(`Downloading screenshot from: ${jsonResponse.screenshotImage}`);
+        const imageResponse = await fetch(jsonResponse.screenshotImage);
+
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to download screenshot image: ${imageResponse.status}`);
+        }
+
+        const arrayBuffer = await imageResponse.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
+        console.log(`Screenshot downloaded successfully: ${buffer.length} bytes`);
+
+        if (buffer.length === 0) {
+          throw new Error(`Screenshot image is empty`);
+        }
+
+        return buffer;
+      } else {
+        throw new Error(`Rasterwise API error: ${JSON.stringify(jsonResponse)}`);
+      }
     }
 
     const arrayBuffer = await response.arrayBuffer();
