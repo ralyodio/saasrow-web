@@ -87,16 +87,17 @@ async function extractTopNavLinks(url: string): Promise<NavLink[]> {
 
 async function captureScreenshot(url: string): Promise<Uint8Array | null> {
   try {
-    const apiUrl = new URL("https://api.rasterwise.com/v1/get-screenshot");
-    apiUrl.searchParams.set("apikey", GETSCREENSHOT_API_KEY!);
+    const apiUrl = new URL("https://api.screenshotone.com/take");
+    apiUrl.searchParams.set("access_key", GETSCREENSHOT_API_KEY!);
     apiUrl.searchParams.set("url", url);
     apiUrl.searchParams.set("format", "png");
-    apiUrl.searchParams.set("fullpage", "false");
-    apiUrl.searchParams.set("width", "1280");
-    apiUrl.searchParams.set("height", "800");
-    apiUrl.searchParams.set("hidecookie", "true");
+    apiUrl.searchParams.set("full_page", "false");
+    apiUrl.searchParams.set("viewport_width", "1280");
+    apiUrl.searchParams.set("viewport_height", "800");
+    apiUrl.searchParams.set("block_cookie_banners", "true");
+    apiUrl.searchParams.set("block_chats", "true");
 
-    console.log(`Requesting screenshot from API for: ${url}`);
+    console.log(`Requesting screenshot from ScreenshotOne API for: ${url}`);
     const response = await fetch(apiUrl.toString());
 
     if (!response.ok) {
