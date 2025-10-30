@@ -108,7 +108,7 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`Screenshot API error: ${response.status} ${response.statusText}`, errorText);
-      return null;
+      throw new Error(`Rasterwise API error (${response.status}): ${errorText}`);
     }
 
     const contentType = response.headers.get("content-type");
@@ -117,7 +117,7 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
     if (!contentType || !contentType.includes("image")) {
       const responseText = await response.text();
       console.error(`Unexpected response type: ${contentType}. Response: ${responseText.substring(0, 500)}`);
-      return null;
+      throw new Error(`Rasterwise returned non-image response (${contentType}): ${responseText.substring(0, 200)}`);
     }
 
     const arrayBuffer = await response.arrayBuffer();
@@ -126,13 +126,13 @@ async function captureScreenshot(url: string): Promise<Uint8Array | null> {
 
     if (buffer.length === 0) {
       console.error(`Screenshot buffer is empty for ${url}`);
-      return null;
+      throw new Error(`Rasterwise returned empty image buffer for ${url}`);
     }
 
     return buffer;
   } catch (error) {
     console.error(`Error capturing screenshot for ${url}:`, error);
-    return null;
+    throw error;
   }
 }
 
@@ -225,14 +225,15 @@ Deno.serve(async (req: Request) => {
       const link = navLinks[i];
       console.log(`[${i + 1}/${navLinks.length}] Capturing screenshot for: ${link.text} (${link.href})`);
 
-      const screenshotBuffer = await captureScreenshot(link.href);
+      try {
+        const screenshotBuffer = await captureScreenshot(link.href);
 
-      if (!screenshotBuffer) {
-        const errorMsg = `Failed to capture screenshot for ${link.href}`;
-        console.error(errorMsg);
-        errors.push(errorMsg);
-        continue;
-      }
+        if (!screenshotBuffer) {
+          const errorMsg = `Failed to capture screenshot for ${link.href}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+          continue;
+        }
 
       console.log(`Screenshot captured, size: ${screenshotBuffer.length} bytes`);
 
@@ -282,6 +283,11 @@ Deno.serve(async (req: Request) => {
       });
 
       console.log(`Successfully captured and stored screenshot for ${link.text}`);
+      } catch (error) {
+        const errorMsg = `Failed to capture screenshot for ${link.href}: ${error.message}`;
+        console.error(errorMsg);
+        errors.push(errorMsg);
+      }
     }
 
     console.log(`Screenshot capture complete. Success: ${screenshotResults.length}, Errors: ${errors.length}`);
