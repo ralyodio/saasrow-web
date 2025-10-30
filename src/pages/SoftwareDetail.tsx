@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { FloatingCTA } from '../components/FloatingCTA'
 import { Alert } from '../components/Alert'
 import { ScreenshotGallery } from '../components/ScreenshotGallery'
 import { Comments } from '../components/Comments'
@@ -517,6 +518,7 @@ export default function SoftwareDetailPage() {
         </main>
 
         <Footer />
+        <FloatingCTA />
       </div>
 
       {alertMessage && (

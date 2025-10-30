@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
+import { FloatingCTA } from '../components/FloatingCTA'
 import { SoftwareCard } from '../components/SoftwareCard'
+import { trackGoal, goals } from '../lib/analytics'
 
 interface Submission {
   id: string
@@ -157,6 +159,7 @@ export default function CategoryPage() {
         </main>
 
         <Footer />
+        <FloatingCTA />
       </div>
     </div>
   )
