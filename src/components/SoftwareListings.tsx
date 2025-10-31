@@ -52,7 +52,7 @@ export function SoftwareListings({
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'Cache-Control': 'no-cache',
+          'Content-Type': 'application/json',
         },
       })
 
