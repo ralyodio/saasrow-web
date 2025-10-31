@@ -45,11 +45,12 @@ export function SoftwareListings({
 
   const fetchListings = async () => {
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?t=${Date.now()}`
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Cache-Control': 'no-cache',
         },
       })
 
