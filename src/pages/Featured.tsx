@@ -16,6 +16,8 @@ export default function FeaturedPage() {
   const [pendingPlan, setPendingPlan] = useState<typeof pricingPlans[0] | null>(null)
   const [pendingDiscount, setPendingDiscount] = useState<string | undefined>(undefined)
   const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false)
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem('userEmail')
@@ -148,6 +150,48 @@ export default function FeaturedPage() {
     setShowEmailModal(true)
   }
 
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newsletterEmail || isSubmittingNewsletter) return
+
+    setIsSubmittingNewsletter(true)
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email: newsletterEmail }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setAlertMessage({
+          type: 'success',
+          message: 'Success! Check your email for your 50% discount code.'
+        })
+        setNewsletterEmail('')
+      } else {
+        setAlertMessage({
+          type: 'error',
+          message: data.error || 'Failed to subscribe. Please try again.'
+        })
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error)
+      setAlertMessage({
+        type: 'error',
+        message: 'Something went wrong. Please try again.'
+      })
+    } finally {
+      setIsSubmittingNewsletter(false)
+    }
+  }
+
   const proceedToCheckout = async () => {
     if (!pendingPlan || !email) return
 
@@ -223,6 +267,38 @@ export default function FeaturedPage() {
 
       <div className="relative z-10">
         <Header />
+
+        <div className="w-full bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] py-4 px-4">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-neutral-800 rounded-full px-4 py-1 text-white font-ubuntu font-bold text-sm">
+                  LIMITED OFFER
+                </div>
+                <p className="text-neutral-800 font-ubuntu font-bold text-lg">
+                  Subscribe to our newsletter and get 50% OFF your first listing!
+                </p>
+              </div>
+              <form onSubmit={handleNewsletterSubmit} className="flex gap-2 w-full md:w-auto">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="px-4 py-2 rounded-full bg-white text-neutral-800 font-ubuntu outline-none focus:ring-2 focus:ring-neutral-800 min-w-[280px]"
+                  disabled={isSubmittingNewsletter}
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmittingNewsletter || !newsletterEmail}
+                  className="px-6 py-2 rounded-full bg-neutral-800 text-white font-ubuntu font-bold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                >
+                  {isSubmittingNewsletter ? 'Subscribing...' : 'Get 50% OFF'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
 
         <section className="w-full max-w-[1200px] mx-auto px-4 py-12 text-center">
           <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">
