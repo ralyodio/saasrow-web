@@ -271,8 +271,8 @@ export default function FeaturedPage() {
         <div className="w-full bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] py-4 px-4">
           <div className="max-w-[1200px] mx-auto">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-neutral-800 rounded-full px-4 py-1 text-white font-ubuntu font-bold text-sm">
+              <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+                <div className="bg-neutral-800 rounded-full px-4 py-1 text-white font-ubuntu font-bold text-sm whitespace-nowrap">
                   LIMITED OFFER
                 </div>
                 <p className="text-neutral-800 font-ubuntu font-bold text-lg">
