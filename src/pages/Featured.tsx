@@ -276,7 +276,7 @@ export default function FeaturedPage() {
                   LIMITED OFFER
                 </div>
                 <p className="text-neutral-800 font-ubuntu font-bold text-lg">
-                  Subscribe to our newsletter and get 50% OFF your first listing!
+                  Subscribe to our newsletter and get 50% OFF all plans - applies to all recurring payments!
                 </p>
               </div>
               <form onSubmit={handleNewsletterSubmit} className="flex gap-2 w-full md:w-auto">
