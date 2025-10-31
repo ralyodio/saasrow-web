@@ -285,13 +285,13 @@ export default function FeaturedPage() {
                   value={newsletterEmail}
                   onChange={(e) => setNewsletterEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="px-4 py-2 rounded-full bg-white text-neutral-800 font-ubuntu outline-none focus:ring-2 focus:ring-neutral-800 min-w-[280px]"
+                  className="px-4 py-2 rounded-full bg-neutral-800 text-white font-ubuntu outline-none focus:ring-2 focus:ring-white placeholder:text-neutral-400 min-w-[280px]"
                   disabled={isSubmittingNewsletter}
                 />
                 <button
                   type="submit"
                   disabled={isSubmittingNewsletter || !newsletterEmail}
-                  className="px-6 py-2 rounded-full bg-neutral-800 text-white font-ubuntu font-bold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                  className="px-6 py-2 rounded-full bg-neutral-800 text-white font-ubuntu font-bold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap border-2 border-white"
                 >
                   {isSubmittingNewsletter ? 'Subscribing...' : 'Get 50% OFF'}
                 </button>
