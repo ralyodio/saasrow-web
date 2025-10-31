@@ -207,9 +207,9 @@ Deno.serve(async (req: Request) => {
 
     if (req.method === 'POST') {
       const body = await req.json()
-      const { title, url, description, email, category, tags, logo, image, socialLinks } = body
+      const { title, url: rawUrl, description, email, category, tags, logo, image, socialLinks } = body
 
-      if (!title || !url || !description || !email || !category) {
+      if (!title || !rawUrl || !description || !email || !category) {
         return new Response(
           JSON.stringify({ error: 'Missing required fields: title, url, description, email, category' }),
           {
@@ -219,6 +219,9 @@ Deno.serve(async (req: Request) => {
         )
       }
 
+      // Normalize URL by trimming trailing slash
+      const url = rawUrl.trim().replace(/\/+$/, '')
+
       try {
         new URL(url)
       } catch {
@@ -226,6 +229,25 @@ Deno.serve(async (req: Request) => {
           JSON.stringify({ error: 'Invalid URL format' }),
           {
             status: 400,
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          }
+        )
+      }
+
+      // Check if URL already exists
+      const { data: existingSubmission } = await supabase
+        .from('software_submissions')
+        .select('id, title, status')
+        .eq('url', url)
+        .maybeSingle()
+
+      if (existingSubmission) {
+        return new Response(
+          JSON.stringify({
+            error: `This URL has already been submitted: "${existingSubmission.title}" (${existingSubmission.status})`
+          }),
+          {
+            status: 409,
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
@@ -341,6 +363,31 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
+      }
+
+      // Normalize URL if it's being updated
+      if (updates.url) {
+        updates.url = updates.url.trim().replace(/\/+$/, '')
+
+        // Check if normalized URL already exists (excluding current submission)
+        const { data: existingUrl } = await supabase
+          .from('software_submissions')
+          .select('id, title')
+          .eq('url', updates.url)
+          .neq('id', id)
+          .maybeSingle()
+
+        if (existingUrl) {
+          return new Response(
+            JSON.stringify({
+              error: `This URL is already used by another submission: "${existingUrl.title}"`
+            }),
+            {
+              status: 409,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            }
+          )
+        }
       }
 
       const { data, error } = await supabase
