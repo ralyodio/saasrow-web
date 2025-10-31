@@ -46,6 +46,8 @@ export function SoftwareListings({
   const fetchListings = async () => {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?t=${Date.now()}`
+      console.log('Fetching from:', apiUrl)
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
@@ -54,14 +56,20 @@ export function SoftwareListings({
         },
       })
 
+      console.log('Response status:', response.status)
+
       if (response.ok) {
         const result = await response.json()
+        console.log('Received data:', result)
         setListings(result.data || [])
       } else {
-        setError('Failed to load software listings')
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        setError(`Failed to load software listings: ${response.status}`)
       }
     } catch (err) {
-      setError('Something went wrong')
+      console.error('Fetch error:', err)
+      setError(`Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
