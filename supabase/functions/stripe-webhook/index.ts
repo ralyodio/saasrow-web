@@ -40,9 +40,14 @@ Deno.serve(async (req) => {
       return new Response(`Webhook signature verification failed: ${error.message}`, { status: 400 });
     }
 
-    EdgeRuntime.waitUntil(handleEvent(event));
+    // Process the event asynchronously but don't block the response
+    // Wrap in a self-executing async function to avoid blocking
+    handleEvent(event).catch((error) => {
+      console.error('Error handling webhook event:', error);
+    });
 
-    return Response.json({ received: true });
+    // Return success immediately so Stripe knows we received it
+    return Response.json({ received: true }, { status: 200 });
   } catch (error: any) {
     console.error('Error processing webhook:', error);
     return Response.json({ error: error.message }, { status: 500 });
