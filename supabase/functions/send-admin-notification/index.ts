@@ -107,6 +107,7 @@ Deno.serve(async (req: Request) => {
                 <p><span class="label">URL:</span> <span class="value"><a href="${data.url}" target="_blank">${data.url}</a></span></p>
                 <p><span class="label">Category:</span> <span class="value">${data.category}</span></p>
                 <p><span class="label">Email:</span> <span class="value">${data.email}</span></p>
+                <p><span class="label">Tier:</span> <span class="value" style="text-transform: uppercase; font-weight: 600;">${data.tier || 'free'}</span></p>
               </div>
               <p style="color: #666; margin-top: 24px;">A new software has been submitted and is pending review.</p>
               <a href="${Deno.env.get("SITE_URL") || "https://saasrow.com"}/admin" class="button">Review in Admin Dashboard</a>
@@ -121,6 +122,7 @@ Title: ${data.title}
 URL: ${data.url}
 Category: ${data.category}
 Email: ${data.email}
+Tier: ${(data.tier || 'free').toUpperCase()}
 
 A new software has been submitted and is pending review.
 
