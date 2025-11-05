@@ -66,16 +66,37 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log('Generating content for topic:', topic);
-    const prompt = `Write a detailed, professional blog post about: ${topic}
+    const prompt = `Write a blog post about: ${topic}
 
-The post should be about software, technology, productivity, or SaaS-related topics.
+Write in a natural, conversational style that sounds human and authentic. Follow these guidelines:
+
+STYLE:
+- Write like you're explaining something to a colleague over coffee
+- Use contractions (it's, you're, don't) and natural phrasing
+- Vary sentence length - mix short punchy sentences with longer flowing ones
+- Include occasional informal expressions where appropriate
+- Start some sentences with "And" or "But" if it flows naturally
+- Don't be afraid to use sentence fragments for emphasis
+
+AVOID THESE AI TELLS:
+- No "in this article, we'll explore..." or "in conclusion" phrases
+- Skip the robotic transitions like "firstly, secondly, finally"
+- Don't start paragraphs with "It's important to note that..."
+- Avoid "delve into", "realm", "landscape", "revolutionize", "game-changer"
+- No bullet points that all follow identical grammatical structure
+- Skip the overly balanced "on one hand... on the other hand" constructions
+
+CONTENT STRUCTURE:
+- Start with a hook or interesting observation, not a formal introduction
+- 3-5 sections with natural, conversational headings (not "Introduction" or "Conclusion")
+- Mix explanations with examples and specific details
+- End with something thought-provoking or actionable, not a summary recap
+- Total length: 500-700 words
 
 Return a JSON object with:
-- title: A compelling title (50-80 characters)
-- excerpt: A brief summary (120-160 characters)
-- content: Full HTML content with proper <h2>, <p>, <ul>, <li> tags. Include 3-5 sections with descriptive headings.
-
-Make the content informative, engaging, and at least 500 words. Use proper HTML formatting but NO markdown.`;
+- title: A compelling, natural-sounding title (40-70 characters) - no colons or "The Ultimate Guide" style
+- excerpt: A hook that makes people want to read more (120-160 characters)
+- content: Full HTML with <h2>, <p>, <ul>, <li> tags. Write like a human, not a content template.`;
 
     console.log('Calling OpenAI API...');
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -89,14 +110,14 @@ Make the content informative, engaging, and at least 500 words. Use proper HTML 
         messages: [
           {
             role: 'system',
-            content: 'You are a professional tech writer specializing in software and SaaS content. Always respond with valid JSON only.'
+            content: 'You are an experienced tech blogger with a casual, authentic writing voice. Write like a real person sharing genuine insights, not like an AI following a template. Your writing should have personality and feel conversational. Always respond with valid JSON only.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.8,
+        temperature: 0.9,
         response_format: { type: 'json_object' }
       }),
     });
