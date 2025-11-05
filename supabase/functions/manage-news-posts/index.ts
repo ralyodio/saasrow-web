@@ -70,7 +70,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method === 'PATCH') {
-      const { id, published, email } = await req.json();
+      const { id, published, banner_image, email } = await req.json();
 
       if (!email || email !== adminEmail) {
         return new Response(
@@ -85,9 +85,9 @@ Deno.serve(async (req: Request) => {
         );
       }
 
-      if (!id || typeof published !== 'boolean') {
+      if (!id) {
         return new Response(
-          JSON.stringify({ error: 'ID and published status are required' }),
+          JSON.stringify({ error: 'ID is required' }),
           {
             status: 400,
             headers: {
@@ -98,9 +98,17 @@ Deno.serve(async (req: Request) => {
         );
       }
 
+      const updateData: any = {};
+      if (typeof published === 'boolean') {
+        updateData.published = published;
+      }
+      if (banner_image !== undefined) {
+        updateData.banner_image = banner_image;
+      }
+
       const { data, error } = await supabase
         .from('news_posts')
-        .update({ published })
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();

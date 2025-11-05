@@ -11,6 +11,7 @@ interface NewsPost {
   excerpt: string
   content: string
   created_at: string
+  banner_image?: string
 }
 
 export default function NewsPostPage() {
@@ -95,28 +96,40 @@ export default function NewsPostPage() {
             Back to News
           </Link>
 
-          <article className="bg-[#3a3a3a] rounded-2xl p-8 md:p-12">
-            <p className="text-[#4FFFE3] font-ubuntu text-sm mb-4">
-              {new Date(post.created_at).toLocaleDateString('en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-              })}
-            </p>
-            <h1 className="text-white text-4xl md:text-5xl font-bold font-ubuntu mb-8">
-              {post.title}
-            </h1>
+          <article className="bg-[#3a3a3a] rounded-2xl overflow-hidden">
+            {post.banner_image && (
+              <div className="w-full h-64 md:h-96 overflow-hidden">
+                <img
+                  src={post.banner_image}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
 
-            <div
-              className="prose prose-invert max-w-none"
-              dangerouslySetInnerHTML={{ __html: post.content }}
-              style={{
-                color: 'rgba(255, 255, 255, 0.85)',
-                fontFamily: 'Ubuntu, sans-serif',
-                fontSize: '1.125rem',
-                lineHeight: '1.75'
-              }}
-            />
+            <div className="p-8 md:p-12">
+              <p className="text-[#4FFFE3] font-ubuntu text-sm mb-4">
+                {new Date(post.created_at).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}
+              </p>
+              <h1 className="text-white text-4xl md:text-5xl font-bold font-ubuntu mb-8">
+                {post.title}
+              </h1>
+
+              <div
+                className="prose prose-invert max-w-none"
+                dangerouslySetInnerHTML={{ __html: post.content }}
+                style={{
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontFamily: 'Ubuntu, sans-serif',
+                  fontSize: '1.125rem',
+                  lineHeight: '1.75'
+                }}
+              />
+            </div>
           </article>
         </main>
 

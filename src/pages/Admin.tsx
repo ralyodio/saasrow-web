@@ -27,6 +27,7 @@ interface NewsPost {
   content: string
   published: boolean
   created_at: string
+  banner_image?: string
 }
 
 interface Subscriber {
@@ -136,6 +137,9 @@ export default function AdminPage() {
   const [comments, setComments] = useState<Comment[]>([])
   const [loadingComments, setLoadingComments] = useState(false)
   const [commentFilter, setCommentFilter] = useState<'all' | 'pending' | 'approved'>('all')
+  const [generatedBanners, setGeneratedBanners] = useState<string[]>([])
+  const [isGeneratingBanners, setIsGeneratingBanners] = useState(false)
+  const [selectedBanner, setSelectedBanner] = useState<string | null>(null)
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
@@ -1044,6 +1048,81 @@ export default function AdminPage() {
     }
   }
 
+  const handleGenerateBanners = async (postTitle: string) => {
+    setIsGeneratingBanners(true)
+    setGeneratedBanners([])
+    setSelectedBanner(null)
+
+    try {
+      if (!adminEmail) {
+        setAlertMessage({ type: 'error', message: 'You must be logged in to perform this action' })
+        setIsGeneratingBanners(false)
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-banner-images`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: postTitle, email: adminEmail }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setGeneratedBanners(result.images)
+        setAlertMessage({ type: 'success', message: `Generated ${result.images.length} banner options! Select one to add to your post.` })
+      } else {
+        const error = await response.json()
+        setAlertMessage({ type: 'error', message: error.error || 'Failed to generate banner images' })
+      }
+    } catch (error) {
+      console.error('Failed to generate banners:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to generate banner images' })
+    } finally {
+      setIsGeneratingBanners(false)
+    }
+  }
+
+  const handleUpdateBanner = async (postId: string, bannerUrl: string) => {
+    try {
+      if (!adminEmail) {
+        setAlertMessage({ type: 'error', message: 'You must be logged in to perform this action' })
+        return
+      }
+
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/manage-news-posts`
+      const response = await fetch(apiUrl, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: postId, banner_image: bannerUrl, email: adminEmail }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to update banner')
+      }
+
+      setNewsPosts(prev =>
+        prev.map(post => post.id === postId ? { ...post, banner_image: bannerUrl } : post)
+      )
+      if (generatedPost?.id === postId) {
+        setGeneratedPost({ ...generatedPost, banner_image: bannerUrl })
+      }
+      setGeneratedBanners([])
+      setSelectedBanner(null)
+      setAlertMessage({ type: 'success', message: 'Banner image updated successfully!' })
+    } catch (error) {
+      console.error('Failed to update banner:', error)
+      setAlertMessage({ type: 'error', message: 'Failed to update banner image' })
+    }
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-neutral-800 relative flex items-center justify-center">
@@ -1570,6 +1649,15 @@ export default function AdminPage() {
                               </span>
                             </div>
                             <p className="text-white/70 font-ubuntu mb-3">{post.excerpt}</p>
+                            {post.banner_image && (
+                              <div className="mb-3">
+                                <img
+                                  src={post.banner_image}
+                                  alt="Banner"
+                                  className="w-full max-w-md h-32 object-cover rounded-lg"
+                                />
+                              </div>
+                            )}
                             <div className="flex items-center gap-4 text-white/50 font-ubuntu text-sm">
                               <span>Slug: {post.slug}</span>
                               <span>
@@ -1583,6 +1671,16 @@ export default function AdminPage() {
                               className="px-4 py-2 rounded-lg bg-[#4a4a4a] text-white border border-white/20 font-ubuntu font-bold hover:bg-[#505050] transition-colors"
                             >
                               {expandedPostId === post.id ? 'Hide' : 'Preview'}
+                            </button>
+                            <button
+                              onClick={() => {
+                                setGeneratedPost(post)
+                                handleGenerateBanners(post.title)
+                              }}
+                              disabled={isGeneratingBanners}
+                              className="px-4 py-2 rounded-lg bg-purple-500/20 text-purple-400 border border-purple-500 font-ubuntu font-bold hover:bg-purple-500/30 transition-colors disabled:opacity-50"
+                            >
+                              {isGeneratingBanners && generatedPost?.id === post.id ? 'Generating...' : 'Add Banner'}
                             </button>
                             <button
                               onClick={() => togglePublishStatus(post.id, post.published)}
@@ -1616,6 +1714,69 @@ export default function AdminPage() {
                   </div>
                 )}
               </div>
+
+              {generatedBanners.length > 0 && generatedPost && (
+                <div className="bg-[#3a3a3a] rounded-2xl p-8">
+                  <h2 className="text-white text-3xl font-bold font-ubuntu mb-4">
+                    Select Banner for "{generatedPost.title}"
+                  </h2>
+                  <p className="text-white/70 font-ubuntu mb-6">
+                    Choose one of the AI-generated banners below to add to your post
+                  </p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    {generatedBanners.map((imageUrl, index) => (
+                      <div key={index} className="relative group">
+                        <div
+                          className={`relative overflow-hidden rounded-lg cursor-pointer transition-all ${
+                            selectedBanner === imageUrl
+                              ? 'ring-4 ring-[#4FFFE3]'
+                              : 'ring-2 ring-white/20 hover:ring-white/40'
+                          }`}
+                          onClick={() => setSelectedBanner(imageUrl)}
+                        >
+                          <img
+                            src={imageUrl}
+                            alt={`Banner option ${index + 1}`}
+                            className="w-full h-48 object-cover"
+                          />
+                          {selectedBanner === imageUrl && (
+                            <div className="absolute inset-0 bg-[#4FFFE3]/20 flex items-center justify-center">
+                              <div className="bg-[#4FFFE3] text-neutral-800 px-4 py-2 rounded-full font-ubuntu font-bold">
+                                Selected
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex gap-4">
+                    <button
+                      onClick={() => {
+                        if (selectedBanner) {
+                          handleUpdateBanner(generatedPost.id, selectedBanner)
+                        }
+                      }}
+                      disabled={!selectedBanner}
+                      className="px-8 py-3 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Apply Selected Banner
+                    </button>
+                    <button
+                      onClick={() => {
+                        setGeneratedBanners([])
+                        setSelectedBanner(null)
+                        setGeneratedPost(null)
+                      }}
+                      className="px-8 py-3 rounded-full bg-[#4a4a4a] text-white font-ubuntu font-bold hover:bg-[#505050] transition-colors"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

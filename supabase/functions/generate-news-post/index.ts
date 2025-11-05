@@ -124,7 +124,7 @@ Make the content informative, engaging, and at least 500 words. Use proper HTML 
     const generatedContent = JSON.parse(openAIData.choices[0].message.content);
     console.log('Generated content:', generatedContent.title);
 
-    const slug = topic
+    const slug = generatedContent.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
