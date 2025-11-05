@@ -20,7 +20,7 @@ Deno.serve(async (req: Request) => {
     const adminEmail = Deno.env.get('ADMIN_EMAIL')!;
 
     console.log('Received request, parsing body...');
-    const { topic, email } = await req.json();
+    const { topic, tone = 'casual', email } = await req.json();
 
     if (!email || email !== adminEmail) {
       return new Response(
@@ -65,30 +65,41 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('Generating content for topic:', topic);
+    console.log('Generating content for topic:', topic, 'tone:', tone);
+
+    const toneInstructions = {
+      casual: `Write like you're explaining something to a colleague over coffee. Use contractions (it's, you're, don't), natural phrasing, and an approachable tone. Include occasional informal expressions where appropriate.`,
+      professional: `Write in a polished, balanced style suitable for a business audience. Professional but not stuffy. Clear, direct, and authoritative without being dry or academic.`,
+      technical: `Write for a technically-savvy audience. Include detailed explanations, specific technical concepts, and assume the reader has domain knowledge. Be precise and thorough without oversimplifying.`
+    };
+
     const prompt = `Write a blog post about: ${topic}
 
-Write in a natural, conversational style that sounds human and authentic. Follow these guidelines:
+TONE: ${toneInstructions[tone as keyof typeof toneInstructions]}
 
-STYLE:
-- Write like you're explaining something to a colleague over coffee
-- Use contractions (it's, you're, don't) and natural phrasing
+CRITICAL RULES (NEVER BREAK THESE):
+- NEVER use em dashes (—) or en dashes (–). Use hyphens (-) or commas instead
+- NEVER use emojis anywhere in the content
+- No special unicode characters or fancy punctuation
+
+STYLE GUIDELINES:
 - Vary sentence length - mix short punchy sentences with longer flowing ones
-- Include occasional informal expressions where appropriate
 - Start some sentences with "And" or "But" if it flows naturally
 - Don't be afraid to use sentence fragments for emphasis
+- Write naturally, not robotically
 
 AVOID THESE AI TELLS:
 - No "in this article, we'll explore..." or "in conclusion" phrases
-- Skip the robotic transitions like "firstly, secondly, finally"
+- Skip robotic transitions like "firstly, secondly, finally"
 - Don't start paragraphs with "It's important to note that..."
-- Avoid "delve into", "realm", "landscape", "revolutionize", "game-changer"
+- Avoid overused words: "delve into", "realm", "landscape", "revolutionize", "game-changer", "robust", "seamless"
 - No bullet points that all follow identical grammatical structure
-- Skip the overly balanced "on one hand... on the other hand" constructions
+- Skip overly balanced "on one hand... on the other hand" constructions
+- No "the bottom line is..." or similar summary phrases
 
 CONTENT STRUCTURE:
 - Start with a hook or interesting observation, not a formal introduction
-- 3-5 sections with natural, conversational headings (not "Introduction" or "Conclusion")
+- 3-5 sections with natural headings (not "Introduction" or "Conclusion")
 - Mix explanations with examples and specific details
 - End with something thought-provoking or actionable, not a summary recap
 - Total length: 500-700 words

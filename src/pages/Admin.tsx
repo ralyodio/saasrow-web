@@ -112,6 +112,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
   const [activeTab, setActiveTab] = useState<'submissions' | 'news' | 'newsletter' | 'users' | 'analytics' | 'comments'>('submissions')
   const [newsTopic, setNewsTopic] = useState('')
+  const [newsTone, setNewsTone] = useState<'casual' | 'professional' | 'technical'>('casual')
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedPost, setGeneratedPost] = useState<NewsPost | null>(null)
   const [newsPosts, setNewsPosts] = useState<NewsPost[]>([])
@@ -950,7 +951,7 @@ export default function AdminPage() {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ topic: newsTopic, email: adminEmail }),
+        body: JSON.stringify({ topic: newsTopic, tone: newsTone, email: adminEmail }),
       })
 
       if (response.ok) {
@@ -1600,6 +1601,23 @@ export default function AdminPage() {
                       disabled={isGenerating}
                       className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu disabled:opacity-50"
                     />
+                  </div>
+
+                  <div>
+                    <label htmlFor="tone" className="block text-white font-ubuntu mb-2">
+                      Writing Tone
+                    </label>
+                    <select
+                      id="tone"
+                      value={newsTone}
+                      onChange={(e) => setNewsTone(e.target.value as 'casual' | 'professional' | 'technical')}
+                      disabled={isGenerating}
+                      className="w-full px-4 py-3 bg-[#4a4a4a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu disabled:opacity-50"
+                    >
+                      <option value="casual">Casual - Conversational and friendly</option>
+                      <option value="professional">Professional - Balanced and polished</option>
+                      <option value="technical">Technical - Deep and detailed</option>
+                    </select>
                   </div>
 
                   <button
