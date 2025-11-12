@@ -89,8 +89,8 @@ export function Footer() {
               {message && (
                 <div className={`mt-3 p-4 rounded-lg font-ubuntu text-sm ${
                   message.type === 'success'
-                    ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]/30 text-[#4FFFE3]'
-                    : 'bg-red-500/10 border border-red-500/30 text-red-400'
+                    ? 'bg-[#1a4d45] border-2 border-[#4FFFE3] text-[#4FFFE3]'
+                    : 'bg-[#4d1a1a] border-2 border-red-400 text-red-400'
                 }`}>
                   <p className="font-semibold mb-1">
                     {message.type === 'success' ? '✓ Success!' : '✗ Error'}
