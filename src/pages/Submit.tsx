@@ -705,8 +705,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-6 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p
@@ -798,8 +798,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-4 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p
@@ -1041,8 +1041,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-4 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p
