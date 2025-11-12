@@ -18,7 +18,7 @@ export function Alert({ type, message, onClose, autoClose = true, duration = 500
 
   const colors = {
     success: {
-      bg: 'bg-[#4FFFE3]/10',
+      bg: 'bg-[#1a4d45]',
       border: 'border-[#4FFFE3]',
       text: 'text-[#4FFFE3]',
       icon: (
@@ -28,7 +28,7 @@ export function Alert({ type, message, onClose, autoClose = true, duration = 500
       ),
     },
     error: {
-      bg: 'bg-red-400/10',
+      bg: 'bg-[#4d1a1a]',
       border: 'border-red-400',
       text: 'text-red-400',
       icon: (
@@ -38,7 +38,7 @@ export function Alert({ type, message, onClose, autoClose = true, duration = 500
       ),
     },
     warning: {
-      bg: 'bg-[#E0FF04]/10',
+      bg: 'bg-[#4d4d1a]',
       border: 'border-[#E0FF04]',
       text: 'text-[#E0FF04]',
       icon: (
@@ -48,7 +48,7 @@ export function Alert({ type, message, onClose, autoClose = true, duration = 500
       ),
     },
     info: {
-      bg: 'bg-blue-400/10',
+      bg: 'bg-[#1a3a4d]',
       border: 'border-blue-400',
       text: 'text-blue-400',
       icon: (
