@@ -585,7 +585,11 @@ export default function SubmitPage() {
                   <ul className="text-white/70 text-sm font-ubuntu space-y-2">
                     <li className="flex items-start gap-2">
                       <span className="text-[#4FFFE3] mt-0.5">✓</span>
-                      <span>Free dofollow link</span>
+                      <span><strong>No expiration</strong> - Permanent listings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Dofollow backlink</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#4FFFE3] mt-0.5">✓</span>
@@ -606,10 +610,6 @@ export default function SubmitPage() {
                     <li className="flex items-start gap-2">
                       <span className="text-[#4FFFE3] mt-0.5">✓</span>
                       <span>Logo in category pages</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
-                      <span>Social media mentions</span>
                     </li>
                   </ul>
                   <a
@@ -667,16 +667,18 @@ export default function SubmitPage() {
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
                     {userTier === 'free' && (
                       <>
-                        <li>• Free dofollow link</li>
+                        <li>• Dofollow backlink</li>
                         <li>• 1 software listing</li>
                         <li>• Basic listing page</li>
                         <li>• Community visibility</li>
                         <li>• Standard review time (7-10 days)</li>
+                        <li className="text-yellow-400">⚠️ Expires after 90 days (renewable)</li>
                       </>
                     )}
                     {userTier === 'featured' && (
                       <>
-                        <li>• Free dofollow link</li>
+                        <li className="text-[#4FFFE3] font-semibold">• No expiration - Permanent listings</li>
+                        <li>• Dofollow backlink</li>
                         <li>• Up to 5 software listings</li>
                         <li>• Featured badge on listings</li>
                         <li>• Priority review (2-3 days)</li>
@@ -694,7 +696,7 @@ export default function SubmitPage() {
                       <span>
                         <strong className="text-white">Need more?</strong>
                         <br />
-                        Upgrade to <span className="text-[#E0FF04]">Featured</span> for 5 URLs, priority review, featured badge, monthly analytics, and social media mentions!
+                        Upgrade to <span className="text-[#E0FF04]">Featured</span> for permanent listings (no expiration), 5 URLs, priority review, featured badge, and analytics!
                       </span>
                     </p>
                   </div>

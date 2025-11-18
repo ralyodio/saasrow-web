@@ -57,11 +57,12 @@ export default function FeaturedPage() {
       monthlyPriceId: null,
       yearlyPriceId: null,
       features: [
-        'Free dofollow link',
+        'Dofollow backlink',
         'Submit 1 software listing',
         'Basic listing page',
         'Community visibility',
         'Standard review time (7-10 days)',
+        '⚠️ Expires after 90 days (renewable)',
       ],
     },
     {
@@ -72,7 +73,8 @@ export default function FeaturedPage() {
       monthlyPriceId: 'price_1SLuVoEfmU4X8cUlYucpStOt',
       yearlyPriceId: 'price_1SLuWrEfmU4X8cUlwxalZJsT',
       features: [
-        'Free dofollow link',
+        '✅ No expiration - Permanent listings',
+        'Dofollow backlink',
         'Up to 5 software listings',
         'Featured badge on listings',
         'Priority review (2-3 days)',
@@ -89,7 +91,8 @@ export default function FeaturedPage() {
       monthlyPriceId: 'price_1SLuXuEfmU4X8cUllzHZ8zt8',
       yearlyPriceId: 'price_1SLuYiEfmU4X8cUlttdoOo8j',
       features: [
-        'Free dofollow link',
+        '✅ No expiration - Permanent listings',
+        'Dofollow backlink',
         'Unlimited software listings',
         'Homepage featured spot',
         'Same-day review',
