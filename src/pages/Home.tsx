@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { Header } from '../components/Header'
 import { SearchSection } from '../components/SearchSection'
@@ -12,6 +12,26 @@ export default function HomePage() {
   const [activeCategories, setActiveCategories] = useState<string[]>([])
   const [activeTags, setActiveTags] = useState<string[]>([])
   const [selectedSort, setSelectedSort] = useState('Most Popular')
+
+  // Trigger automatic cleanup check on page load
+  useEffect(() => {
+    const triggerCleanup = async () => {
+      try {
+        const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/cleanup-expired-listings`
+        await fetch(apiUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+        })
+      } catch (error) {
+        // Silent fail - cleanup will run next time
+        console.debug('Cleanup check skipped')
+      }
+    }
+
+    triggerCleanup()
+  }, [])
 
   const handleClearAll = () => {
     setSearchQuery('')

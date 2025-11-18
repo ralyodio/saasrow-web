@@ -2,7 +2,7 @@ import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
 }
 
@@ -23,51 +23,63 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Get expired listings
-    const { data: expiredListings, error: expiredError } = await supabase
-      .from('software_submissions')
-      .select('id, email, title, url, expires_at')
-      .eq('status', 'approved')
-      .or('tier.eq.free,tier.is.null')
-      .not('expires_at', 'is', null)
-      .lte('expires_at', new Date().toISOString())
+    // Check if cleanup should run (max once per hour)
+    const { data: shouldRun } = await supabase.rpc('should_run_cleanup')
 
-    if (expiredError) {
-      console.error('Error fetching expired listings:', expiredError)
-      throw expiredError
+    if (!shouldRun) {
+      console.log('Cleanup not needed (ran within last hour)')
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: 'Cleanup not needed',
+          skipped: true,
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
-    console.log(`Found ${expiredListings?.length || 0} expired listings`)
+    console.log('Running cleanup...')
 
-    // Archive expired listings (change status to 'expired')
-    if (expiredListings && expiredListings.length > 0) {
-      const expiredIds = expiredListings.map(l => l.id)
+    // Mark expired listings and get all that need notifications
+    const { data: notificationListings, error: markError } = await supabase.rpc('mark_expired_listings')
 
-      const { error: updateError } = await supabase
-        .from('software_submissions')
-        .update({ status: 'expired' })
-        .in('id', expiredIds)
+    if (markError) {
+      console.error('Error marking expired listings:', markError)
+      throw markError
+    }
 
-      if (updateError) {
-        console.error('Error updating expired listings:', updateError)
-        throw updateError
-      }
+    console.log(`Found ${notificationListings?.length || 0} listings needing notification`)
 
-      // Send expiration notification emails
-      if (mailgunApiKey && mailgunDomain) {
-        for (const listing of expiredListings) {
-          try {
-            // Get management token for this email
-            const { data: tokenData } = await supabase
-              .from('user_tokens')
-              .select('token')
-              .eq('email', listing.email)
-              .maybeSingle()
+    let expiredCount = 0
+    let expiringCount = 0
 
-            const managementLink = tokenData
-              ? `${siteUrl}/manage/${encodeURIComponent(tokenData.token)}`
-              : siteUrl
+    // Send notification emails asynchronously
+    if (notificationListings && notificationListings.length > 0 && mailgunApiKey && mailgunDomain) {
+      for (const listing of notificationListings) {
+        try {
+          if (listing.notification_type === 'expired') {
+            expiredCount++
+          } else {
+            expiringCount++
+          }
 
+          // Get management token for this email
+          const { data: tokenData } = await supabase
+            .from('user_tokens')
+            .select('token')
+            .eq('email', listing.email)
+            .maybeSingle()
+
+          const managementLink = tokenData
+            ? `${siteUrl}/manage/${encodeURIComponent(tokenData.token)}`
+            : siteUrl
+
+          // Send appropriate email based on type
+          if (listing.notification_type === 'expired') {
+            // Expiration email
             const emailHtml = `
               <!DOCTYPE html>
               <html>
@@ -91,28 +103,22 @@ Deno.serve(async (req: Request) => {
                   </div>
                   <div class="content">
                     <p>Hi there,</p>
-
                     <p>Your free listing on SaaSRow has reached its 90-day expiration period and has been archived:</p>
-
                     <div class="listing-info">
                       <strong>${listing.title}</strong><br>
                       <a href="${listing.url}" style="color: #4FFFE3;">${listing.url}</a><br>
                       <small>Expired on: ${new Date(listing.expires_at).toLocaleDateString()}</small>
                     </div>
-
                     <h3>What happens now?</h3>
                     <p>You have two options:</p>
-
                     <ol>
                       <li><strong>Renew for Free</strong> - Extend your listing for another 90 days at no cost</li>
                       <li><strong>Upgrade to Featured/Premium</strong> - Get permanent placement, analytics, and more visibility</li>
                     </ol>
-
                     <div style="text-align: center; margin: 30px 0;">
                       <a href="${managementLink}" class="cta-button">Renew Free Listing</a>
                       <a href="${siteUrl}/featured" class="secondary-button">View Paid Plans</a>
                     </div>
-
                     <h3>Why upgrade?</h3>
                     <ul>
                       <li>✅ <strong>No more expiration</strong> - Keep your listing live permanently</li>
@@ -122,14 +128,10 @@ Deno.serve(async (req: Request) => {
                       <li>📸 <strong>Screenshot gallery</strong> - Show off your product</li>
                       <li>📧 <strong>Newsletter featuring</strong> - Reach 200K+ subscribers (Premium)</li>
                     </ul>
-
                     <p><strong>Featured Tier:</strong> Only $1.60/month (billed annually)</p>
                     <p><strong>Premium Tier:</strong> Only $4.17/month (billed annually)</p>
-
                     <p>Questions? Just reply to this email - we're here to help!</p>
-
-                    <p>Best regards,<br>
-                    The SaaSRow Team</p>
+                    <p>Best regards,<br>The SaaSRow Team</p>
                   </div>
                   <div class="footer">
                     <p>SaaSRow - The World's Best Place to Find Self-Hosted Software</p>
@@ -146,65 +148,18 @@ Deno.serve(async (req: Request) => {
             formData.append('subject', `⏰ Your SaaSRow Listing Has Expired - Renew or Upgrade`)
             formData.append('html', emailHtml)
 
-            const mailgunResponse = await fetch(
-              `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
-                },
-                body: formData,
-              }
-            )
+            await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+              method: 'POST',
+              headers: { 'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}` },
+              body: formData,
+            })
 
-            if (!mailgunResponse.ok) {
-              console.error(`Failed to send email to ${listing.email}:`, await mailgunResponse.text())
-            } else {
-              console.log(`Sent expiration email to ${listing.email}`)
-            }
-          } catch (emailError) {
-            console.error(`Error sending email to ${listing.email}:`, emailError)
-          }
-        }
-      }
-    }
-
-    // Get listings expiring in 7 days (warning emails)
-    const sevenDaysFromNow = new Date()
-    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
-
-    const { data: expiringListings, error: expiringError } = await supabase
-      .from('software_submissions')
-      .select('id, email, title, url, expires_at')
-      .eq('status', 'approved')
-      .or('tier.eq.free,tier.is.null')
-      .not('expires_at', 'is', null)
-      .lte('expires_at', sevenDaysFromNow.toISOString())
-      .gte('expires_at', new Date().toISOString())
-
-    if (expiringError) {
-      console.error('Error fetching expiring listings:', expiringError)
-    } else if (expiringListings && expiringListings.length > 0) {
-      console.log(`Found ${expiringListings.length} listings expiring soon`)
-
-      // Send warning emails
-      if (mailgunApiKey && mailgunDomain) {
-        for (const listing of expiringListings) {
-          try {
+            console.log(`Sent expiration email to ${listing.email}`)
+          } else {
+            // Warning email for expiring soon
             const daysUntilExpiry = Math.ceil(
               (new Date(listing.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
             )
-
-            // Get management token
-            const { data: tokenData } = await supabase
-              .from('user_tokens')
-              .select('token')
-              .eq('email', listing.email)
-              .maybeSingle()
-
-            const managementLink = tokenData
-              ? `${siteUrl}/manage/${encodeURIComponent(tokenData.token)}`
-              : siteUrl
 
             const emailHtml = `
               <!DOCTYPE html>
@@ -230,32 +185,25 @@ Deno.serve(async (req: Request) => {
                   </div>
                   <div class="content">
                     <p>Hi there,</p>
-
                     <div class="warning-box">
                       <strong>Action Required:</strong> Your free listing will expire soon!
                     </div>
-
                     <p>Your listing is about to expire:</p>
-
                     <div class="listing-info">
                       <strong>${listing.title}</strong><br>
                       <a href="${listing.url}" style="color: #4FFFE3;">${listing.url}</a><br>
                       <small style="color: #dc3545;"><strong>Expires: ${new Date(listing.expires_at).toLocaleDateString()}</strong></small>
                     </div>
-
                     <h3>Don't lose your listing!</h3>
                     <p>You have two options to keep your software visible:</p>
-
                     <ol>
                       <li><strong>Renew for Free</strong> - Quick and easy, extends for 90 days</li>
                       <li><strong>Upgrade to Featured/Premium</strong> - Never worry about expiration again + get premium benefits</li>
                     </ol>
-
                     <div style="text-align: center; margin: 30px 0;">
                       <a href="${managementLink}" class="cta-button">Renew Now (Free)</a>
                       <a href="${siteUrl}/featured" class="secondary-button">Upgrade Instead</a>
                     </div>
-
                     <h3>Why upgrade to paid?</h3>
                     <ul>
                       <li>✅ <strong>Permanent listing</strong> - No more expiration reminders</li>
@@ -264,13 +212,9 @@ Deno.serve(async (req: Request) => {
                       <li>🚀 <strong>Get more traffic</strong> - Better visibility = more visitors</li>
                       <li>📸 <strong>Showcase your product</strong> - Add screenshot galleries</li>
                     </ul>
-
                     <p><strong>Special Offer:</strong> Subscribe to our newsletter and get a <strong>50% discount code</strong> for Featured or Premium!</p>
-
                     <p>Questions? Just reply to this email!</p>
-
-                    <p>Best regards,<br>
-                    The SaaSRow Team</p>
+                    <p>Best regards,<br>The SaaSRow Team</p>
                   </div>
                   <div class="footer">
                     <p>SaaSRow - The World's Best Place to Find Self-Hosted Software</p>
@@ -287,34 +231,32 @@ Deno.serve(async (req: Request) => {
             formData.append('subject', `⚠️ Your SaaSRow Listing Expires in ${daysUntilExpiry} Day${daysUntilExpiry > 1 ? 's' : ''}`)
             formData.append('html', emailHtml)
 
-            const mailgunResponse = await fetch(
-              `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
-                },
-                body: formData,
-              }
-            )
+            await fetch(`https://api.mailgun.net/v3/${mailgunDomain}/messages`, {
+              method: 'POST',
+              headers: { 'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}` },
+              body: formData,
+            })
 
-            if (!mailgunResponse.ok) {
-              console.error(`Failed to send warning email to ${listing.email}:`, await mailgunResponse.text())
-            } else {
-              console.log(`Sent expiration warning to ${listing.email}`)
-            }
-          } catch (emailError) {
-            console.error(`Error sending warning email to ${listing.email}:`, emailError)
+            console.log(`Sent expiration warning to ${listing.email}`)
           }
+        } catch (emailError) {
+          console.error(`Error sending email to ${listing.email}:`, emailError)
         }
       }
     }
 
+    // Record that cleanup ran
+    await supabase.rpc('record_cleanup_run', {
+      p_expired_count: expiredCount,
+      p_notified_count: notificationListings?.length || 0,
+    })
+
     return new Response(
       JSON.stringify({
         success: true,
-        expiredCount: expiredListings?.length || 0,
-        expiringCount: expiringListings?.length || 0,
+        expiredCount,
+        expiringCount,
+        totalNotified: notificationListings?.length || 0,
       }),
       {
         status: 200,
