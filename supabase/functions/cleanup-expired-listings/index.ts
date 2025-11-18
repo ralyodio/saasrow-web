@@ -1,0 +1,334 @@
+import { createClient } from 'npm:@supabase/supabase-js@2.76.1'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Client-Info, Apikey',
+}
+
+Deno.serve(async (req: Request) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 200,
+      headers: corsHeaders,
+    })
+  }
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const mailgunApiKey = Deno.env.get('MAILGUN_API_KEY')
+    const mailgunDomain = Deno.env.get('MAILGUN_DOMAIN')
+    const siteUrl = Deno.env.get('SITE_URL') || 'https://saasrow.com'
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey)
+
+    // Get expired listings
+    const { data: expiredListings, error: expiredError } = await supabase
+      .from('software_submissions')
+      .select('id, email, title, url, expires_at')
+      .eq('status', 'approved')
+      .or('tier.eq.free,tier.is.null')
+      .not('expires_at', 'is', null)
+      .lte('expires_at', new Date().toISOString())
+
+    if (expiredError) {
+      console.error('Error fetching expired listings:', expiredError)
+      throw expiredError
+    }
+
+    console.log(`Found ${expiredListings?.length || 0} expired listings`)
+
+    // Archive expired listings (change status to 'expired')
+    if (expiredListings && expiredListings.length > 0) {
+      const expiredIds = expiredListings.map(l => l.id)
+
+      const { error: updateError } = await supabase
+        .from('software_submissions')
+        .update({ status: 'expired' })
+        .in('id', expiredIds)
+
+      if (updateError) {
+        console.error('Error updating expired listings:', updateError)
+        throw updateError
+      }
+
+      // Send expiration notification emails
+      if (mailgunApiKey && mailgunDomain) {
+        for (const listing of expiredListings) {
+          try {
+            // Get management token for this email
+            const { data: tokenData } = await supabase
+              .from('user_tokens')
+              .select('token')
+              .eq('email', listing.email)
+              .maybeSingle()
+
+            const managementLink = tokenData
+              ? `${siteUrl}/manage/${encodeURIComponent(tokenData.token)}`
+              : siteUrl
+
+            const emailHtml = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                  .header h1 { margin: 0; color: #1a1a1a; font-size: 24px; }
+                  .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px; }
+                  .listing-info { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                  .cta-button { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); color: #1a1a1a; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 10px 5px; }
+                  .secondary-button { display: inline-block; padding: 14px 28px; background: #4a4a4a; color: #fff; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 10px 5px; }
+                  .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>⏰ Your Free Listing Has Expired</h1>
+                  </div>
+                  <div class="content">
+                    <p>Hi there,</p>
+
+                    <p>Your free listing on SaaSRow has reached its 90-day expiration period and has been archived:</p>
+
+                    <div class="listing-info">
+                      <strong>${listing.title}</strong><br>
+                      <a href="${listing.url}" style="color: #4FFFE3;">${listing.url}</a><br>
+                      <small>Expired on: ${new Date(listing.expires_at).toLocaleDateString()}</small>
+                    </div>
+
+                    <h3>What happens now?</h3>
+                    <p>You have two options:</p>
+
+                    <ol>
+                      <li><strong>Renew for Free</strong> - Extend your listing for another 90 days at no cost</li>
+                      <li><strong>Upgrade to Featured/Premium</strong> - Get permanent placement, analytics, and more visibility</li>
+                    </ol>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${managementLink}" class="cta-button">Renew Free Listing</a>
+                      <a href="${siteUrl}/featured" class="secondary-button">View Paid Plans</a>
+                    </div>
+
+                    <h3>Why upgrade?</h3>
+                    <ul>
+                      <li>✅ <strong>No more expiration</strong> - Keep your listing live permanently</li>
+                      <li>📊 <strong>Advanced analytics</strong> - Track views, clicks, and conversions</li>
+                      <li>⭐ <strong>Featured badge</strong> - Stand out from the competition</li>
+                      <li>🚀 <strong>Priority placement</strong> - Get more visibility and traffic</li>
+                      <li>📸 <strong>Screenshot gallery</strong> - Show off your product</li>
+                      <li>📧 <strong>Newsletter featuring</strong> - Reach 200K+ subscribers (Premium)</li>
+                    </ul>
+
+                    <p><strong>Featured Tier:</strong> Only $1.60/month (billed annually)</p>
+                    <p><strong>Premium Tier:</strong> Only $4.17/month (billed annually)</p>
+
+                    <p>Questions? Just reply to this email - we're here to help!</p>
+
+                    <p>Best regards,<br>
+                    The SaaSRow Team</p>
+                  </div>
+                  <div class="footer">
+                    <p>SaaSRow - The World's Best Place to Find Self-Hosted Software</p>
+                    <p><a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(listing.email)}" style="color: #999;">Unsubscribe</a></p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+
+            const formData = new FormData()
+            formData.append('from', `SaaSRow <noreply@${mailgunDomain}>`)
+            formData.append('to', listing.email)
+            formData.append('subject', `⏰ Your SaaSRow Listing Has Expired - Renew or Upgrade`)
+            formData.append('html', emailHtml)
+
+            const mailgunResponse = await fetch(
+              `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+                },
+                body: formData,
+              }
+            )
+
+            if (!mailgunResponse.ok) {
+              console.error(`Failed to send email to ${listing.email}:`, await mailgunResponse.text())
+            } else {
+              console.log(`Sent expiration email to ${listing.email}`)
+            }
+          } catch (emailError) {
+            console.error(`Error sending email to ${listing.email}:`, emailError)
+          }
+        }
+      }
+    }
+
+    // Get listings expiring in 7 days (warning emails)
+    const sevenDaysFromNow = new Date()
+    sevenDaysFromNow.setDate(sevenDaysFromNow.getDate() + 7)
+
+    const { data: expiringListings, error: expiringError } = await supabase
+      .from('software_submissions')
+      .select('id, email, title, url, expires_at')
+      .eq('status', 'approved')
+      .or('tier.eq.free,tier.is.null')
+      .not('expires_at', 'is', null)
+      .lte('expires_at', sevenDaysFromNow.toISOString())
+      .gte('expires_at', new Date().toISOString())
+
+    if (expiringError) {
+      console.error('Error fetching expiring listings:', expiringError)
+    } else if (expiringListings && expiringListings.length > 0) {
+      console.log(`Found ${expiringListings.length} listings expiring soon`)
+
+      // Send warning emails
+      if (mailgunApiKey && mailgunDomain) {
+        for (const listing of expiringListings) {
+          try {
+            const daysUntilExpiry = Math.ceil(
+              (new Date(listing.expires_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
+            )
+
+            // Get management token
+            const { data: tokenData } = await supabase
+              .from('user_tokens')
+              .select('token')
+              .eq('email', listing.email)
+              .maybeSingle()
+
+            const managementLink = tokenData
+              ? `${siteUrl}/manage/${encodeURIComponent(tokenData.token)}`
+              : siteUrl
+
+            const emailHtml = `
+              <!DOCTYPE html>
+              <html>
+              <head>
+                <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; line-height: 1.6; color: #333; }
+                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                  .header { background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                  .header h1 { margin: 0; color: #1a1a1a; font-size: 24px; }
+                  .content { background: #fff; padding: 30px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px; }
+                  .warning-box { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; border-radius: 4px; }
+                  .listing-info { background: #f5f5f5; padding: 15px; border-radius: 8px; margin: 20px 0; }
+                  .cta-button { display: inline-block; padding: 14px 28px; background: linear-gradient(135deg, #E0FF04 0%, #4FFFE3 100%); color: #1a1a1a; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 10px 5px; }
+                  .secondary-button { display: inline-block; padding: 14px 28px; background: #4a4a4a; color: #fff; text-decoration: none; border-radius: 25px; font-weight: bold; margin: 10px 5px; }
+                  .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+                </style>
+              </head>
+              <body>
+                <div class="container">
+                  <div class="header">
+                    <h1>⚠️ Your Listing Expires in ${daysUntilExpiry} Day${daysUntilExpiry > 1 ? 's' : ''}</h1>
+                  </div>
+                  <div class="content">
+                    <p>Hi there,</p>
+
+                    <div class="warning-box">
+                      <strong>Action Required:</strong> Your free listing will expire soon!
+                    </div>
+
+                    <p>Your listing is about to expire:</p>
+
+                    <div class="listing-info">
+                      <strong>${listing.title}</strong><br>
+                      <a href="${listing.url}" style="color: #4FFFE3;">${listing.url}</a><br>
+                      <small style="color: #dc3545;"><strong>Expires: ${new Date(listing.expires_at).toLocaleDateString()}</strong></small>
+                    </div>
+
+                    <h3>Don't lose your listing!</h3>
+                    <p>You have two options to keep your software visible:</p>
+
+                    <ol>
+                      <li><strong>Renew for Free</strong> - Quick and easy, extends for 90 days</li>
+                      <li><strong>Upgrade to Featured/Premium</strong> - Never worry about expiration again + get premium benefits</li>
+                    </ol>
+
+                    <div style="text-align: center; margin: 30px 0;">
+                      <a href="${managementLink}" class="cta-button">Renew Now (Free)</a>
+                      <a href="${siteUrl}/featured" class="secondary-button">Upgrade Instead</a>
+                    </div>
+
+                    <h3>Why upgrade to paid?</h3>
+                    <ul>
+                      <li>✅ <strong>Permanent listing</strong> - No more expiration reminders</li>
+                      <li>📊 <strong>Track your performance</strong> - See views, clicks, and trends</li>
+                      <li>⭐ <strong>Stand out</strong> - Featured badge and priority placement</li>
+                      <li>🚀 <strong>Get more traffic</strong> - Better visibility = more visitors</li>
+                      <li>📸 <strong>Showcase your product</strong> - Add screenshot galleries</li>
+                    </ul>
+
+                    <p><strong>Special Offer:</strong> Subscribe to our newsletter and get a <strong>50% discount code</strong> for Featured or Premium!</p>
+
+                    <p>Questions? Just reply to this email!</p>
+
+                    <p>Best regards,<br>
+                    The SaaSRow Team</p>
+                  </div>
+                  <div class="footer">
+                    <p>SaaSRow - The World's Best Place to Find Self-Hosted Software</p>
+                    <p><a href="${siteUrl}/unsubscribe?email=${encodeURIComponent(listing.email)}" style="color: #999;">Unsubscribe</a></p>
+                  </div>
+                </div>
+              </body>
+              </html>
+            `
+
+            const formData = new FormData()
+            formData.append('from', `SaaSRow <noreply@${mailgunDomain}>`)
+            formData.append('to', listing.email)
+            formData.append('subject', `⚠️ Your SaaSRow Listing Expires in ${daysUntilExpiry} Day${daysUntilExpiry > 1 ? 's' : ''}`)
+            formData.append('html', emailHtml)
+
+            const mailgunResponse = await fetch(
+              `https://api.mailgun.net/v3/${mailgunDomain}/messages`,
+              {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Basic ${btoa(`api:${mailgunApiKey}`)}`,
+                },
+                body: formData,
+              }
+            )
+
+            if (!mailgunResponse.ok) {
+              console.error(`Failed to send warning email to ${listing.email}:`, await mailgunResponse.text())
+            } else {
+              console.log(`Sent expiration warning to ${listing.email}`)
+            }
+          } catch (emailError) {
+            console.error(`Error sending warning email to ${listing.email}:`, emailError)
+          }
+        }
+      }
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        expiredCount: expiredListings?.length || 0,
+        expiringCount: expiringListings?.length || 0,
+      }),
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  } catch (error) {
+    console.error('Error in cleanup-expired-listings:', error)
+    return new Response(
+      JSON.stringify({ error: error.message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    )
+  }
+})
