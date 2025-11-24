@@ -17,70 +17,20 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const adminEmail = Deno.env.get('ADMIN_EMAIL')!;
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
-    if (user.email !== adminEmail) {
-      return new Response(
-        JSON.stringify({ error: 'Forbidden: Admin access required' }),
-        {
-          status: 403,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    if (req.method === 'PATCH') {
-      const { id, published } = await req.json();
+    if (req.method === 'GET') {
+      const url = new URL(req.url);
+      const email = url.searchParams.get('email');
 
-      if (!id || typeof published !== 'boolean') {
+      if (!email || email !== adminEmail) {
         return new Response(
-          JSON.stringify({ error: 'ID and published status are required' }),
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
           {
-            status: 400,
+            status: 403,
             headers: {
               ...corsHeaders,
               'Content-Type': 'application/json',
@@ -91,7 +41,74 @@ Deno.serve(async (req: Request) => {
 
       const { data, error } = await supabase
         .from('news_posts')
-        .update({ published })
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Failed to fetch posts:', error);
+        return new Response(
+          JSON.stringify({ error: 'Failed to fetch posts' }),
+          {
+            status: 500,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      return new Response(
+        JSON.stringify(data),
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+    }
+
+    if (req.method === 'PATCH') {
+      const { id, published, banner_image, email } = await req.json();
+
+      if (!email || email !== adminEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
+          {
+            status: 403,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      if (!id) {
+        return new Response(
+          JSON.stringify({ error: 'ID is required' }),
+          {
+            status: 400,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
+
+      const updateData: any = {};
+      if (typeof published === 'boolean') {
+        updateData.published = published;
+      }
+      if (banner_image !== undefined) {
+        updateData.banner_image = banner_image;
+      }
+
+      const { data, error } = await supabase
+        .from('news_posts')
+        .update(updateData)
         .eq('id', id)
         .select()
         .single();
@@ -122,7 +139,20 @@ Deno.serve(async (req: Request) => {
     }
 
     if (req.method === 'DELETE') {
-      const { id } = await req.json();
+      const { id, email } = await req.json();
+
+      if (!email || email !== adminEmail) {
+        return new Response(
+          JSON.stringify({ error: 'Forbidden: Admin access required' }),
+          {
+            status: 403,
+            headers: {
+              ...corsHeaders,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+      }
 
       if (!id) {
         return new Response(

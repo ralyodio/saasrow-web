@@ -10,6 +10,7 @@ interface NewsItem {
   title: string
   excerpt: string
   created_at: string
+  banner_image?: string
 }
 
 export default function NewsPage() {
@@ -24,7 +25,7 @@ export default function NewsPage() {
     try {
       const { data, error } = await supabase
         .from('news_posts')
-        .select('id, slug, title, excerpt, created_at')
+        .select('id, slug, title, excerpt, created_at, banner_image')
         .eq('published', true)
         .order('created_at', { ascending: false })
 
@@ -69,23 +70,34 @@ export default function NewsPage() {
                 <Link
                   key={item.id}
                   to={`/news/${item.slug}`}
-                  className="block bg-[#3a3a3a] rounded-2xl p-8 hover:bg-[#404040] transition-colors cursor-pointer"
+                  className="block bg-[#3a3a3a] rounded-2xl overflow-hidden hover:bg-[#404040] transition-colors cursor-pointer"
                 >
                   <article>
-                    <p className="text-[#4FFFE3] font-ubuntu text-sm mb-2">
-                      {new Date(item.created_at).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                      })}
-                    </p>
-                    <h2 className="text-white text-3xl font-bold font-ubuntu mb-3">{item.title}</h2>
-                    <p className="text-white/70 font-ubuntu text-lg">{item.excerpt}</p>
-                    <div className="mt-4 flex items-center gap-2 text-[#4FFFE3] font-ubuntu">
-                      <span>Read more</span>
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
+                    {item.banner_image && (
+                      <div className="w-full h-48 overflow-hidden">
+                        <img
+                          src={item.banner_image}
+                          alt={item.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="p-8">
+                      <p className="text-[#4FFFE3] font-ubuntu text-sm mb-2">
+                        {new Date(item.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric',
+                        })}
+                      </p>
+                      <h2 className="text-white text-3xl font-bold font-ubuntu mb-3">{item.title}</h2>
+                      <p className="text-white/70 font-ubuntu text-lg">{item.excerpt}</p>
+                      <div className="mt-4 flex items-center gap-2 text-[#4FFFE3] font-ubuntu">
+                        <span>Read more</span>
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                        </svg>
+                      </div>
                     </div>
                   </article>
                 </Link>

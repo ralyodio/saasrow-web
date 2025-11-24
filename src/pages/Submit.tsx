@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, ChangeEvent } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 interface FetchedData {
   url: string
@@ -39,7 +40,8 @@ export default function SubmitPage() {
   const [showEmailDialog, setShowEmailDialog] = useState(false)
   const [emailInput, setEmailInput] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
-  const [userTier, setUserTier] = useState<'free' | 'basic' | 'premium'>('free')
+  const [userTier, setUserTier] = useState<'free' | 'featured' | 'premium'>('free')
+  const [subscribeToNewsletter, setSubscribeToNewsletter] = useState(false)
 
   const checkUserTier = async (email: string) => {
     try {
@@ -57,9 +59,15 @@ export default function SubmitPage() {
 
   useEffect(() => {
     const storedEmail = sessionStorage.getItem('userEmail')
-    if (storedEmail) {
+    const pendingTier = localStorage.getItem('pendingTier')
+
+    if (pendingTier) {
+      setUserTier(pendingTier as 'free' | 'featured' | 'premium')
+      setUserEmail(storedEmail)
+      localStorage.removeItem('pendingTier')
+    } else if (storedEmail) {
       checkUserTier(storedEmail).then(tier => {
-        setUserTier(tier as 'free' | 'basic' | 'premium')
+        setUserTier(tier as 'free' | 'featured' | 'premium')
         setUserEmail(storedEmail)
       })
     }
@@ -69,6 +77,11 @@ export default function SubmitPage() {
     e.preventDefault()
     setIsFetching(true)
     setMessage(null)
+
+    trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_STARTED, {
+      tier: userTier,
+      hasEmail: !!userEmail,
+    });
 
     try {
       const urlList = userTier === 'free'
@@ -82,13 +95,13 @@ export default function SubmitPage() {
       }
 
       if (userTier === 'free' && urlList.length > 1) {
-        setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Basic (5 URLs) or Premium (unlimited).' })
+        setMessage({ type: 'error', text: 'Free tier allows 1 URL. Please upgrade to Featured (5 URLs) or Premium (unlimited).' })
         setIsFetching(false)
         return
       }
 
-      if (userTier === 'basic' && urlList.length > 5) {
-        setMessage({ type: 'error', text: 'Basic tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
+      if (userTier === 'featured' && urlList.length > 5) {
+        setMessage({ type: 'error', text: 'Featured tier allows up to 5 URLs. Please upgrade to Premium for unlimited submissions.' })
         setIsFetching(false)
         return
       }
@@ -119,6 +132,10 @@ export default function SubmitPage() {
               image: data.image,
               logo: data.logo,
             })
+          } else if (data.duplicate) {
+            setMessage({ type: 'error', text: data.error })
+            setIsFetching(false)
+            return
           }
         } catch (error) {
           console.error('Error fetching', url, error)
@@ -327,6 +344,29 @@ export default function SubmitPage() {
     setMessage(null)
 
     try {
+      if (subscribeToNewsletter) {
+        try {
+          const newsletterUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+          const response = await fetch(newsletterUrl, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email: emailInput }),
+          })
+
+          if (response.ok) {
+            trackEvent(analyticsEvents.NEWSLETTER_SUBSCRIBED, {
+              email: emailInput,
+              source: 'submit_page',
+            });
+          }
+        } catch (error) {
+          console.error('Error subscribing to newsletter:', error)
+        }
+      }
+
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
       let successCount = 0
 
@@ -359,6 +399,13 @@ export default function SubmitPage() {
       }
 
       if (successCount > 0) {
+        trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_COMPLETED, {
+          email: emailInput,
+          count: successCount,
+          tier: userTier,
+          subscribedToNewsletter: subscribeToNewsletter,
+        });
+
         try {
           const sendLinkResponse = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-management-link`, {
             method: 'POST',
@@ -392,6 +439,10 @@ export default function SubmitPage() {
           handleStartOver()
         }, 5000)
       } else {
+        trackEvent(analyticsEvents.SOFTWARE_SUBMISSION_FAILED, {
+          email: emailInput,
+          tier: userTier,
+        });
         setMessage({ type: 'error', text: 'Failed to submit any entries' })
       }
     } catch (error) {
@@ -440,22 +491,38 @@ export default function SubmitPage() {
             <h2 className="text-white text-2xl font-bold font-ubuntu mb-4">
               Enter Your Email
             </h2>
-            <p className="text-white/70 font-ubuntu mb-6">
+            <p className="text-white/70 font-ubuntu mb-4">
               We'll send you a management link so you can edit your listings later.
+            </p>
+            <p className="text-white/50 font-ubuntu text-sm mb-6">
+              Your email is only used to send you the management link and optional updates. We never sell or share your data with third parties.
             </p>
             <input
               type="email"
               value={emailInput}
               onChange={(e) => setEmailInput(e.target.value)}
               placeholder="your@email.com"
-              className="w-full px-4 py-3 bg-[#3a3a3a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu mb-6"
+              className={`w-full px-4 py-3 bg-[#3a3a3a] text-white rounded-lg outline-none focus:ring-2 focus:ring-[#4FFFE3] font-ubuntu ${userTier === 'free' ? 'mb-4' : 'mb-6'}`}
               autoFocus
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
+                if (e.key === 'Enter' && (userTier !== 'free' || !subscribeToNewsletter)) {
                   handleEmailSubmit()
                 }
               }}
             />
+            {userTier === 'free' && (
+              <label className="flex items-start gap-3 mb-6 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={subscribeToNewsletter}
+                  onChange={(e) => setSubscribeToNewsletter(e.target.checked)}
+                  className="mt-1 w-5 h-5 rounded border-2 border-[#4FFFE3]/30 bg-[#3a3a3a] checked:bg-[#4FFFE3] checked:border-[#4FFFE3] focus:ring-2 focus:ring-[#4FFFE3] cursor-pointer transition-colors"
+                />
+                <span className="flex-1 text-white/90 font-ubuntu text-sm group-hover:text-white transition-colors">
+                  Subscribe to our newsletter and get a <strong className="text-[#4FFFE3]">50% discount code</strong> for Featured/Premium listings!
+                </span>
+              </label>
+            )}
             <div className="flex gap-3">
               <button
                 type="button"
@@ -501,13 +568,70 @@ export default function SubmitPage() {
               : 'Review and edit the information before submitting'}
           </p>
 
+          {step === 'url' && userTier === 'free' && (
+            <div className="mb-8 bg-gradient-to-br from-[#3a3a3a] to-[#2a2a2a] rounded-2xl p-6 border border-[#4FFFE3]/20">
+              <h2 className="text-white text-xl font-bold font-ubuntu mb-4 text-center">
+                🚀 Upgrade for More Visibility & Features
+              </h2>
+              <div className="max-w-md mx-auto">
+                <div className="bg-[#4a4a4a]/50 rounded-xl p-4 border-2 border-[#4FFFE3]/30">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[#4FFFE3] font-bold font-ubuntu text-lg">Featured Tier</h3>
+                    <div className="text-right">
+                      <div className="text-white font-ubuntu text-sm">$1.60/mo</div>
+                      <div className="text-white/60 font-ubuntu text-xs">billed annually</div>
+                    </div>
+                  </div>
+                  <ul className="text-white/70 text-sm font-ubuntu space-y-2">
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span><strong>No expiration</strong> - Permanent listings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Dofollow backlink</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Up to 5 listings</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Featured badge</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Priority review (2-3 days)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Monthly analytics</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-[#4FFFE3] mt-0.5">✓</span>
+                      <span>Logo in category pages</span>
+                    </li>
+                  </ul>
+                  <a
+                    href="/featured"
+                    className="block mt-4 w-full py-2 text-center rounded-lg bg-[#4FFFE3]/20 text-[#4FFFE3] font-ubuntu font-semibold hover:bg-[#4FFFE3]/30 transition-colors"
+                  >
+                    Learn More
+                  </a>
+                </div>
+              </div>
+              <p className="text-center text-white/60 text-sm font-ubuntu mt-4">
+                💰 Have a discount code? You'll be able to apply it at checkout.
+              </p>
+            </div>
+          )}
+
           {step === 'url' ? (
             <form onSubmit={handleFetchMetadata} className="space-y-6">
               <div className="bg-[#3a3a3a] rounded-2xl p-8">
                 <label htmlFor={userTier === 'free' ? 'url' : 'urls'} className="block text-white font-ubuntu text-lg mb-4">
                   {userTier === 'free' && 'Software URL (Free Tier - 1 URL)'}
-                  {userTier === 'basic' && 'Software URLs (Basic Tier - Up to 5 URLs)'}
-                  {userTier === 'premium' && 'Software URLs (Premium Tier - Unlimited)'}
+                  {userTier === 'featured' && 'Software URLs (Featured Tier - Up to 5 URLs)'}
                 </label>
                 {userTier === 'free' ? (
                   <input
@@ -533,25 +657,28 @@ export default function SubmitPage() {
                   />
                 )}
                 <p className="text-white/50 text-sm font-ubuntu mt-3">
-                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Basic for 5 URLs or Premium for unlimited!"}
-                  {userTier === 'basic' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
-                  {userTier === 'premium' && "Enter unlimited URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
+                  {userTier === 'free' && "Enter 1 URL. We'll fetch the title, description, and other details automatically using AI. Upgrade to Featured for 5 URLs!"}
+                  {userTier === 'featured' && "Enter up to 5 URLs (one per line). We'll fetch the title, description, and other details automatically using AI."}
                 </p>
                 <div className="mt-4 bg-gradient-to-r from-[#4FFFE3]/10 to-[#E0FF04]/10 rounded-lg p-4 border border-[#4FFFE3]/30">
                   <p className="text-white font-ubuntu text-sm mb-2">
-                    <strong className="text-[#4FFFE3]">{userTier === 'free' ? 'Free' : userTier === 'basic' ? 'Basic' : 'Premium'} Tier Includes:</strong>
+                    <strong className="text-[#4FFFE3]">{userTier === 'featured' ? 'Featured' : 'Free'} Tier Includes:</strong>
                   </p>
                   <ul className="text-white/70 text-sm font-ubuntu space-y-1 ml-4">
                     {userTier === 'free' && (
                       <>
+                        <li>• Dofollow backlink</li>
                         <li>• 1 software listing</li>
                         <li>• Basic listing page</li>
                         <li>• Community visibility</li>
                         <li>• Standard review time (7-10 days)</li>
+                        <li className="text-yellow-400">⚠️ Expires after 90 days (renewable)</li>
                       </>
                     )}
-                    {userTier === 'basic' && (
+                    {userTier === 'featured' && (
                       <>
+                        <li className="text-[#4FFFE3] font-semibold">• No expiration - Permanent listings</li>
+                        <li>• Dofollow backlink</li>
                         <li>• Up to 5 software listings</li>
                         <li>• Featured badge on listings</li>
                         <li>• Priority review (2-3 days)</li>
@@ -560,32 +687,16 @@ export default function SubmitPage() {
                         <li>• Social media mentions</li>
                       </>
                     )}
-                    {userTier === 'premium' && (
-                      <>
-                        <li>• Unlimited software listings</li>
-                        <li>• Homepage featured spot</li>
-                        <li>• Same-day review</li>
-                        <li>• Advanced analytics dashboard</li>
-                        <li>• Newsletter feature (200K+ subscribers)</li>
-                        <li>• Dedicated account manager</li>
-                        <li>• SEO optimization support</li>
-                      </>
-                    )}
                   </ul>
                 </div>
-                {userTier !== 'premium' && (
+                {userTier === 'free' && (
                   <div className="mt-4 bg-[#4a4a4a] rounded-lg p-4 border border-[#E0FF04]/20">
                     <p className="text-white/70 text-sm font-ubuntu flex items-start gap-2">
                       <span className="text-[#E0FF04] text-lg">⭐</span>
                       <span>
                         <strong className="text-white">Need more?</strong>
                         <br />
-                        {userTier === 'free' && (
-                          <>Upgrade to <span className="text-[#E0FF04]">Basic</span> for 5 URLs and priority review, or <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
-                        )}
-                        {userTier === 'basic' && (
-                          <>Upgrade to <span className="text-[#E0FF04]">Premium</span> for unlimited listings, same-day review, homepage featuring, newsletter inclusion (200K+ subscribers), and dedicated support!</>
-                        )}
+                        Upgrade to <span className="text-[#E0FF04]">Featured</span> for permanent listings (no expiration), 5 URLs, priority review, featured badge, and analytics!
                       </span>
                     </p>
                   </div>
@@ -596,8 +707,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-6 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p
@@ -629,47 +740,58 @@ export default function SubmitPage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 {submissions.map((submission, index) => (
-                  <div key={index} className="bg-[#3a3a3a] rounded-2xl p-6 flex items-start gap-4">
-                    {submission.logo && (
-                      <div className="w-16 h-16 rounded-lg bg-white p-2 flex-shrink-0">
+                  <div key={index} className="bg-[#3a3a3a] rounded-2xl p-6">
+                    <div className="flex items-start gap-4 mb-4">
+                      {submission.logo && (
+                        <div className="w-16 h-16 rounded-lg bg-white p-2 flex-shrink-0">
+                          <img
+                            src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
+                            alt={submission.title}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-white font-ubuntu text-xl font-bold mb-2">{submission.title}</h3>
+                        <p className="text-white/70 font-ubuntu text-sm mb-2">{submission.url}</p>
+                        <p className="text-white/60 font-ubuntu text-sm line-clamp-2">{submission.description}</p>
+                        <div className="flex flex-wrap gap-2 mt-3">
+                          <span className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu">
+                            {submission.category}
+                          </span>
+                          {submission.tags.slice(0, 3).map((tag, tagIndex) => (
+                            <span key={tagIndex} className="px-3 py-1 bg-white/10 text-white/70 rounded-full text-xs font-ubuntu">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleEditSubmission(index)}
+                          className="px-4 py-2 bg-[#4a4a4a] text-white rounded-lg hover:bg-[#555555] transition-colors font-ubuntu text-sm"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubmission(index)}
+                          className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-ubuntu text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                    {submission.image && (
+                      <div className="rounded-lg overflow-hidden">
                         <img
-                          src={supabase.storage.from('software-logos').getPublicUrl(submission.logo).data.publicUrl}
-                          alt={submission.title}
-                          className="w-full h-full object-contain"
+                          src={supabase.storage.from('software-images').getPublicUrl(submission.image).data.publicUrl}
+                          alt={`${submission.title} preview`}
+                          className="w-full h-48 object-cover"
                         />
                       </div>
                     )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-white font-ubuntu text-xl font-bold mb-2">{submission.title}</h3>
-                      <p className="text-white/70 font-ubuntu text-sm mb-2">{submission.url}</p>
-                      <p className="text-white/60 font-ubuntu text-sm line-clamp-2">{submission.description}</p>
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        <span className="px-3 py-1 bg-[#4FFFE3]/20 text-[#4FFFE3] rounded-full text-xs font-ubuntu">
-                          {submission.category}
-                        </span>
-                        {submission.tags.slice(0, 3).map((tag, tagIndex) => (
-                          <span key={tagIndex} className="px-3 py-1 bg-white/10 text-white/70 rounded-full text-xs font-ubuntu">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <div className="flex gap-2 flex-shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleEditSubmission(index)}
-                        className="px-4 py-2 bg-[#4a4a4a] text-white rounded-lg hover:bg-[#555555] transition-colors font-ubuntu text-sm"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveSubmission(index)}
-                        className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors font-ubuntu text-sm"
-                      >
-                        Remove
-                      </button>
-                    </div>
                   </div>
                 ))}
               </div>
@@ -678,8 +800,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-4 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p
@@ -921,8 +1043,8 @@ export default function SubmitPage() {
                 <div
                   className={`rounded-2xl p-4 ${
                     message.type === 'success'
-                      ? 'bg-[#4FFFE3]/10 border border-[#4FFFE3]'
-                      : 'bg-red-400/10 border border-red-400'
+                      ? 'bg-[#1a4d45] border-2 border-[#4FFFE3]'
+                      : 'bg-[#4d1a1a] border-2 border-red-400'
                   }`}
                 >
                   <p

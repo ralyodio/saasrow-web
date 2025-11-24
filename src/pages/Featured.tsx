@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import { DiscountPopup } from '../components/DiscountPopup'
+import { Alert } from '../components/Alert'
 import { supabase } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 export default function FeaturedPage() {
   const [billingPeriod, setBillingPeriod] = useState<'yearly' | 'monthly'>('yearly')
@@ -13,14 +15,28 @@ export default function FeaturedPage() {
   const [email, setEmail] = useState('')
   const [pendingPlan, setPendingPlan] = useState<typeof pricingPlans[0] | null>(null)
   const [pendingDiscount, setPendingDiscount] = useState<string | undefined>(undefined)
+  const [alertMessage, setAlertMessage] = useState<{ type: 'success' | 'error' | 'info' | 'warning'; message: string } | null>(null)
+  const [newsletterEmail, setNewsletterEmail] = useState('')
+  const [isSubmittingNewsletter, setIsSubmittingNewsletter] = useState(false)
 
   useEffect(() => {
+    const storedEmail = sessionStorage.getItem('userEmail')
+    if (storedEmail) {
+      setEmail(storedEmail)
+    }
+
     const urlParams = new URLSearchParams(window.location.search)
     const success = urlParams.get('success')
     const cancelled = urlParams.get('cancelled')
     const plan = urlParams.get('plan')
+    const tier = urlParams.get('tier')
+    const userEmail = urlParams.get('email')
 
     if (success === 'true') {
+      if (tier && userEmail) {
+        localStorage.setItem('pendingTier', tier)
+        sessionStorage.setItem('userEmail', userEmail)
+      }
       window.location.href = '/submit'
       return
     }
@@ -41,20 +57,24 @@ export default function FeaturedPage() {
       monthlyPriceId: null,
       yearlyPriceId: null,
       features: [
+        'Dofollow backlink',
         'Submit 1 software listing',
         'Basic listing page',
         'Community visibility',
         'Standard review time (7-10 days)',
+        '⚠️ Expires after 90 days (renewable)',
       ],
     },
     {
-      name: 'Basic',
+      name: 'Featured',
       description: 'For growing companies',
       monthlyPrice: 2,
       yearlyPrice: 19.2,
       monthlyPriceId: 'price_1SLuVoEfmU4X8cUlYucpStOt',
       yearlyPriceId: 'price_1SLuWrEfmU4X8cUlwxalZJsT',
       features: [
+        '✅ No expiration - Permanent listings',
+        'Dofollow backlink',
         'Up to 5 software listings',
         'Featured badge on listings',
         'Priority review (2-3 days)',
@@ -71,6 +91,8 @@ export default function FeaturedPage() {
       monthlyPriceId: 'price_1SLuXuEfmU4X8cUllzHZ8zt8',
       yearlyPriceId: 'price_1SLuYiEfmU4X8cUlttdoOo8j',
       features: [
+        '✅ No expiration - Permanent listings',
+        'Dofollow backlink',
         'Unlimited software listings',
         'Homepage featured spot',
         'Same-day review',
@@ -120,22 +142,79 @@ export default function FeaturedPage() {
       return
     }
 
+    trackEvent(analyticsEvents.LISTING_UPGRADE_INITIATED, {
+      plan: plan.name,
+      billing_period: billingPeriod,
+      has_discount: !!discountCode,
+    });
+
     setPendingPlan(plan)
     setPendingDiscount(discountCode)
     setShowEmailModal(true)
   }
 
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newsletterEmail || isSubmittingNewsletter) return
+
+    setIsSubmittingNewsletter(true)
+
+    try {
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/newsletter`
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({ email: newsletterEmail }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setAlertMessage({
+          type: 'success',
+          message: 'Success! Check your email for your 50% discount code.'
+        })
+        setNewsletterEmail('')
+      } else {
+        setAlertMessage({
+          type: 'error',
+          message: data.error || 'Failed to subscribe. Please try again.'
+        })
+      }
+    } catch (error) {
+      console.error('Newsletter subscription error:', error)
+      setAlertMessage({
+        type: 'error',
+        message: 'Something went wrong. Please try again.'
+      })
+    } finally {
+      setIsSubmittingNewsletter(false)
+    }
+  }
+
   const proceedToCheckout = async () => {
     if (!pendingPlan || !email) return
 
+    sessionStorage.setItem('userEmail', email)
     setProcessingPlan(pendingPlan.name)
     setShowEmailModal(false)
 
     try {
       const priceId = billingPeriod === 'yearly' ? pendingPlan.yearlyPriceId : pendingPlan.monthlyPriceId
+      const tier = pendingPlan.name.toLowerCase()
       const currentUrl = window.location.origin + '/featured'
-      const successUrl = `${currentUrl}?success=true`
-      const cancelUrl = `${currentUrl}?cancelled=true&plan=${pendingPlan.name.toLowerCase()}`
+      const successUrl = `${currentUrl}?success=true&tier=${tier}&email=${encodeURIComponent(email)}`
+      const cancelUrl = `${currentUrl}?cancelled=true&plan=${tier}&period=${billingPeriod}`
+
+      const getCookie = (name: string) => {
+        const value = `; ${document.cookie}`
+        const parts = value.split(`; ${name}=`)
+        if (parts.length === 2) return parts.pop()?.split(';').shift()
+        return undefined
+      }
 
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/stripe-checkout`
       const response = await fetch(apiUrl, {
@@ -151,19 +230,27 @@ export default function FeaturedPage() {
           mode: 'subscription',
           discount_code: pendingDiscount,
           customer_email: email,
+          datafast_visitor_id: getCookie('datafast_visitor_id'),
+          datafast_session_id: getCookie('datafast_session_id'),
         }),
       })
 
       const data = await response.json()
 
       if (response.ok && data.url) {
+        trackEvent(analyticsEvents.LISTING_UPGRADE_COMPLETED, {
+          plan: pendingPlan.name,
+          email: email,
+          billing_period: billingPeriod,
+          has_discount: !!pendingDiscount,
+        });
         window.location.href = data.url
       } else {
-        alert(`Failed to create checkout session: ${data.error || 'Unknown error'}`)
+        setAlertMessage({ type: 'error', message: `Failed to create checkout session: ${data.error || 'Unknown error'}` })
       }
     } catch (error) {
       console.error('Checkout error:', error)
-      alert('Something went wrong. Please try again.')
+      setAlertMessage({ type: 'error', message: 'Something went wrong. Please try again.' })
     } finally {
       setProcessingPlan(null)
       setPendingPlan(null)
@@ -183,6 +270,38 @@ export default function FeaturedPage() {
 
       <div className="relative z-10">
         <Header />
+
+        <div className="w-full bg-gradient-to-r from-[#E0FF04] to-[#4FFFE3] py-4 px-4">
+          <div className="max-w-[1200px] mx-auto">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-wrap md:flex-nowrap">
+                <div className="bg-neutral-800 rounded-full px-4 py-1 text-white font-ubuntu font-bold text-sm whitespace-nowrap">
+                  LIMITED OFFER
+                </div>
+                <p className="text-neutral-800 font-ubuntu font-bold text-lg">
+                  Subscribe to our newsletter and get 50% OFF all plans - applies to all recurring payments!
+                </p>
+              </div>
+              <form onSubmit={handleNewsletterSubmit} className="flex gap-2 w-full md:w-auto">
+                <input
+                  type="email"
+                  value={newsletterEmail}
+                  onChange={(e) => setNewsletterEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="px-4 py-2 rounded-full bg-neutral-800 text-white font-ubuntu outline-none focus:ring-2 focus:ring-white placeholder:text-neutral-400 min-w-[280px]"
+                  disabled={isSubmittingNewsletter}
+                />
+                <button
+                  type="submit"
+                  disabled={isSubmittingNewsletter || !newsletterEmail}
+                  className="px-6 py-2 rounded-full bg-neutral-800 text-white font-ubuntu font-bold hover:bg-neutral-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap border-2 border-white"
+                >
+                  {isSubmittingNewsletter ? 'Subscribing...' : 'Get 50% OFF'}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
 
         <section className="w-full max-w-[1200px] mx-auto px-4 py-12 text-center">
           <h1 className="text-white text-5xl font-bold font-ubuntu mb-4">
@@ -304,7 +423,9 @@ export default function FeaturedPage() {
       {showDiscountPopup && (
         <DiscountPopup
           onClose={() => setShowDiscountPopup(false)}
-          onApplyDiscount={() => {
+          currentBillingPeriod={billingPeriod}
+          onApplyDiscount={(selectedBillingPeriod) => {
+            setBillingPeriod(selectedBillingPeriod)
             setShowDiscountPopup(false)
             const plan = pricingPlans.find(p => p.name.toLowerCase() === selectedPlan)
             if (plan) {
@@ -358,6 +479,14 @@ export default function FeaturedPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {alertMessage && (
+        <Alert
+          type={alertMessage.type}
+          message={alertMessage.message}
+          onClose={() => setAlertMessage(null)}
+        />
       )}
     </div>
   )

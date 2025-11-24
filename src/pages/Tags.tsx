@@ -18,6 +18,11 @@ interface Submission {
   image?: string
   category: string
   tags: string[]
+  upvotes?: number
+  downvotes?: number
+  view_count?: number
+  tier?: string
+  created_at?: string
 }
 
 export default function TagsPage() {
@@ -25,6 +30,7 @@ export default function TagsPage() {
   const [tags, setTags] = useState<TagCount[]>([])
   const [software, setSoftware] = useState<Submission[]>([])
   const [loading, setLoading] = useState(true)
+  const [sortBy, setSortBy] = useState('popularity')
 
   useEffect(() => {
     if (tag) {
@@ -71,6 +77,44 @@ export default function TagsPage() {
     }
   }
 
+  const sortSubmissions = (data: Submission[], sort: string) => {
+    return [...data].sort((a, b) => {
+      const tierPriority = { premium: 3, featured: 2, free: 1 }
+      const aTierPriority = tierPriority[a.tier as keyof typeof tierPriority] || 1
+      const bTierPriority = tierPriority[b.tier as keyof typeof tierPriority] || 1
+
+      if (aTierPriority !== bTierPriority) {
+        return bTierPriority - aTierPriority
+      }
+
+      switch (sort) {
+        case 'popularity':
+        case 'top-rated':
+          const aVotes = (a.upvotes || 0) - (a.downvotes || 0)
+          const bVotes = (b.upvotes || 0) - (b.downvotes || 0)
+          const aViews = a.view_count || 0
+          const bViews = b.view_count || 0
+          const aScore = aVotes * 10 + aViews
+          const bScore = bVotes * 10 + bViews
+          return bScore - aScore
+        case 'newest':
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime()
+        case 'name-asc':
+          return a.title.localeCompare(b.title)
+        case 'name-desc':
+          return b.title.localeCompare(a.title)
+        default:
+          return 0
+      }
+    })
+  }
+
+  useEffect(() => {
+    if (software.length > 0) {
+      setSoftware(sortSubmissions(software, sortBy))
+    }
+  }, [sortBy])
+
   const fetchSoftwareByTag = async (tagName: string) => {
     try {
       const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
@@ -90,7 +134,7 @@ export default function TagsPage() {
           sub.tags.some(t => t.toLowerCase() === tagName.toLowerCase())
         )
 
-        setSoftware(filtered)
+        setSoftware(sortSubmissions(filtered, sortBy))
       }
     } catch (error) {
       console.error('Failed to fetch software:', error)
@@ -126,6 +170,22 @@ export default function TagsPage() {
                 {software.length} {software.length === 1 ? 'app' : 'apps'} tagged with "{tag}"
               </p>
             </div>
+
+            {!loading && software.length > 0 && (
+              <div className="flex justify-end mb-6">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="px-4 py-2 bg-[#3a3a3a] text-white rounded-lg font-ubuntu border border-white/10 focus:outline-none focus:border-[#4FFFE3]"
+                >
+                  <option value="popularity">Most Popular</option>
+                  <option value="top-rated">Top Rated</option>
+                  <option value="newest">Newest</option>
+                  <option value="name-asc">Name (A-Z)</option>
+                  <option value="name-desc">Name (Z-A)</option>
+                </select>
+              </div>
+            )}
 
             {loading ? (
               <div className="text-center py-12">

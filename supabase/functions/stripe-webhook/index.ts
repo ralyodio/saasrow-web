@@ -15,7 +15,6 @@ const supabase = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPAB
 
 Deno.serve(async (req) => {
   try {
-    // Handle OPTIONS request for CORS preflight
     if (req.method === 'OPTIONS') {
       return new Response(null, { status: 204 });
     }
@@ -24,17 +23,14 @@ Deno.serve(async (req) => {
       return new Response('Method not allowed', { status: 405 });
     }
 
-    // get the signature from the header
     const signature = req.headers.get('stripe-signature');
 
     if (!signature) {
       return new Response('No signature found', { status: 400 });
     }
 
-    // get the raw body
     const body = await req.text();
 
-    // verify the webhook signature
     let event: Stripe.Event;
 
     try {
@@ -44,9 +40,14 @@ Deno.serve(async (req) => {
       return new Response(`Webhook signature verification failed: ${error.message}`, { status: 400 });
     }
 
-    EdgeRuntime.waitUntil(handleEvent(event));
+    // Process the event asynchronously but don't block the response
+    // Wrap in a self-executing async function to avoid blocking
+    handleEvent(event).catch((error) => {
+      console.error('Error handling webhook event:', error);
+    });
 
-    return Response.json({ received: true });
+    // Return success immediately so Stripe knows we received it
+    return Response.json({ received: true }, { status: 200 });
   } catch (error: any) {
     console.error('Error processing webhook:', error);
     return Response.json({ error: error.message }, { status: 500 });
@@ -64,7 +65,6 @@ async function handleEvent(event: Stripe.Event) {
     return;
   }
 
-  // for one time payments, we only listen for the checkout.session.completed event
   if (event.type === 'payment_intent.succeeded' && event.data.object.invoice === null) {
     return;
   }
@@ -77,11 +77,62 @@ async function handleEvent(event: Stripe.Event) {
     let isSubscription = true;
 
     if (event.type === 'checkout.session.completed') {
-      const { mode } = stripeData as Stripe.Checkout.Session;
+      const checkoutSession = stripeData as Stripe.Checkout.Session;
+      const { mode } = checkoutSession;
 
       isSubscription = mode === 'subscription';
 
       console.info(`Processing ${isSubscription ? 'subscription' : 'one-time payment'} checkout session`);
+
+      // Store order record for billing history
+      if (checkoutSession.payment_intent && checkoutSession.payment_status === 'paid') {
+        const { error: orderError } = await supabase.from('stripe_orders').insert({
+          checkout_session_id: checkoutSession.id,
+          payment_intent_id: typeof checkoutSession.payment_intent === 'string'
+            ? checkoutSession.payment_intent
+            : checkoutSession.payment_intent.id,
+          customer_id: customerId,
+          amount_subtotal: checkoutSession.amount_subtotal || 0,
+          amount_total: checkoutSession.amount_total || 0,
+          currency: checkoutSession.currency || 'usd',
+          payment_status: checkoutSession.payment_status,
+          status: 'completed',
+        });
+
+        if (orderError) {
+          console.error('Error inserting order record:', orderError);
+        } else {
+          console.info(`Created order record for session ${checkoutSession.id}`);
+        }
+      }
+    }
+
+    // Handle recurring invoice payments
+    if (event.type === 'invoice.payment_succeeded') {
+      const invoice = stripeData as Stripe.Invoice;
+
+      if (invoice.subscription && invoice.billing_reason === 'subscription_cycle') {
+        console.info(`Processing recurring subscription payment for invoice ${invoice.id}`);
+
+        const { error: orderError } = await supabase.from('stripe_orders').insert({
+          checkout_session_id: invoice.id,
+          payment_intent_id: typeof invoice.payment_intent === 'string'
+            ? invoice.payment_intent
+            : invoice.payment_intent?.id || invoice.id,
+          customer_id: customerId,
+          amount_subtotal: invoice.subtotal || 0,
+          amount_total: invoice.amount_paid || 0,
+          currency: invoice.currency || 'usd',
+          payment_status: 'paid',
+          status: 'completed',
+        });
+
+        if (orderError) {
+          console.error('Error inserting recurring payment order:', orderError);
+        } else {
+          console.info(`Created order record for recurring invoice ${invoice.id}`);
+        }
+      }
     }
 
     if (isSubscription) {
@@ -91,10 +142,8 @@ async function handleEvent(event: Stripe.Event) {
   }
 }
 
-// based on the excellent https://github.com/t3dotgg/stripe-recommendations
 async function syncCustomerFromStripe(customerId: string) {
   try {
-    // fetch latest subscription data from Stripe
     const subscriptions = await stripe.subscriptions.list({
       customer: customerId,
       limit: 1,
@@ -102,7 +151,6 @@ async function syncCustomerFromStripe(customerId: string) {
       expand: ['data.default_payment_method'],
     });
 
-    // TODO verify if needed
     if (subscriptions.data.length === 0) {
       console.info(`No active subscriptions found for customer: ${customerId}`);
       const { error: noSubError } = await supabase.from('stripe_subscriptions').upsert(
@@ -122,11 +170,12 @@ async function syncCustomerFromStripe(customerId: string) {
       return;
     }
 
-    // assumes that a customer can only have a single subscription
     const subscription = subscriptions.data[0];
     const priceId = subscription.items.data[0].price.id;
 
-    // store subscription state
+    const customer = await stripe.customers.retrieve(customerId);
+    const customerEmail = customer && !customer.deleted && customer.email ? customer.email : null;
+
     const { error: subError } = await supabase.from('stripe_subscriptions').upsert(
       {
         customer_id: customerId,
@@ -135,6 +184,7 @@ async function syncCustomerFromStripe(customerId: string) {
         current_period_start: subscription.current_period_start,
         current_period_end: subscription.current_period_end,
         cancel_at_period_end: subscription.cancel_at_period_end,
+        email: customerEmail,
         ...(subscription.default_payment_method && typeof subscription.default_payment_method !== 'string'
           ? {
               payment_method_brand: subscription.default_payment_method.card?.brand ?? null,
@@ -153,45 +203,71 @@ async function syncCustomerFromStripe(customerId: string) {
       throw new Error('Failed to sync subscription in database');
     }
 
-    // Get customer email and create/update user token
-    const customer = await stripe.customers.retrieve(customerId);
-    if (customer && !customer.deleted && customer.email) {
-      // Determine tier based on price_id
-      let tier = 'basic';
+    if (customerEmail) {
+      let tier = 'featured';
       if (priceId.toLowerCase().includes('premium')) {
         tier = 'premium';
       }
 
-      // Only create/update token if subscription is active
       const isActiveSubscription = ['active', 'trialing'].includes(subscription.status);
 
       if (isActiveSubscription) {
         const { data: existingToken } = await supabase
           .from('user_tokens')
           .select('token, tier')
-          .eq('email', customer.email)
+          .eq('email', customerEmail)
           .maybeSingle();
 
         if (!existingToken) {
           const { data: newToken, error: tokenError } = await supabase
             .from('user_tokens')
-            .insert({ email: customer.email, tier })
+            .insert({ email: customerEmail, tier })
             .select()
             .maybeSingle();
 
           if (tokenError) {
             console.error('Error creating user token:', tokenError);
           } else if (newToken) {
-            console.info(`Created user token for ${customer.email} with tier: ${tier}`);
+            console.info(`Created user token for ${customerEmail} with tier: ${tier}`);
             const managementUrl = `${Deno.env.get('SITE_URL') || 'http://localhost:5173'}/manage/${newToken.token}`;
             console.log('Management URL:', managementUrl);
+
+            const { error: upgradeError } = await supabase
+              .from('software_submissions')
+              .update({ tier })
+              .eq('email', customerEmail);
+
+            if (upgradeError) {
+              console.error(`Error upgrading submissions for ${customerEmail}:`, upgradeError);
+            } else {
+              console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
+            }
+
+            try {
+              const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-notification`
+              await fetch(notificationUrl, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  type: 'new_subscription',
+                  data: {
+                    email: customerEmail,
+                    tier,
+                  },
+                }),
+              })
+              console.log(`Admin notification sent for new ${tier} subscription`)
+            } catch (notificationError) {
+              console.error('Error sending admin notification:', notificationError)
+            }
           }
         } else {
           const oldTier = existingToken.tier;
 
-          // Only update if tier changed
           if (oldTier !== tier) {
-            // Cancel old subscriptions before updating tier
             try {
               const oldSubscriptions = await stripe.subscriptions.list({
                 customer: customerId,
@@ -199,7 +275,6 @@ async function syncCustomerFromStripe(customerId: string) {
                 limit: 100,
               });
 
-              // Cancel all subscriptions except the current one
               for (const oldSub of oldSubscriptions.data) {
                 if (oldSub.id !== subscription.id) {
                   await stripe.subscriptions.cancel(oldSub.id);
@@ -207,37 +282,54 @@ async function syncCustomerFromStripe(customerId: string) {
                 }
               }
             } catch (cancelError) {
-              console.error(`Error cancelling old subscriptions for ${customer.email}:`, cancelError);
+              console.error(`Error cancelling old subscriptions for ${customerEmail}:`, cancelError);
             }
 
             await supabase
               .from('user_tokens')
               .update({ tier })
-              .eq('email', customer.email);
-            console.info(`Updated tier for ${customer.email} from ${oldTier} to: ${tier}`);
+              .eq('email', customerEmail);
+            console.info(`Updated tier for ${customerEmail} from ${oldTier} to: ${tier}`);
 
-            // Upgrade all existing submissions to the new tier (only if upgrading)
-            const tierLevels = { basic: 1, premium: 2 };
-            const isUpgrade = tierLevels[tier as 'basic' | 'premium'] > tierLevels[oldTier as 'basic' | 'premium'];
+            const tierLevels = { featured: 1, premium: 2 };
+            const isUpgrade = tierLevels[tier as 'featured' | 'premium'] > tierLevels[oldTier as 'featured' | 'premium'];
 
             if (isUpgrade) {
               const { error: upgradeError } = await supabase
                 .from('software_submissions')
                 .update({ tier })
-                .eq('email', customer.email);
+                .eq('email', customerEmail);
 
               if (upgradeError) {
-                console.error(`Error upgrading submissions for ${customer.email}:`, upgradeError);
+                console.error(`Error upgrading submissions for ${customerEmail}:`, upgradeError);
               } else {
-                console.info(`Upgraded all submissions for ${customer.email} to tier: ${tier}`);
+                console.info(`Upgraded all submissions for ${customerEmail} to tier: ${tier}`);
               }
+            }
+
+            try {
+              const notificationUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/send-admin-notification`
+              await fetch(notificationUrl, {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${Deno.env.get('SUPABASE_ANON_KEY')}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  type: 'new_subscription',
+                  data: {
+                    email: customerEmail,
+                    tier,
+                  },
+                }),
+              })
+              console.log(`Admin notification sent for new ${tier} subscription`)
+            } catch (notificationError) {
+              console.error('Error sending admin notification:', notificationError)
             }
           }
         }
       } else if (['canceled', 'past_due', 'unpaid'].includes(subscription.status)) {
-        // Handle cancelled/inactive subscriptions - revert to free tier
-
-        // Revert all submissions to free tier
         const { error: revertError } = await supabase
           .from('software_submissions')
           .update({
@@ -249,24 +341,23 @@ async function syncCustomerFromStripe(customerId: string) {
             social_media_mentions: false,
             category_logo_enabled: false
           })
-          .eq('email', customer.email);
+          .eq('email', customerEmail);
 
         if (revertError) {
-          console.error(`Error reverting submissions to free tier for ${customer.email}:`, revertError);
+          console.error(`Error reverting submissions to free tier for ${customerEmail}:`, revertError);
         } else {
-          console.info(`Reverted all submissions to free tier for ${customer.email}`);
+          console.info(`Reverted all submissions to free tier for ${customerEmail}`);
         }
 
-        // Remove user token
         const { error: deleteError } = await supabase
           .from('user_tokens')
           .delete()
-          .eq('email', customer.email);
+          .eq('email', customerEmail);
 
         if (deleteError) {
-          console.error(`Error removing user token for ${customer.email}:`, deleteError);
+          console.error(`Error removing user token for ${customerEmail}:`, deleteError);
         } else {
-          console.info(`Removed user token for ${customer.email} due to subscription status: ${subscription.status}`);
+          console.info(`Removed user token for ${customerEmail} due to subscription status: ${subscription.status}`);
         }
       }
     }

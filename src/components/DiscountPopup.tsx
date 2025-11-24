@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react'
 
 interface DiscountPopupProps {
   onClose: () => void
-  onApplyDiscount: () => void
+  onApplyDiscount: (billingPeriod: 'yearly' | 'monthly') => void
+  currentBillingPeriod: 'yearly' | 'monthly'
 }
 
-export function DiscountPopup({ onClose, onApplyDiscount }: DiscountPopupProps) {
+export function DiscountPopup({ onClose, onApplyDiscount, currentBillingPeriod }: DiscountPopupProps) {
   const [copied, setCopied] = useState(false)
+  const [billingPeriod, setBillingPeriod] = useState<'yearly' | 'monthly'>(currentBillingPeriod)
 
   useEffect(() => {
     document.body.style.overflow = 'hidden'
@@ -52,6 +54,37 @@ export function DiscountPopup({ onClose, onApplyDiscount }: DiscountPopupProps) 
           </p>
         </div>
 
+        <div className="mb-6">
+          <p className="text-white/60 font-ubuntu text-sm mb-3 text-center">
+            Choose your billing period:
+          </p>
+          <div className="flex gap-3 mb-4">
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              className={`flex-1 py-3 px-4 rounded-xl font-ubuntu font-medium transition-all ${
+                billingPeriod === 'monthly'
+                  ? 'bg-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#3a3a3a] text-white/70 hover:text-white'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingPeriod('yearly')}
+              className={`flex-1 py-3 px-4 rounded-xl font-ubuntu font-medium transition-all ${
+                billingPeriod === 'yearly'
+                  ? 'bg-[#4FFFE3] text-neutral-800'
+                  : 'bg-[#3a3a3a] text-white/70 hover:text-white'
+              }`}
+            >
+              <div>
+                Yearly
+                <span className="block text-xs opacity-70">Save 20%</span>
+              </div>
+            </button>
+          </div>
+        </div>
+
         <div className="bg-black/30 rounded-2xl p-6 mb-6 border border-[#4FFFE3]/30">
           <p className="text-white/60 font-ubuntu text-sm mb-3 text-center">
             Use this exclusive discount code:
@@ -81,7 +114,7 @@ export function DiscountPopup({ onClose, onApplyDiscount }: DiscountPopupProps) 
 
         <div className="space-y-3">
           <button
-            onClick={onApplyDiscount}
+            onClick={() => onApplyDiscount(billingPeriod)}
             className="w-full py-4 rounded-full bg-gradient-to-b from-[#E0FF04] to-[#4FFFE3] text-neutral-800 font-ubuntu font-bold text-lg hover:opacity-90 transition-opacity"
           >
             Apply Discount & Continue

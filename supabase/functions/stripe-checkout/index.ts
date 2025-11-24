@@ -39,7 +39,7 @@ Deno.serve(async (req) => {
       return corsResponse({ error: 'Method not allowed' }, 405);
     }
 
-    const { price_id, success_url, cancel_url, mode, discount_code, customer_email } = await req.json();
+    const { price_id, success_url, cancel_url, mode, discount_code, customer_email, datafast_visitor_id, datafast_session_id } = await req.json();
 
     const error = validateParameters(
       { price_id, success_url, cancel_url, mode },
@@ -66,38 +66,38 @@ Deno.serve(async (req) => {
       mode,
       success_url,
       cancel_url,
+      metadata: {},
     };
 
     if (customer_email) {
       sessionParams.customer_email = customer_email;
     }
 
+    if (datafast_visitor_id) {
+      sessionParams.metadata.datafast_visitor_id = datafast_visitor_id;
+    }
+
+    if (datafast_session_id) {
+      sessionParams.metadata.datafast_session_id = datafast_session_id;
+    }
+
     if (discount_code === '50OFF') {
       try {
-        let couponId = null;
+        const promotionCodes = await stripe.promotionCodes.list({
+          code: '50OFF',
+          limit: 1,
+        });
 
-        for await (const coupon of stripe.coupons.list({ limit: 100 })) {
-          if (coupon.id === '50OFF') {
-            couponId = coupon.id;
-            break;
-          }
+        if (promotionCodes.data.length > 0) {
+          sessionParams.discounts = [{ promotion_code: promotionCodes.data[0].id }];
+          console.log('Applied 50OFF promotion code to checkout session');
+        } else {
+          console.error('50OFF promotion code not found');
+          sessionParams.allow_promotion_codes = true;
         }
-
-        if (!couponId) {
-          const newCoupon = await stripe.coupons.create({
-            id: '50OFF',
-            percent_off: 50,
-            duration: 'forever',
-            name: '50% Off Discount',
-          });
-          couponId = newCoupon.id;
-          console.log('Created new 50OFF coupon');
-        }
-
-        sessionParams.discounts = [{ coupon: couponId }];
-        console.log('Applied 50OFF discount to checkout session');
-      } catch (couponError) {
-        console.error('Error applying discount code:', couponError);
+      } catch (promoError) {
+        console.error('Error applying promotion code:', promoError);
+        sessionParams.allow_promotion_codes = true;
       }
     } else {
       sessionParams.allow_promotion_codes = true;
@@ -105,7 +105,7 @@ Deno.serve(async (req) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
-    console.log(`Created checkout session ${session.id}`);
+    console.log(`Created checkout session ${session.id} with datafast attribution`);
 
     return corsResponse({ sessionId: session.id, url: session.url });
   } catch (error: any) {

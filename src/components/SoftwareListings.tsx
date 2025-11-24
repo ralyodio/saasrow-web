@@ -15,6 +15,9 @@ interface Software {
   tier?: string
   featured?: boolean
   homepage_featured?: boolean
+  upvotes?: number
+  downvotes?: number
+  view_count?: number
 }
 
 interface SoftwareListingsProps {
@@ -42,22 +45,31 @@ export function SoftwareListings({
 
   const fetchListings = async () => {
     try {
-      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions`
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/submissions?t=${Date.now()}`
+      console.log('Fetching from:', apiUrl)
+
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
         },
       })
 
+      console.log('Response status:', response.status)
+
       if (response.ok) {
         const result = await response.json()
+        console.log('Received data:', result)
         setListings(result.data || [])
       } else {
-        setError('Failed to load software listings')
+        const errorText = await response.text()
+        console.error('Error response:', errorText)
+        setError(`Failed to load software listings: ${response.status}`)
       }
     } catch (err) {
-      setError('Something went wrong')
+      console.error('Fetch error:', err)
+      setError(`Something went wrong: ${err instanceof Error ? err.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -110,6 +122,16 @@ export function SoftwareListings({
       return matchesSearch && matchesCategory && matchesTags && matchesFilter
     })
     .sort((a, b) => {
+      // First sort by tier (premium > featured > free)
+      const tierPriority = { premium: 3, featured: 2, free: 1 }
+      const aTierPriority = tierPriority[a.tier as keyof typeof tierPriority] || 1
+      const bTierPriority = tierPriority[b.tier as keyof typeof tierPriority] || 1
+
+      if (aTierPriority !== bTierPriority) {
+        return bTierPriority - aTierPriority
+      }
+
+      // Then apply user-selected sort
       switch (selectedSort) {
         case 'Newest':
           return new Date(b.submitted_at || 0).getTime() - new Date(a.submitted_at || 0).getTime()
@@ -119,6 +141,13 @@ export function SoftwareListings({
           return b.title.localeCompare(a.title)
         case 'Most Popular':
         case 'Top Rated':
+          const aVotes = (a.upvotes || 0) - (a.downvotes || 0)
+          const bVotes = (b.upvotes || 0) - (b.downvotes || 0)
+          const aViews = a.view_count || 0
+          const bViews = b.view_count || 0
+          const aScore = aVotes * 10 + aViews
+          const bScore = bVotes * 10 + bViews
+          return bScore - aScore
         default:
           return 0
       }

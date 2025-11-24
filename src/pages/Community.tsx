@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Header } from '../components/Header'
 import { Footer } from '../components/Footer'
 import type { CommunityPost } from '../lib/supabase'
+import { trackEvent, analyticsEvents } from '../lib/analytics'
 
 export default function CommunityPage() {
   const [posts, setPosts] = useState<CommunityPost[]>([])
@@ -50,6 +51,9 @@ export default function CommunityPage() {
       })
 
       if (response.ok) {
+        trackEvent(analyticsEvents.COMMUNITY_POST_CREATED, {
+          post_id: postId,
+        });
         setPosts((prev) =>
           prev.map((post) =>
             post.id === postId ? { ...post, likes: currentLikes + 1 } : post

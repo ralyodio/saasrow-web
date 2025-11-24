@@ -17,47 +17,12 @@ Deno.serve(async (req: Request) => {
     }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const adminEmail = Deno.env.get('ADMIN_EMAIL')!;
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
+    console.log('Received request, parsing body...');
+    const { topic, tone = 'casual', email } = await req.json();
 
-    const supabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    });
-
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        {
-          status: 401,
-          headers: {
-            ...corsHeaders,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
-    }
-
-    if (user.email !== adminEmail) {
+    if (!email || email !== adminEmail) {
       return new Response(
         JSON.stringify({ error: 'Forbidden: Admin access required' }),
         {
@@ -69,9 +34,6 @@ Deno.serve(async (req: Request) => {
         }
       );
     }
-
-    console.log('Received request, parsing body...');
-    const { topic } = await req.json();
     console.log('Topic received:', topic);
 
     if (!topic || typeof topic !== 'string') {
@@ -103,17 +65,49 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log('Generating content for topic:', topic);
-    const prompt = `Write a detailed, professional blog post about: ${topic}
+    console.log('Generating content for topic:', topic, 'tone:', tone);
 
-The post should be about software, technology, productivity, or SaaS-related topics.
+    const toneInstructions = {
+      casual: `Write like you're explaining something to a colleague over coffee. Use contractions (it's, you're, don't), natural phrasing, and an approachable tone. Include occasional informal expressions where appropriate.`,
+      professional: `Write in a polished, balanced style suitable for a business audience. Professional but not stuffy. Clear, direct, and authoritative without being dry or academic.`,
+      technical: `Write for a technically-savvy audience. Include detailed explanations, specific technical concepts, and assume the reader has domain knowledge. Be precise and thorough without oversimplifying.`
+    };
+
+    const prompt = `Write a blog post about: ${topic}
+
+TONE: ${toneInstructions[tone as keyof typeof toneInstructions]}
+
+CRITICAL RULES (NEVER BREAK THESE):
+- NEVER use em dashes (—) or en dashes (–). Use hyphens (-) or commas instead
+- NEVER use emojis anywhere in the content
+- No special unicode characters or fancy punctuation
+
+STYLE GUIDELINES:
+- Vary sentence length - mix short punchy sentences with longer flowing ones
+- Start some sentences with "And" or "But" if it flows naturally
+- Don't be afraid to use sentence fragments for emphasis
+- Write naturally, not robotically
+
+AVOID THESE AI TELLS:
+- No "in this article, we'll explore..." or "in conclusion" phrases
+- Skip robotic transitions like "firstly, secondly, finally"
+- Don't start paragraphs with "It's important to note that..."
+- Avoid overused words: "delve into", "realm", "landscape", "revolutionize", "game-changer", "robust", "seamless"
+- No bullet points that all follow identical grammatical structure
+- Skip overly balanced "on one hand... on the other hand" constructions
+- No "the bottom line is..." or similar summary phrases
+
+CONTENT STRUCTURE:
+- Start with a hook or interesting observation, not a formal introduction
+- 3-5 sections with natural headings (not "Introduction" or "Conclusion")
+- Mix explanations with examples and specific details
+- End with something thought-provoking or actionable, not a summary recap
+- Total length: 500-700 words
 
 Return a JSON object with:
-- title: A compelling title (50-80 characters)
-- excerpt: A brief summary (120-160 characters)
-- content: Full HTML content with proper <h2>, <p>, <ul>, <li> tags. Include 3-5 sections with descriptive headings.
-
-Make the content informative, engaging, and at least 500 words. Use proper HTML formatting but NO markdown.`;
+- title: A compelling, natural-sounding title (40-70 characters) - no colons or "The Ultimate Guide" style
+- excerpt: A hook that makes people want to read more (120-160 characters)
+- content: Full HTML with <h2>, <p>, <ul>, <li> tags. Write like a human, not a content template.`;
 
     console.log('Calling OpenAI API...');
     const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -127,14 +121,14 @@ Make the content informative, engaging, and at least 500 words. Use proper HTML 
         messages: [
           {
             role: 'system',
-            content: 'You are a professional tech writer specializing in software and SaaS content. Always respond with valid JSON only.'
+            content: 'You are an experienced tech blogger with a casual, authentic writing voice. Write like a real person sharing genuine insights, not like an AI following a template. Your writing should have personality and feel conversational. Always respond with valid JSON only.'
           },
           {
             role: 'user',
             content: prompt
           }
         ],
-        temperature: 0.8,
+        temperature: 0.9,
         response_format: { type: 'json_object' }
       }),
     });
@@ -162,7 +156,7 @@ Make the content informative, engaging, and at least 500 words. Use proper HTML 
     const generatedContent = JSON.parse(openAIData.choices[0].message.content);
     console.log('Generated content:', generatedContent.title);
 
-    const slug = topic
+    const slug = generatedContent.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
