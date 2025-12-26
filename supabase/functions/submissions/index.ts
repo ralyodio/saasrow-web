@@ -99,7 +99,14 @@ Deno.serve(async (req: Request) => {
         }
 
         const userId = data[0].user_id
-        const email = data[0].email
+
+        const { data: contactData } = await supabase
+          .from('submission_contacts')
+          .select('email')
+          .eq('submission_id', data[0].id)
+          .maybeSingle()
+
+        const email = contactData?.email || ''
 
         return new Response(
           JSON.stringify({ data, email, userId }),
@@ -261,7 +268,6 @@ Deno.serve(async (req: Request) => {
           title,
           url,
           description,
-          email,
           category,
           tags: tags || [],
           logo,
@@ -282,6 +288,17 @@ Deno.serve(async (req: Request) => {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           }
         )
+      }
+
+      const { error: contactError } = await supabase
+        .from('submission_contacts')
+        .insert({
+          submission_id: submission.id,
+          email,
+        })
+
+      if (contactError) {
+        console.error('Contact insert error:', contactError)
       }
 
       if (socialLinks && Array.isArray(socialLinks) && socialLinks.length > 0) {
