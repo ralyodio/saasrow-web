@@ -156,7 +156,10 @@ Deno.serve(async (req: Request) => {
 
       let query = client
         .from('software_submissions')
-        .select(includeAll ? '*' : publicFields)
+        .select(includeAll ? `
+          *,
+          submission_contacts!inner(email)
+        ` : publicFields)
         .order('created_at', { ascending: false })
         .limit(50)
 

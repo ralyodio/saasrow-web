@@ -17,6 +17,9 @@ interface Submission {
   logo?: string
   image?: string
   tags?: string[]
+  submission_contacts?: {
+    email: string
+  }
 }
 
 interface NewsPost {
@@ -252,7 +255,11 @@ export default function AdminPage() {
 
       if (response.ok) {
         const result = await response.json()
-        setSubmissions(result.data || [])
+        const transformedData = (result.data || []).map((sub: any) => ({
+          ...sub,
+          email: sub.submission_contacts?.email || ''
+        }))
+        setSubmissions(transformedData)
       } else {
         console.error('Failed to fetch submissions:', await response.text())
       }
@@ -415,7 +422,13 @@ export default function AdminPage() {
     try {
       const { data: submissions, error: submissionsError } = await supabase
         .from('software_submissions')
-        .select('email, tier, created_at, submitted_at')
+        .select(`
+          id,
+          tier,
+          created_at,
+          submitted_at,
+          submission_contacts!inner(email)
+        `)
         .order('created_at', { ascending: false })
 
       if (submissionsError) throw submissionsError
@@ -436,11 +449,13 @@ export default function AdminPage() {
 
       const emailMap = new Map<string, User>()
 
-      submissions?.forEach(sub => {
-        const email = sub.email.toLowerCase()
+      submissions?.forEach((sub: any) => {
+        const email = sub.submission_contacts?.email?.toLowerCase()
+        if (!email) return
+
         if (!emailMap.has(email)) {
           emailMap.set(email, {
-            email: sub.email,
+            email: sub.submission_contacts.email,
             tier: (sub.tier as 'free' | 'featured' | 'premium') || 'free',
             created_at: sub.created_at,
             expires_at: null,
@@ -533,12 +548,20 @@ export default function AdminPage() {
             if (error) throw error
           }
 
-          const { error: updateSubmissionsError } = await supabase
-            .from('software_submissions')
-            .update({ tier: newTier })
+          const { data: contacts } = await supabase
+            .from('submission_contacts')
+            .select('submission_id')
             .eq('email', email)
 
-          if (updateSubmissionsError) throw updateSubmissionsError
+          if (contacts && contacts.length > 0) {
+            const submissionIds = contacts.map(c => c.submission_id)
+            const { error: updateSubmissionsError } = await supabase
+              .from('software_submissions')
+              .update({ tier: newTier })
+              .in('id', submissionIds)
+
+            if (updateSubmissionsError) throw updateSubmissionsError
+          }
 
           setAlertMessage({ type: 'success', message: `User upgraded to ${newTier} successfully!` })
           fetchUsers()
@@ -565,12 +588,20 @@ export default function AdminPage() {
 
           if (deleteTokenError) throw deleteTokenError
 
-          const { error: updateSubmissionsError } = await supabase
-            .from('software_submissions')
-            .update({ tier: 'free' })
+          const { data: contacts } = await supabase
+            .from('submission_contacts')
+            .select('submission_id')
             .eq('email', email)
 
-          if (updateSubmissionsError) throw updateSubmissionsError
+          if (contacts && contacts.length > 0) {
+            const submissionIds = contacts.map(c => c.submission_id)
+            const { error: updateSubmissionsError } = await supabase
+              .from('software_submissions')
+              .update({ tier: 'free' })
+              .in('id', submissionIds)
+
+            if (updateSubmissionsError) throw updateSubmissionsError
+          }
 
           setAlertMessage({ type: 'success', message: 'User downgraded to free tier successfully!' })
           fetchUsers()
@@ -590,13 +621,13 @@ export default function AdminPage() {
       onConfirm: async () => {
         setConfirmDialog(null)
         try {
-          const { data: userSubmissions } = await supabase
-            .from('software_submissions')
-            .select('id')
+          const { data: contacts } = await supabase
+            .from('submission_contacts')
+            .select('submission_id')
             .eq('email', email)
 
-          if (userSubmissions && userSubmissions.length > 0) {
-            const submissionIds = userSubmissions.map(s => s.id)
+          if (contacts && contacts.length > 0) {
+            const submissionIds = contacts.map(c => c.submission_id)
 
             await supabase
               .from('social_links')
@@ -615,6 +646,11 @@ export default function AdminPage() {
 
             await supabase
               .from('submission_screenshots')
+              .delete()
+              .in('submission_id', submissionIds)
+
+            await supabase
+              .from('submission_contacts')
               .delete()
               .in('submission_id', submissionIds)
 
@@ -684,10 +720,25 @@ export default function AdminPage() {
 
     if (!userSubmissions[email]) {
       try {
+        const { data: contacts } = await supabase
+          .from('submission_contacts')
+          .select('submission_id')
+          .eq('email', email)
+
+        if (!contacts || contacts.length === 0) {
+          setUserSubmissions(prev => ({
+            ...prev,
+            [email]: []
+          }))
+          return
+        }
+
+        const submissionIds = contacts.map(c => c.submission_id)
+
         const { data, error } = await supabase
           .from('software_submissions')
           .select('*')
-          .eq('email', email)
+          .in('id', submissionIds)
           .order('created_at', { ascending: false })
 
         if (error) throw error
