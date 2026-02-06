@@ -420,32 +420,23 @@ export default function AdminPage() {
   const fetchUsers = async () => {
     setLoadingUsers(true)
     try {
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('software_submissions')
-        .select(`
-          id,
-          tier,
-          created_at,
-          submitted_at,
-          submission_contacts!inner(email)
-        `)
-        .order('created_at', { ascending: false })
+      const apiUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-admin-users`
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+      })
 
-      if (submissionsError) throw submissionsError
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to fetch users')
+      }
 
-      const { data: tokens, error: tokensError } = await supabase
-        .from('user_tokens')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (tokensError) throw tokensError
-
-      const { data: subscriptions, error: subsError } = await supabase
-        .from('stripe_subscriptions')
-        .select('customer_id, status, current_period_end, cancel_at_period_end')
-        .is('deleted_at', null)
-
-      if (subsError) throw subsError
+      const result = await response.json()
+      const submissions = result.submissions
+      const tokens = result.tokens
+      const subscriptions = result.subscriptions
 
       const emailMap = new Map<string, User>()
 
